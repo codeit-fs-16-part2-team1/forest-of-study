@@ -1,0 +1,410 @@
+# 공부의 숲 API v0.7 — ADR-043~048
+# 문서용 예시. 요청을 실행하지 않았다. 실제서버주소·UUID·서버응답토큰/키로교체한다.
+# 비밀번호/토큰/키는 테스트용 값. 실제값을 커밋하지 않는다.
+# Authorization은일반토큰, X-Timer-Key는활성타이머전용. X-Study-Password/attemptNumber/READY계약폐기.
+@baseUrl = http://localhost:3000/api
+@studyId = 11111111-1111-4111-8111-111111111111
+@focusId = 22222222-2222-4222-8222-222222222222
+@habitId = 33333333-3333-4333-8333-333333333333
+@browserId = 44444444-4444-4444-8444-444444444444
+@otherStudyId = 55555555-5555-4555-8555-555555555555
+@accessToken = REPLACE_WITH_SERVER_TOKEN
+@expiredToken = REPLACE_WITH_EXPIRED_TOKEN
+@timerKey = REPLACE_WITH_SERVER_TIMER_KEY
+@oldTimerKey = REPLACE_WITH_REPLACED_KEY
+@stateVersion = 1
+# 각 응답 focus.stateVersion으로 교체한다. 상태 전환 후 값이 증가한다.
+@oldStateVersion = 1
+@todayDate = 2026-10-10
+# todayDate는 서버 한국 날짜로 교체. 시작/복구 응답의 timerKey를 복사한다.
+
+### API-ST-02 생성
+# 201 Study. 배경 생략은 첫 초록색.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "Forest123!",
+  "passwordConfirm": "Forest123!"
+}
+
+### API-ST-01 목록
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
+Accept: application/json
+
+### API-ST-01 6개 더보기
+GET {{baseUrl}}/studies?offset=6&limit=6&sort=latest
+Accept: application/json
+
+### API-ST-01 검색3필드·포인트정렬
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=points_desc&keyword=%EA%B3%B5%EB%B6%80
+Accept: application/json
+
+### API-ST-01 적은포인트
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=points_asc
+Accept: application/json
+
+### API-ST-01 오래된순
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=oldest
+Accept: application/json
+
+### API-ST-08 최근ID다건
+# 200 입력순·삭제ID제외. 동적ID라우트보다먼저매칭.
+GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}}
+Accept: application/json
+
+### API-ST-03 상세
+GET {{baseUrl}}/studies/{{studyId}}
+Accept: application/json
+
+### API-AU-01 일반토큰발급
+# 200 accessToken/expiresAt을복사. 다음한국자정만료.
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "Forest123!"
+}
+
+### API-ST-04 수정
+PATCH {{baseUrl}}/studies/{{studyId}}
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "함께 공부해요",
+  "background": "green"
+}
+
+### API-HB-01 오늘목록
+GET {{baseUrl}}/studies/{{studyId}}/habits
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### API-HB-02 생성
+POST {{baseUrl}}/studies/{{studyId}}/habits
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "물 2L 마시기"
+}
+
+### API-HB-03 이름수정
+PATCH {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "물 마시기"
+}
+
+### API-HB-05 체크
+PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "date": "{{todayDate}}",
+  "completed": true
+}
+
+### API-HB-05 해제
+PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "date": "{{todayDate}}",
+  "completed": false
+}
+
+### API-HB-04 종료
+# 204 종료일포함기록보존. 목록숨김·추가조작금지.
+DELETE {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### API-ST-06 주간표
+# 종료일포함·사용기간과조회주겹침.
+GET {{baseUrl}}/studies/{{studyId}}/habit-records?weekStart=2026-10-05
+Accept: application/json
+
+### API-ST-07 응원
+# COUNT DESC → 최초시각 ASC → 이모지 ASC, 상위3.
+POST {{baseUrl}}/studies/{{studyId}}/reactions
+Accept: application/json
+Content-Type: application/json
+
+{
+  "browserId": "{{browserId}}",
+  "emoji": "🔥"
+}
+
+### API-FC-01 일반토큰조회
+GET {{baseUrl}}/studies/{{studyId}}/focus
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### API-FC-02 새집중
+# 201 새focusId·timerKey복사. 초기화후Start도항상새행.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "durationMinutes": 10
+}
+
+### API-FC-01 키조회·자정후유지
+# 일반토큰없이키의활성집중조회.
+GET {{baseUrl}}/studies/{{studyId}}/focus
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+
+### API-FC-07 연결확인
+# 15초간격. 90초확인누락시만료. 만료후PAUSED·갱신없음.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### API-FC-03 수동정지
+# 지급없음.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}},
+  "reason": "manual"
+}
+
+### API-FC-04 재개
+# 같은행·같은키·정지시간제외.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/resume
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### API-FC-03 수동정지 재확인
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}},
+  "reason": "manual"
+}
+
+### API-FC-05 초기화
+# PAUSED만. 경과정산·RESET종료·키폐기. 다음Start는새행.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### API-FC-05 종료재확인
+# 이미RESET인동일행만200신규0P. 일반토큰필요.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### API-FC-06 목표완료
+# 별도RUNNING테스트행·목표도달후. 원장+총점동일트랜잭션·COMPLETED·키폐기.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### API-FC-06 완료재확인
+# 이미COMPLETED인동일행200신규0P.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+
+### API-AU-02 명시적조작권복구
+# 활성행만. 비밀번호재검증·새키발급/구키무효. 자동재개없음.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/ownership
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "Forest123!"
+}
+
+### API-FC-07 복구전구키거절
+# 401 INVALID_TIMER_KEY, 상태/확인시각/포인트변경없음.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
+Accept: application/json
+X-Timer-Key: {{oldTimerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### 다른브라우저타이머조작차단
+# 401 TIMER_KEY_REQUIRED. 일반토큰만으로조작불가.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reason": "manual"
+}
+
+### 동시새시작차단
+# 활성행존재시409 FOCUS_CONFLICT.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "durationMinutes": 20
+}
+
+### 진행중초기화거절
+# RUNNING이면409 INVALID_FOCUS_STATE.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### 조기완료거절
+# 목표전409 FOCUS_NOT_FINISHED.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
+
+### 자정일반토큰만료
+# 401 VERIFICATION_EXPIRED. 활성키의heartbeat는별도유효.
+GET {{baseUrl}}/studies/{{studyId}}/habits
+Accept: application/json
+Authorization: Bearer {{expiredToken}}
+
+### 변조토큰거절
+# 401 INVALID_TOKEN.
+GET {{baseUrl}}/studies/{{studyId}}/habits
+Accept: application/json
+Authorization: Bearer INVALID_TOKEN
+
+### 비밀번호오답
+# 401 PASSWORD_MISMATCH.
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "Wrong123!"
+}
+
+### 습관21글자거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies/{{studyId}}/habits
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "가가가가가가가가가가가가가가가가가가가가가"
+}
+
+### 응원중복
+# 동일행이이미있으면409 REACTION_POLICY_CONFLICT.
+POST {{baseUrl}}/studies/{{studyId}}/reactions
+Accept: application/json
+Content-Type: application/json
+
+{
+  "browserId": "{{browserId}}",
+  "emoji": "🔥"
+}
+
+### 옛날짜체크거절
+# 해당행미종료·서버오늘이아닐때409 DATE_CHANGED.
+PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+Accept: application/json
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "date": "2026-10-01",
+  "completed": true
+}
+
+### API-ST-05 삭제
+# 204 Cascade. 비밀번호재확인유지. 테스트데이터에서만수동실행.
+DELETE {{baseUrl}}/studies/{{studyId}}
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "Forest123!"
+}
+
+### API-FC-03 오래된 정지 차단
+# 정지/재개로 버전이 올라간 뒤 이전 요청이 도착하면409 STALE_FOCUS_STATE.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{oldStateVersion}},
+  "reason": "manual"
+}
+
+### API-FC-07 만료 발견·늦은 확인
+# 마지막 확인 후90초 이상이면 먼저PAUSED·버전증가·신규지급0. heartbeat는200 PAUSED.
+# 재개하지 않고 시각을 소급 연장하지 않는다.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
+Accept: application/json
+X-Timer-Key: {{timerKey}}
+Content-Type: application/json
+
+{
+  "stateVersion": {{stateVersion}}
+}
