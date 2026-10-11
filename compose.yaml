@@ -1,0 +1,23 @@
+# 로컬 개발용 PostgreSQL. Neon 배포 설정과 분리한다.
+services:
+  db:
+    image: postgres:18
+    container_name: forest-of-study-db
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: forest-of-study
+      POSTGRES_USER: forest-of-study
+      POSTGRES_PASSWORD: forest-of-study-local
+    volumes:
+      # PostgreSQL 18 공식 이미지의 버전별 데이터 디렉터리를 보존한다.
+      - forest-of-study-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  forest-of-study-data:

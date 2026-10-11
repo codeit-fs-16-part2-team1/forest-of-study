@@ -2,6 +2,10 @@
 // 문서용 스키마 초안. 연결·생성·migration 실행 없음.
 // VerificationToken 테이블 없음. 일반 인증은 서명 토큰, 타이머 조작은 전용 키 해시.
 // DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
 }
