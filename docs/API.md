@@ -2,7 +2,7 @@
 
 - 버전: 0.9 DB 용어 통일 초안 · 2026-10-12 (Asia/Seoul)
 - 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~054; 습관·응원·조회는 ADR-045~046.
-- 요청 예시: [api.http](../api/api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
+- 요청 예시: [api.http](../api/requests/api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
 - 이전 Authorization·X-Timer-Key·stateVersion·Heartbeat·조작권 복구·초기화 보상 계약은 폐기한다. API-AU-02·API-FC-07 ID는 재사용하지 않는다. brief.md 원문은 보존한다.
@@ -27,28 +27,49 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 모든 경로는 /api 뒤에 붙는다. /studies/batch는 동적 /studies/{studyId}보다 먼저 라우팅한다.
 
-| API ID | Method | Path | 기능 | 접근 | 성공 |
-| --- | --- | --- | --- | --- | --- |
-| API-ST-01 | GET | /studies | 목록·검색·정렬·offset | 공개 | 200 |
-| API-ST-02 | POST | /studies | 스터디 생성 | 공개 | 201 |
-| API-ST-03 | GET | /studies/{studyId} | 상세·상위 응원 | 공개 | 200 |
-| API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 비밀번호 헤더 | 200 |
-| API-ST-05 | DELETE | /studies/{studyId} | 스터디·연결 데이터 삭제 | 삭제 모달 비밀번호 | 204 |
-| API-ST-06 | GET | /studies/{studyId}/routine-histories | 주간 기록표 | 공개 | 200 |
-| API-ST-07 | POST | /studies/{studyId}/reactions | 응원 추가 | 공개 | 200 |
-| API-ST-08 | GET | /studies/batch | 최근 조회용 ID 다건 조회 | 공개 | 200 |
-| API-AU-01 | POST | /studies/{studyId}/password-verifications | 페이지 진입 비밀번호 검증 | 비밀번호 본문 | 200 |
-| API-HB-01 | GET | /studies/{studyId}/routines | 오늘 목록 | 비밀번호 헤더 | 200 |
-| API-HB-02 | POST | /studies/{studyId}/routines | 습관 생성 | 비밀번호 헤더 | 201 |
-| API-HB-03 | PATCH | /studies/{studyId}/routines/{routineId} | 이름 수정 | 비밀번호 헤더 | 200 |
-| API-HB-04 | DELETE | /studies/{studyId}/routines/{routineId} | 종료 | 비밀번호 헤더 | 204 |
-| API-HB-05 | PUT | /studies/{studyId}/routines/{routineId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 |
-| API-FC-01 | GET | /studies/{studyId}/challenges/current | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 |
-| API-FC-02 | POST | /studies/{studyId}/challenges | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 |
-| API-FC-03 | POST | /studies/{studyId}/challenges/{challengeId}/pause | 사용자 일시정지 | 비밀번호 헤더 | 200 |
-| API-FC-04 | POST | /studies/{studyId}/challenges/{challengeId}/resume | 정지된 집중 재개 | 비밀번호 헤더 | 200 |
-| API-FC-05 | POST | /studies/{studyId}/challenges/{challengeId}/reset | 무지급·RESET 종료 | 비밀번호 헤더 | 200 |
-| API-FC-06 | POST | /studies/{studyId}/challenges/{challengeId}/complete | 목표 완료·지급 | 비밀번호 헤더 | 200 |
+| API ID | Method | Path | 기능 | 접근 | 성공 | 중간 우선순위 | 담당 이슈 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| API-ST-01 | GET | /studies | 목록·검색·정렬·offset | 공개 | 200 | P0 기본 / P2 확장 | ISS-009, ISS-021 |
+| API-ST-02 | POST | /studies | 스터디 생성 | 공개 | 201 | P0 | ISS-008 |
+| API-ST-03 | GET | /studies/{studyId} | 상세·상위 응원 | 공개 | 200 | P0 상세 / P2 응원 | ISS-009, ISS-023 |
+| API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 비밀번호 헤더 | 200 | - | ISS-010 |
+| API-ST-05 | DELETE | /studies/{studyId} | 스터디·연결 데이터 삭제 | 삭제 모달 비밀번호 | 204 | - | ISS-010 |
+| API-ST-06 | GET | /studies/{studyId}/routine-histories | 주간 기록표 | 공개 | 200 | P0 | ISS-014 |
+| API-ST-07 | POST | /studies/{studyId}/reactions | 응원 추가 | 공개 | 200 | P2 | ISS-023 |
+| API-ST-08 | GET | /studies/batch | 최근 조회용 ID 다건 조회 | 공개 | 200 | P2 | ISS-022(API) |
+| API-AU-01 | POST | /studies/{studyId}/password-verifications | 페이지 진입 비밀번호 검증 | 비밀번호 본문 | 200 | P1 | ISS-007 |
+| API-HB-01 | GET | /studies/{studyId}/routines | 오늘 목록 | 비밀번호 헤더 | 200 | P0 | ISS-011 |
+| API-HB-02 | POST | /studies/{studyId}/routines | 습관 생성 | 비밀번호 헤더 | 201 | P0 | ISS-011 |
+| API-HB-03 | PATCH | /studies/{studyId}/routines/{routineId} | 이름 수정 | 비밀번호 헤더 | 200 | - | ISS-013 |
+| API-HB-04 | DELETE | /studies/{studyId}/routines/{routineId} | 종료 | 비밀번호 헤더 | 204 | - | ISS-013 |
+| API-HB-05 | PUT | /studies/{studyId}/routines/{routineId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 | P0 | ISS-012 |
+| API-FC-01 | GET | /studies/{studyId}/challenges/current | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 | P0 | ISS-015 |
+| API-FC-02 | POST | /studies/{studyId}/challenges | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 | P0 | ISS-015 |
+| API-FC-03 | POST | /studies/{studyId}/challenges/{challengeId}/pause | 사용자 일시정지 | 비밀번호 헤더 | 200 | - | ISS-016 |
+| API-FC-04 | POST | /studies/{studyId}/challenges/{challengeId}/resume | 정지된 집중 재개 | 비밀번호 헤더 | 200 | - | ISS-016 |
+| API-FC-05 | POST | /studies/{studyId}/challenges/{challengeId}/reset | 무지급·RESET 종료 | 비밀번호 헤더 | 200 | - | ISS-017 |
+| API-FC-06 | POST | /studies/{studyId}/challenges/{challengeId}/complete | 목표 완료·지급 | 비밀번호 헤더 | 200 | P0 완료 / P1 검증 | ISS-018, ISS-028 |
+
+### 중간점검 구현 범위와 이슈 매칭 — ADR-055
+
+10/13~15 구현, 10/16 발표. 프론트 없이 `api/requests/api.http`로 시연한다. 아래 우선순위는 구현 범위 배정이며 경로·필드·응답·실패·보호 조건 변경이 아니다. P1이 미구현인 상태를 계약 충족으로 보고하지 않는다.
+
+| 중간점검 작업 | 분류·우선순위 | API 계약 ID | 이슈 |
+| --- | --- | --- | --- |
+| Express·Prisma·PostgreSQL 연결·migration | Must / P0 | 공통 기반 | ISS-001, ISS-004, ISS-005 |
+| 스터디 생성 → 목록 → 상세 | Must / P0 | API-ST-02 → API-ST-01 → API-ST-03 | ISS-008, ISS-009 |
+| 습관 생성 → 오늘 목록 → 체크 → 주간 기록 | Must / P0 | API-HB-02 → API-HB-01 → API-HB-05 → API-ST-06 | ISS-011, ISS-012, ISS-014 |
+| 집중 시작 → 상태 → 완료 → 포인트 조회 | Must / P0 | API-FC-02 → API-FC-01 → API-FC-06 → API-ST-03 | ISS-015, ISS-018 |
+| api.http 시연 순서·변수·예상 응답 | Must / P0 | 위 핵심 API 흐름 | ISS-027 |
+| API 흐름 인수 검증 | Must / P0 | 위 핵심 API 흐름 + 공통 P1 | ISS-030 |
+| 공통 응답·오류 처리, 입력 검증 | Should / P1 | 전체 대상 API의 공통 계약 | ISS-006, ISS-029 |
+| 비밀번호 확인·보호 요청 검증 | Should / P1 | API-AU-01 + 보호 API 헤더 검증 | ISS-007 |
+| 완료 조건 서버 검증·포인트 중복 지급 방지 | Should / P1 | API-FC-06 | ISS-028 |
+| 검색·정렬·더보기 | Could / P2 | API-ST-01의 확장 조회 | ISS-021 |
+| 스터디 ID 다건 조회 | Could / P2 | API-ST-08 | ISS-022의 API 부분 |
+| 응원 등록·상위 반응 조회 | Could / P2 | API-ST-07, API-ST-03의 응원 집계 | ISS-023 |
+
+범위 밖 API-ST-04/05, API-HB-03/04, API-FC-03/04/05의 중간 우선순위는 `-`다. 계약은 후속 구현을 위해 보존한다. API-ST-01은 기본 목록 P0 / 검색·정렬·offset 확장 P2, API-ST-03은 상세·총점 P0 / 상위 응원 집계 P2, API-FC-06은 완료·지급 흐름 P0 / 서버 완료 검증·중복 방지 P1로 나눠 추적한다. 보호 요청의 헤더는 그대로 유지한다. 별도 포인트 조회 API는 추가하지 않으며 API-ST-03 또는 API-FC-01의 points를 사용한다.
 
 ## 3. 데이터 모양
 

@@ -10,8 +10,36 @@
 @browserId = 44444444-4444-4444-8444-444444444444
 @otherStudyId = 55555555-5555-4555-8555-555555555555
 @studyPassword = Forest123!
-@todayDate = 2026-10-12
-# studyId/routineId/challengeId는 실제 생성 응답 ID, todayDate는 서버 한국 날짜로 교체한다.
+@todayDate = 2026-10-16
+@weekStart = 2026-10-12
+# studyId/routineId/challengeId는 실제 생성 응답 ID로 교체한다.
+# todayDate는 실행 시 서버 한국 날짜, weekStart는 그 날짜를 포함하는 명시적 조회 시작일로 교체한다.
+#
+# 중간점검: 10/13~15 구현, 10/16 발표 (ADR-055 / ISS-027·030)
+# 아래 기존 요청 중 지정한 제목을 순서대로 개별 실행한다. 파일 전체 일괄 실행은 하지 않는다.
+# P0 시연 순서 / 예상 상태·응답 / 다음 요청에 전달할 값:
+# 1. API-ST-02 생성: 201 data.id → studyId에 복사. Study.points 초기값 0.
+# 2. API-ST-01 목록: 200 data 배열에서 생성 ID 확인. 기본 조회만 P0, 확장 쿼리는 P2.
+# 3. API-ST-03 상세: 200 data의 동일 ID·points 확인.
+# 4. API-AU-01 페이지 진입 비밀번호 확인: 200 data.verified=true (P1).
+#    이후 보호 요청마다 X-Study-Password를 전달한다. 검증 성공 응답은 인증 증표가 아니다.
+# 5. API-HB-02 생성: 201 data.id → routineId에 복사.
+# 6. API-HB-01 오늘목록: 200 data.recordDate → todayDate 확인, data.routines에 생성 습관.
+# 7. API-HB-05 체크: 200 기록의 completed=true.
+# 8. API-ST-06 주간표: 200 data.routines의 해당 ID·오늘 cells.completed=true.
+# 9. API-FC-02 새집중: 201 data.challenge.id → challengeId에 복사, status=RUNNING.
+# 10. API-FC-01 현재 집중 조회: 200 같은 challenge.id·남은 시간·points 확인.
+# 11. 실제 10분 목표 도달 후 API-FC-06 목표완료: 200 COMPLETED,
+#     challenge.awardedPoints=4·settlement.awardedPoints=4.
+# 12. API-ST-03 상세 재실행: 200 points가 완료 전보다 4 증가.
+# P1 확인: 비밀번호오답(401 PASSWORD_MISMATCH), 습관21글자거절(400 VALIDATION_ERROR),
+# 조기완료거절(목표 도달 전 409 CHALLENGE_NOT_FINISHED),
+# API-FC-06 완료재확인(200 이번 settlement 지급 0·총점 불변).
+# 조기 완료는 10번과 11번 사이, 반복 완료는 11번 이후 같은 challengeId로 실행한다.
+# 실제 10분 경과가 필요하므로 발표 전에 시작하거나 시연 시간을 확보한다. 검증 우회 금지.
+# P2: 검색·정렬·더보기, 최근ID다건, 응원·상위 집계.
+# 중간 범위 밖: 수정·삭제·습관 종료·집중 정지/재개/초기화 요청. 계약 예시는 아래에 보존한다.
+# 이 파일 작성은 서버 구현이나 실제 요청 실행 완료를 의미하지 않는다.
 
 ### API-ST-02 생성
 # 201 Study. 배경 생략은 첫 초록색.
@@ -146,7 +174,7 @@ X-Study-Password: {{studyPassword}}
 
 ### API-ST-06 주간표
 # 종료일포함·사용기간과조회주겹침.
-GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=2026-10-05
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{weekStart}}
 Accept: application/json
 
 ### API-ST-07 응원
