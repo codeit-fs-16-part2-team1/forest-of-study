@@ -2,10 +2,15 @@
   "name": "api",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "src/app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "node --watch --env-file=.env app.js",
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:check": "node scripts/check-db.js",
     "seed": "node --env-file=.env seed.js",
     "test": "vitest run"
   },

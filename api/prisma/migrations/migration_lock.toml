@@ -1,0 +1,2 @@
+# 같은 migration 이력을 각 팀원의 로컬 PostgreSQL에 적용한다.
+provider = "postgresql"
