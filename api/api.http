@@ -1,22 +1,17 @@
-# 공부의 숲 API v0.7 — ADR-043~048
-# 문서용 예시. 요청을 실행하지 않았다. 실제서버주소·UUID·서버응답토큰/키로교체한다.
-# 비밀번호/토큰/키는 테스트용 값. 실제값을 커밋하지 않는다.
-# Authorization은일반토큰, X-Timer-Key는활성타이머전용. X-Study-Password/attemptNumber/READY계약폐기.
+# 공부의 숲 API v0.8 — docs/API.md / ADR-051~053
+# 문서용 수동 요청 예시. 서버 구현・요청 실행・DB 적용은 하지 않았다.
+# 아래 비밀번호는 테스트용 가상 값이다. 실제 비밀번호를 커밋하지 않는다.
+# 보호 요청은 X-Study-Password, 진입 검증·삭제·생성은 본문 비밀번호.
+# 각 요청을 개별 실행하며 RESET 경로와 COMPLETED 경로는 서로 다른 집중으로 검증한다.
 @baseUrl = http://localhost:3000/api
 @studyId = 11111111-1111-4111-8111-111111111111
 @focusId = 22222222-2222-4222-8222-222222222222
 @habitId = 33333333-3333-4333-8333-333333333333
 @browserId = 44444444-4444-4444-8444-444444444444
 @otherStudyId = 55555555-5555-4555-8555-555555555555
-@accessToken = REPLACE_WITH_SERVER_TOKEN
-@expiredToken = REPLACE_WITH_EXPIRED_TOKEN
-@timerKey = REPLACE_WITH_SERVER_TIMER_KEY
-@oldTimerKey = REPLACE_WITH_REPLACED_KEY
-@stateVersion = 1
-# 각 응답 focus.stateVersion으로 교체한다. 상태 전환 후 값이 증가한다.
-@oldStateVersion = 1
-@todayDate = 2026-10-10
-# todayDate는 서버 한국 날짜로 교체. 시작/복구 응답의 timerKey를 복사한다.
+@studyPassword = Forest123!
+@todayDate = 2026-10-12
+# studyId/habitId/focusId는 실제 생성 응답 ID, todayDate는 서버 한국 날짜로 교체한다.
 
 ### API-ST-02 생성
 # 201 Study. 배경 생략은 첫 초록색.
@@ -28,27 +23,32 @@ Content-Type: application/json
   "nickname": "연우",
   "name": "개발공장",
   "introduction": "매일 공부해요",
-  "password": "Forest123!",
-  "passwordConfirm": "Forest123!"
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
 }
 
 ### API-ST-01 목록
+# 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
 Accept: application/json
 
 ### API-ST-01 6개 더보기
+# 기대 상태 200.
 GET {{baseUrl}}/studies?offset=6&limit=6&sort=latest
 Accept: application/json
 
 ### API-ST-01 검색3필드·포인트정렬
+# 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=points_desc&keyword=%EA%B3%B5%EB%B6%80
 Accept: application/json
 
 ### API-ST-01 적은포인트
+# 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=points_asc
 Accept: application/json
 
 ### API-ST-01 오래된순
+# 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=oldest
 Accept: application/json
 
@@ -58,23 +58,25 @@ GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}}
 Accept: application/json
 
 ### API-ST-03 상세
+# 기대 상태 200.
 GET {{baseUrl}}/studies/{{studyId}}
 Accept: application/json
 
-### API-AU-01 일반토큰발급
-# 200 accessToken/expiresAt을복사. 다음한국자정만료.
+### API-AU-01 페이지 진입 비밀번호 확인
+# 200 {data:{verified:true}}. 토큰 없음. 이후 요청도 비밀번호 헤더 필수.
 POST {{baseUrl}}/studies/{{studyId}}/password-verifications
 Accept: application/json
 Content-Type: application/json
 
 {
-  "password": "Forest123!"
+  "password": "{{studyPassword}}"
 }
 
 ### API-ST-04 수정
+# 기대 상태 200.
 PATCH {{baseUrl}}/studies/{{studyId}}
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -85,14 +87,16 @@ Content-Type: application/json
 }
 
 ### API-HB-01 오늘목록
+# 기대 상태 200.
 GET {{baseUrl}}/studies/{{studyId}}/habits
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 
 ### API-HB-02 생성
+# 기대 상태 201.
 POST {{baseUrl}}/studies/{{studyId}}/habits
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -100,9 +104,10 @@ Content-Type: application/json
 }
 
 ### API-HB-03 이름수정
+# 기대 상태 200.
 PATCH {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -110,9 +115,10 @@ Content-Type: application/json
 }
 
 ### API-HB-05 체크
+# 기대 상태 200.
 PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -121,9 +127,10 @@ Content-Type: application/json
 }
 
 ### API-HB-05 해제
+# 기대 상태 200.
 PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -135,7 +142,7 @@ Content-Type: application/json
 # 204 종료일포함기록보존. 목록숨김·추가조작금지.
 DELETE {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 
 ### API-ST-06 주간표
 # 종료일포함·사용기간과조회주겹침.
@@ -153,144 +160,70 @@ Content-Type: application/json
   "emoji": "🔥"
 }
 
-### API-FC-01 일반토큰조회
+### API-FC-01 현재 집중 조회
 GET {{baseUrl}}/studies/{{studyId}}/focus
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-02 새집중
-# 201 새focusId·timerKey복사. 초기화후Start도항상새행.
+# 201 새 focusId를 복사한다. 초기화 후 Start도 새 행. 새 키는 발급하지 않는다.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
   "durationMinutes": 10
 }
 
-### API-FC-01 키조회·자정후유지
-# 일반토큰없이키의활성집중조회.
-GET {{baseUrl}}/studies/{{studyId}}/focus
-Accept: application/json
-X-Timer-Key: {{timerKey}}
-
-### API-FC-07 연결확인
-# 15초간격. 90초확인누락시만료. 만료후PAUSED·갱신없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
-Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
-
 ### API-FC-03 수동정지
-# 지급없음.
+# 200 PAUSED. 지급 없음.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}},
-  "reason": "manual"
-}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-04 재개
-# 같은행·같은키·정지시간제외.
+# 200 같은 행·기존 경과 유지·정지 시간 제외·지급 없음.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/resume
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-03 수동정지 재확인
+# 200 PAUSED. 경과·총점 불변.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}},
-  "reason": "manual"
-}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-05 초기화
-# PAUSED만. 경과정산·RESET종료·키폐기. 다음Start는새행.
+# 200 PAUSED만. RESET 이력 보존·포인트 0·settlement=null. 화면은 목표 시간으로 복원.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-05 종료재확인
-# 이미RESET인동일행만200신규0P. 일반토큰필요.
+# 200 이미 RESET인 동일 행. 상태·총점 불변, settlement=null.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-06 목표완료
-# 별도RUNNING테스트행·목표도달후. 원장+총점동일트랜잭션·COMPLETED·키폐기.
+# 별도 새 집중의 focusId로 교체하고 목표 도달 후 실행. 200 COMPLETED.
+# 10분 목표라면 focus.awardedPoints=4, settlement.awardedPoints=4, Study.points는 4 증가.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
+X-Study-Password: {{studyPassword}}
 
 ### API-FC-06 완료재확인
-# 이미COMPLETED인동일행200신규0P.
+# 200 동일 COMPLETED 행. focus.awardedPoints는 기존 지급량, settlement.awardedPoints=0, 총점 불변.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 
-### API-AU-02 명시적조작권복구
-# 활성행만. 비밀번호재검증·새키발급/구키무효. 자동재개없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/ownership
-Accept: application/json
-Content-Type: application/json
-
-{
-  "password": "Forest123!"
-}
-
-### API-FC-07 복구전구키거절
-# 401 INVALID_TIMER_KEY, 상태/확인시각/포인트변경없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
-Accept: application/json
-X-Timer-Key: {{oldTimerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
-
-### 다른브라우저타이머조작차단
-# 401 TIMER_KEY_REQUIRED. 일반토큰만으로조작불가.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
-Accept: application/json
-Authorization: Bearer {{accessToken}}
-Content-Type: application/json
-
-{
-  "reason": "manual"
-}
-
-### 동시새시작차단
+### 활성 집중 중 새 시작 차단
 # 활성행존재시409 FOCUS_CONFLICT.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -301,35 +234,15 @@ Content-Type: application/json
 # RUNNING이면409 INVALID_FOCUS_STATE.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
+X-Study-Password: {{studyPassword}}
 
-{
-  "stateVersion": {{stateVersion}}
-}
 
 ### 조기완료거절
 # 목표전409 FOCUS_NOT_FINISHED.
 POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
+X-Study-Password: {{studyPassword}}
 
-{
-  "stateVersion": {{stateVersion}}
-}
-
-### 자정일반토큰만료
-# 401 VERIFICATION_EXPIRED. 활성키의heartbeat는별도유효.
-GET {{baseUrl}}/studies/{{studyId}}/habits
-Accept: application/json
-Authorization: Bearer {{expiredToken}}
-
-### 변조토큰거절
-# 401 INVALID_TOKEN.
-GET {{baseUrl}}/studies/{{studyId}}/habits
-Accept: application/json
-Authorization: Bearer INVALID_TOKEN
 
 ### 비밀번호오답
 # 401 PASSWORD_MISMATCH.
@@ -345,7 +258,7 @@ Content-Type: application/json
 # 400 VALIDATION_ERROR.
 POST {{baseUrl}}/studies/{{studyId}}/habits
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -367,7 +280,7 @@ Content-Type: application/json
 # 해당행미종료·서버오늘이아닐때409 DATE_CHANGED.
 PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
 Accept: application/json
-Authorization: Bearer {{accessToken}}
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
@@ -382,29 +295,33 @@ Accept: application/json
 Content-Type: application/json
 
 {
-  "password": "Forest123!"
+  "password": "{{studyPassword}}"
 }
 
-### API-FC-03 오래된 정지 차단
-# 정지/재개로 버전이 올라간 뒤 이전 요청이 도착하면409 STALE_FOCUS_STATE.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+### 보호 요청 비밀번호 헤더 누락
+# 401 VERIFICATION_REQUIRED. 앞에서 진입 검증을 성공했어도 거절한다.
+GET {{baseUrl}}/studies/{{studyId}}/habits
 Accept: application/json
-X-Timer-Key: {{timerKey}}
+
+### 보호 요청 비밀번호 오답
+# 401 PASSWORD_MISMATCH. 상태·포인트 변경 없음.
+GET {{baseUrl}}/studies/{{studyId}}/focus
+Accept: application/json
+X-Study-Password: Wrong123!
+
+### RESET 뒤 새로운 집중 시작
+# 이전 RESET 이후 실행. 201 새 ID, elapsedSeconds=0, awardedPoints=0.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+Accept: application/json
+X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "stateVersion": {{oldStateVersion}},
-  "reason": "manual"
+  "durationMinutes": 10
 }
 
-### API-FC-07 만료 발견·늦은 확인
-# 마지막 확인 후90초 이상이면 먼저PAUSED·버전증가·신규지급0. heartbeat는200 PAUSED.
-# 재개하지 않고 시각을 소급 연장하지 않는다.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/heartbeat
+### RESET 행의 완료 요청 거절
+# focusId를 RESET 이력 ID로 지정. 409 INVALID_FOCUS_STATE, 신규 지급 없음.
+POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
 Accept: application/json
-X-Timer-Key: {{timerKey}}
-Content-Type: application/json
-
-{
-  "stateVersion": {{stateVersion}}
-}
+X-Study-Password: {{studyPassword}}

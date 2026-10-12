@@ -1,34 +1,26 @@
 # 공부의 숲 API Docs
 
-- 버전: 0.7 통합 검토 초안 · 2026-10-10 (Asia/Seoul)
-- 기준: [README.md](README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-043~048.
-- 요청 예시: [api.http](api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
-- 사용자 확정 정책과 기술 계약을 구분한다. 아래 경로·필드·코드·서명 포맷은 구현을 위한 기술 설계이며 남은 제품 결정은 10절에 둔다.
-- 이전 X-Study-Password·verified 응답·READY 재사용·attemptNumber·reason=leave 계약은 이 버전에서 폐기한다. brief.md 원문은 보존하며 최신 사용자 변경을 적용한다.
+- 버전: 0.8 축소 설계 초안 · 2026-10-12 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~053; 습관·응원·조회는 ADR-045~046.
+- 요청 예시: [api.http](../api/api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
+- 사용자 확정 정책과 기술 계약을 구분한다. 아래 경로·필드·코드은 구현을 위한 기술 설계이며 남은 제품 결정은 10절에 둔다.
+- 이전 Authorization·X-Timer-Key·stateVersion·Heartbeat·조작권 복구·초기화 보상 계약은 폐기한다. API-AU-02·API-FC-07 ID는 재사용하지 않는다. brief.md 원문은 보존한다.
 
 ## 1. 공통 계약과 인증
 
 Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일시, YYYY-MM-DD 한국 날짜를 사용한다. 성공은 {data:...}, 목록은 {data:[],pagination:{offset,limit,total,hasMore}}, 실패는 {error:{code,message,details}}. 204는 본문이 없다. 실패 시 현재 페이지를 유지하며 요청 중간 취소 기능은 없다.
 
-### 일반 인증 토큰
+### 페이지별·요청별 비밀번호 확인
 
-- AU-01에서 비밀번호를 비동기 bcrypt로 검증한 뒤 토큰을 발급한다. 일반 보호 요청은 `Authorization: Bearer <accessToken>`.
-- 토큰은 스터디별 LocalStorage에 {accessToken,expiresAt}로 보관한다. 같은 스터디의 습관·수정·새 집중 시작에서 공유하며 새로고침·재접속 시 서버 검증 결과가 유효하면 유지한다. 원문 비밀번호는 검증 뒤 폐기하고 저장소·로그·URL·응답에 넣지 않는다.
-- 만료는 발급 후24시간이 아니라 **다음 한국 시각 자정**이다. 서버가 expiresAt을 계산하고 요청마다 서명·스터디 소속·만료·Study 존재를 검사한다. 정확히 expiresAt부터 만료다. 브라우저 청소가 늦어도 권한은 연장되지 않는다.
-- 기술 설계: Node 내장 crypto의 HMAC-SHA256 서명, payload {version:1,studyId,issuedAt,expiresAt,nonce}를 사용한다. 정해진 인코딩·고정 알고리즘만 검증하고 서명은 길이 확인 후 timingSafeEqual로 비교한다. 서버 비밀은 환경변수로 관리하고 클라이언트에 노출하지 않는다. 비밀번호·타이머 키를 payload에 넣지 않는다. JWT 라이브러리를 임의 추가하지 않는다. VerificationToken 테이블은 없다. [Node crypto](https://nodejs.org/docs/latest-v24.x/api/crypto.html)
-- 만료 응답에서 해당 스터디 토큰을 제거하고 비밀번호 모달을 연다. 내부 이동 자체는 재입력을 요구하지 않는다. 다른 studyId에서는 해당 스터디 인증이 필요하다.
-- 삭제는 파괴적 동작이므로 기존 삭제 모달의 비밀번호 재확인을 유지한다. AU-02 조작권 복구도 비밀번호를 새로 입력받아 검증한다.
-
-### 타이머 전용 키
-
-- FC-02 시작 성공 때 32바이트 난수 키를 발급하고 Challenge에는 SHA-256 해시만 저장한다. 응답의 timerKey를 {studyId,focusId,timerKey}로 LocalStorage에 보관한다.
-- `X-Timer-Key: <timerKey>`로 **해당 활성 집중**의 조회·연결 확인·정지·재개·초기화·완료만 허용한다. 일반 토큰을 함께 요구하지 않으므로 한국 자정을 넘겨도 계속 동작한다. 습관·수정·삭제·새 집중 시작은 이 키로 허용하지 않는다.
-- 요청의 studyId/focusId 소속과 DB timerKeyHash를 비교한다. 일반 토큰만 가진 다른 브라우저도 기존 타이머 조작은 불가하다. 키 누락·불일치는 경고하고 차단하며 상태·마지막 확인 시각·포인트를 바꾸지 않는다.
-- 같은 origin의 LocalStorage는 같은 브라우저 프로필의 탭들이 공유한다. 탭별 제한으로 설명하지 않으며 키를 복사한 사람까지 물리적으로 구별하는 방식은 아니다. 응원 browserId는 조작권 증명이 아니다. [MDN LocalStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)
-- 타이머 API에서 Authorization과 X-Timer-Key를 함께 보냈다면 타이머 키 검증을 우선한다. 만료된 일반 토큰이 유효 타이머의 자정 이후 조작을 막지 않도록 한다. 키가 틀리면 일반 토큰으로 활성 조작을 우회하지 않는다.
-- 정지·재개·자정에는 키 유지. RESET/COMPLETED에서는 timerKeyHash=null로 폐기하고 클라이언트에서도 삭제한다. 일반 토큰은 해당 스터디에서 유효기간까지 유지한다.
-- 분실·시작 응답 유실은 AU-02에서 비밀번호 재검증 후 명시적으로 복구한다. 새 키로 DB 해시를 교체해 이전 키를 무효화한다. 복구는 자동 실행하지 않는다. 복구 후 기존 상태를 유지하며 자동 재개·지급하지 않는다.
-- HTTPS, Authorization·X-Timer-Key CORS 허용, 민감 요청/응답 Cache-Control: no-store 및 헤더·키 로그 제외가 필요하다. 새 라이브러리는 추가하지 않는다.
+- 습관·집중·스터디 수정 페이지에 진입할 때마다 자체 모달에서 비밀번호를 입력하고 AU-01로 확인한다. 새로고침·페이지 이탈 후 재진입에서도 다시 입력한다.
+- 입력값은 해당 페이지 메모리에만 보관한다. 일반 보호 요청은 `X-Study-Password: <입력한 비밀번호>` 헤더를 보내며 서버가 해당 스터디의 bcrypt 해시와 **요청마다** 비교한다.
+- AU-01 페이지 진입 검증과 ST-05 삭제 모달은 본문 `{password}`로 검증한다. 생성 ST-02도 기존 본문 비밀번호를 유지한다. 이 세 API는 비밀번호 헤더를 요구하지 않는다.
+- AU-01의 성공 응답은 화면 진입 안내일 뿐 이후 보호 요청을 허용하는 증표가 아니다. 헤더 없이 보호 API를 호출하면 이전 확인 여부와 관계없이 거절한다.
+- LocalStorage·쿠키·URL·응답·로그에 비밀번호를 저장/출력하지 않는다. 이탈 시 페이지 메모리에서 폐기한다. 브라우저에 비밀번호 해시를 보관해 인증으로 쓰지도 않는다.
+- HTTPS, CORS의 X-Study-Password 허용, 민감 응답 Cache-Control: no-store, 비밀번호 헤더·본문 로그 제외를 적용한다. 헤더 자체는 암호화 수단이 아니다.
+- 인증 토큰·타이머 전용 키·서명·만료·VerificationToken 테이블·조작권 복구를 사용하지 않는다. 응원 browserId는 비밀번호 검증과 무관하다.
+- 비밀번호를 아는 다른 브라우저도 같은 집중을 조작할 수 있다. 브라우저별 소유권과 여러 브라우저 요청 순서 충돌 처리는 제외한다. 스터디당 활성 1개와 완료 중복 지급 방지는 유지한다.
+- 한국 자정은 습관 날짜 경계에만 적용한다. 비밀번호 만료 시각·타이머 자동 정지 기준으로 사용하지 않는다.
 
 ## 2. API 계약 표
 
@@ -39,25 +31,23 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 | API-ST-01 | GET | /studies | 목록·검색·정렬·offset | 공개 | 200 |
 | API-ST-02 | POST | /studies | 스터디 생성 | 공개 | 201 |
 | API-ST-03 | GET | /studies/{studyId} | 상세·상위 응원 | 공개 | 200 |
-| API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 일반 토큰 | 200 |
+| API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 비밀번호 헤더 | 200 |
 | API-ST-05 | DELETE | /studies/{studyId} | 스터디·연결 데이터 삭제 | 삭제 모달 비밀번호 | 204 |
 | API-ST-06 | GET | /studies/{studyId}/habit-records | 주간 기록표 | 공개 | 200 |
 | API-ST-07 | POST | /studies/{studyId}/reactions | 응원 추가 | 공개 | 200 |
 | API-ST-08 | GET | /studies/batch | 최근 조회용 ID 다건 조회 | 공개 | 200 |
-| API-AU-01 | POST | /studies/{studyId}/password-verifications | 비밀번호 검증·일반 토큰 발급 | 비밀번호 본문 | 200 |
-| API-AU-02 | POST | /studies/{studyId}/focus-sessions/{focusId}/ownership | 명시적 타이머 조작권 복구 | 비밀번호 재검증 | 200 |
-| API-HB-01 | GET | /studies/{studyId}/habits | 오늘 목록 | 일반 토큰 | 200 |
-| API-HB-02 | POST | /studies/{studyId}/habits | 습관 생성 | 일반 토큰 | 201 |
-| API-HB-03 | PATCH | /studies/{studyId}/habits/{habitId} | 이름 수정 | 일반 토큰 | 200 |
-| API-HB-04 | DELETE | /studies/{studyId}/habits/{habitId} | 종료 | 일반 토큰 | 204 |
-| API-HB-05 | PUT | /studies/{studyId}/habits/{habitId}/check | 오늘 체크·해제 | 일반 토큰 | 200 |
-| API-FC-01 | GET | /studies/{studyId}/focus | 현재 집중·마지막 목표 복원 | 일반 토큰 또는 타이머 키 | 200 |
-| API-FC-02 | POST | /studies/{studyId}/focus-sessions | 매번 새 행으로 시작·키 발급 | 일반 토큰 | 201 |
-| API-FC-03 | POST | /studies/{studyId}/focus-sessions/{focusId}/pause | 수동·외부 이탈 정지 | 타이머 키 | 200 |
-| API-FC-04 | POST | /studies/{studyId}/focus-sessions/{focusId}/resume | 정지된 집중 재개 | 타이머 키 | 200 |
-| API-FC-05 | POST | /studies/{studyId}/focus-sessions/{focusId}/reset | 경과 정산·RESET 종료 | 타이머 키 | 200 |
-| API-FC-06 | POST | /studies/{studyId}/focus-sessions/{focusId}/complete | 목표 완료·정산 | 타이머 키 | 200 |
-| API-FC-07 | POST | /studies/{studyId}/focus-sessions/{focusId}/heartbeat | 15초 연결 확인 | 타이머 키 | 200 |
+| API-AU-01 | POST | /studies/{studyId}/password-verifications | 페이지 진입 비밀번호 검증 | 비밀번호 본문 | 200 |
+| API-HB-01 | GET | /studies/{studyId}/habits | 오늘 목록 | 비밀번호 헤더 | 200 |
+| API-HB-02 | POST | /studies/{studyId}/habits | 습관 생성 | 비밀번호 헤더 | 201 |
+| API-HB-03 | PATCH | /studies/{studyId}/habits/{habitId} | 이름 수정 | 비밀번호 헤더 | 200 |
+| API-HB-04 | DELETE | /studies/{studyId}/habits/{habitId} | 종료 | 비밀번호 헤더 | 204 |
+| API-HB-05 | PUT | /studies/{studyId}/habits/{habitId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 |
+| API-FC-01 | GET | /studies/{studyId}/focus | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 |
+| API-FC-02 | POST | /studies/{studyId}/focus-sessions | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 |
+| API-FC-03 | POST | /studies/{studyId}/focus-sessions/{focusId}/pause | 사용자 일시정지 | 비밀번호 헤더 | 200 |
+| API-FC-04 | POST | /studies/{studyId}/focus-sessions/{focusId}/resume | 정지된 집중 재개 | 비밀번호 헤더 | 200 |
+| API-FC-05 | POST | /studies/{studyId}/focus-sessions/{focusId}/reset | 무지급·RESET 종료 | 비밀번호 헤더 | 200 |
+| API-FC-06 | POST | /studies/{studyId}/focus-sessions/{focusId}/complete | 목표 완료·지급 | 비밀번호 헤더 | 200 |
 
 ## 3. 데이터 모양
 
@@ -66,20 +56,62 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 | Study | id, nickname, name, introduction, background(API; DB backgroundKey), points(Study.points), createdAt, updatedAt |
 | ReactionSummary | emoji, count |
 | Habit | id, studyId, name, startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
-| Focus | id, studyId, status(RUNNING/PAUSED/COMPLETED/RESET), configuredMinutes(DB goalMinutes), stateVersion, elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null), awardedPoints(해당 행 원장 합계) |
+| Focus | id, studyId, status(RUNNING/PAUSED/COMPLETED/RESET), configuredMinutes(DB goalMinutes), elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null), awardedPoints(Challenge.awardedPoints; 해당 집중의 완료 지급량) |
 | Settlement | focusId, elapsedPoints, goalPoints, awardedPoints(이번 신규 지급 합계) |
 
-Focus에는 비밀 키·해시를 넣지 않는다. 시작/복구 응답에만 timerKey를 별도 반환한다. elapsedSeconds는 밀리초를 버림, remainingSeconds는 남은 밀리초를 올림한다. 모든 값은 한 서버 시각을 기준으로 계산한다. 종료 이력의 과거 누적점수를 Study.points로 덮어쓰지 않는다.
+Focus에는 비밀번호·해시·토큰·키를 넣지 않는다. elapsedSeconds는 실제 경과 밀리초를 버림, remainingSeconds는 남은 밀리초를 올림한다. 모든 파생값은 한 서버 시각을 기준으로 계산한다. endsAt은 RUNNING에서 서버 현재 시각 + 남은 밀리초이며 PAUSED/terminal은 null이다.
 
-일반 응답 예시:
+DB와 API 이름은 다음처럼 매핑한다. 기존 API의 habits/focus 경로를 DB 명칭에 맞춰 임의로 변경하지 않는다.
+
+| API | DB 또는 처리 |
+| --- | --- |
+| Habit·habits·habitId | Routine·Routine.id |
+| 날짜별 date / completed | RoutineHistory.recordDate / completed |
+| Focus·focusId | Challenge·Challenge.id |
+| 시작 입력 durationMinutes / 응답 configuredMinutes | Challenge.goalMinutes |
+| Focus.awardedPoints | Challenge.awardedPoints |
+| points | Study.points |
+
+비밀번호 확인 응답:
 ```json
-{"data":{"studyId":"11111111-1111-4111-8111-111111111111","accessToken":"<서버 발급 토큰>","expiresAt":"2026-10-10T15:00:00.000Z"}}
+{"data":{"verified":true}}
 ```
-이 만료 시각은 한국2026-10-11 00:00이다. 서명 포맷의 실제 값을 예시 문자열로 검증하지 않는다.
+이 응답을 저장해서 다음 보호 요청을 우회하지 않는다.
 
-집중 조회: {data:{focus,points,serverTime,configuredMinutes}}. 활성 행을 우선 반환한다. 활성 행이 없으면 focus=null이며 가장 최근 RESET/COMPLETED의 goalMinutes를 configuredMinutes로 반환하고 이력도 없으면10이다. 최신 순은 createdAt DESC, id DESC 기술 기준이다. 타이머 키만으로 조회할 때는 자신이 가리키는 활성 행만 반환하고 과거 행/다른 집중을 조회하지 않는다.
+집중 조회: {data:{focus,points,serverTime,configuredMinutes}}. 활성 행을 우선 반환한다. 활성 행이 없으면 focus=null이며 가장 최근 RESET/COMPLETED의 goalMinutes를 configuredMinutes로 반환하고 이력도 없으면 10이다. 최신 순은 createdAt DESC, id DESC다. points는 현재 Study.points다.
 
-집중 변경: {data:{focus,points,settlement}}. 시작 응답에는 timerKey 추가. 시작·정지·재개·연결 확인·복구에는 settlement=null. 초기화/완료만 Settlement를 반환한다. RESET 응답은 종료한 행을 반환하고 프론트는 목표 시간·경과0인 시작 전 화면을 구성한다. DB에 READY 행은 없다.
+집중 변경: {data:{focus,points,settlement}}. 시작·정지·재개·초기화에는 settlement=null. 완료만 Settlement를 반환하며 elapsedPoints=floor(goalMinutes/10), goalPoints=3, awardedPoints=이번 신규 지급 합계다. Focus.awardedPoints는 그 행에 저장한 전체 지급량이므로 완료 재요청의 Settlement.awardedPoints=0과 다를 수 있다.
+
+위 분해 값은 최초 완료 지급 기준이다. 동일 완료 재요청은 settlement의 elapsedPoints·goalPoints·awardedPoints 모두 0이다.
+
+10분 목표 최초 완료 예시(이전에 지급된 스터디 총점이 0인 경우):
+
+```json
+{
+  "data": {
+    "focus": {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "studyId": "11111111-1111-4111-8111-111111111111",
+      "status": "COMPLETED",
+      "configuredMinutes": 10,
+      "elapsedSeconds": 600,
+      "remainingSeconds": 0,
+      "serverTime": "2026-10-12T01:10:00.000Z",
+      "endsAt": null,
+      "awardedPoints": 4
+    },
+    "points": 4,
+    "settlement": {
+      "focusId": "22222222-2222-4222-8222-222222222222",
+      "elapsedPoints": 1,
+      "goalPoints": 3,
+      "awardedPoints": 4
+    }
+  }
+}
+```
+
+RESET 응답은 종료한 행을 반환한다. DB 행에는 초기화 전 경과 이력을 보존하지만 프론트는 목표 시간·경과 0인 시작 전 화면을 구성한다. DB에 READY 행은 없다. 다음 Start는 새 행이다.
 
 ## 4. 스터디·응원 API 상세
 
@@ -100,7 +132,7 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 ### API-ST-03 상세 / API-ST-05 삭제
 
 상세: {data:{...Study,reactions:[ReactionSummary]}}. 주간 표는 ST-06 별도 조회.
-삭제: DELETE body {password}. bcrypt 검증 후 Study와 연결 데이터를 Cascade 삭제, 204. 일반 토큰이나 타이머 키만으로 삭제하지 않는다. 성공 후 / 이동 및 에러토스트 형식의 삭제 성공 안내. 해당 스터디의 로컬 인증·타이머 키·최근 조회 ID도 제거한다.
+삭제: DELETE body {password}. bcrypt 검증 후 Study와 연결 데이터를 Cascade 삭제, 204. 헤더가 아닌 삭제 모달 본문의 비밀번호를 검증한다. 성공 후 / 이동 및 에러토스트 형식의 삭제 성공 안내. 해당 스터디의 페이지 메모리·최근 조회 ID도 정리한다.
 
 ### API-ST-06 기록표
 
@@ -120,15 +152,13 @@ body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 �
 
 query ids=UUID,UUID,…; 첫 등장 순서로 중복 제거하고 입력 순서로 반환한다. 없는/삭제된 ID는 제외하며 {data:[카드용 Study와 reactions]} 반환. 모두 없으면 data:[], UUID 오류는400. 최근 조회 ID의 삭제 항목을 로컬에서도 정리한다. keyword/sort/offset/limit와 혼합하지 않는 독립 API이며 다건 수 상한은 확인 대기다.
 
-## 5. 비밀번호 확인·조작권 복구
+## 5. 비밀번호 확인
 
-### API-AU-01 일반 토큰 발급
+### API-AU-01 페이지 진입 확인
 
-body {password}. Study 확인·bcrypt 검증 후 {data:{studyId,accessToken,expiresAt}}. 틀리면401 PASSWORD_MISMATCH. 검증 성공 불리언만으로 이후 권한을 인정하지 않는다.
+body {password}. Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true}}. 틀리면 401 PASSWORD_MISMATCH. 서버가 발급하는 토큰이나 확인 효력 만료 시각은 없다. 이후 수정·습관·집중 요청도 매번 X-Study-Password를 검증한다.
 
-### API-AU-02 타이머 조작권 복구
-
-body {password}. 대상 Study·Challenge 소속과 비밀번호를 새로 검증하고 Study→Challenge 순으로 잠금, 연결 만료 복구를 먼저 수행한다. RUNNING/PAUSED에서만 새 키로 교체하며 {data:{focus,points,settlement:null,timerKey}} 반환. 기존 키 즉시 무효, 상태·경과 보존, 자동 재개·지급 없음. terminal 행은409 INVALID_FOCUS_STATE. 복구 자체는 일반 토큰을 발급하지 않는다. 단순 다른 브라우저 접근에는 복구를 자동 호출하지 않고 경고 후 사용자의 명시적 선택으로 실행한다.
+모달의 나가기/취소는 모달만 닫고 현재 주소를 유지한다. 검증하지 않은 상태에서는 보호 데이터를 불러오거나 조작하지 않는다. 요청 중간 취소 기능은 추가하지 않는다.
 
 ## 6. 습관 API
 
@@ -139,42 +169,38 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 
 습관 최대18개는 킥오프 요구다. 활성 개수인지 전체 보존 개수인지는 미정이므로 숫자만으로 잘못된 총이력 제한을 추가하지 않는다. 확정 후 스터디 잠금 안에서 생성 개수를 검사해야 한다.
 
-## 7. 집중 상태·정산·중복 요청
+## 7. 집중 상태·완료 지급·중복 요청
 
 | 동작 | 허용 상태 | 처리 |
 | --- | --- | --- |
-| 새 Start(FC-02) | RUNNING/PAUSED 없음 | 매번 새 RUNNING 행·새 키,201 |
-| pause(FC-03) | 목표 도달 전 RUNNING | PAUSED·서버 경과 확정·지급 없음 |
-| resume(FC-04) | PAUSED | 동일 행 RUNNING·기존 경과 유지·지급 없음 |
-| reset(FC-05) | PAUSED | 경과 보상 정산·RESET 종료·키 폐기 |
-| complete(FC-06) | 유효 연결로 확정한 목표 도달 | COMPLETED 종료·경과 보상+3P·키 폐기 |
-| heartbeat(FC-07) | 유효 키의 RUNNING | 마지막 확인 시각 갱신·지급 없음 |
+| 새 Start(FC-02) | RUNNING/PAUSED 없음 | 매번 새 RUNNING 행·경과 0, 201 |
+| pause(FC-03) | 목표 도달 전 RUNNING | PAUSED·서버 경과 저장·lastStartedAt=null·지급 없음 |
+| resume(FC-04) | 목표 미달 PAUSED | 동일 행 RUNNING·기존 경과 유지·lastStartedAt=서버 현재 시각 |
+| reset(FC-05) | PAUSED | RESET 종료·이력 보존·지급 없음 |
+| complete(FC-06) | 서버가 계산한 경과가 목표에 도달한 RUNNING/PAUSED | COMPLETED·목표 경과 확정·완료 포인트 지급 |
 
-- FC-02 body {durationMinutes},10~180 정수(기본10). 새 시작에서 focusId·attemptNumber를 받지 않는다. A가 정지 중이면 B 시작도409 FOCUS_CONFLICT. DB 부분 UNIQUE와 Study 잠금으로 동시 시작 중1개만 허용한다.
-- FC-03 body {stateVersion,reason:"manual"}. FC-04~07 body {stateVersion}. 모든 조작은 경로 focusId로 행을 지정한다. 이전 행의 요청이 새 활성 행을 변경할 수 없다.
-- reset 후 이전 goalMinutes를 화면 초기값으로 복원하고 다음 Start에서 새 행 생성. 최초 focus=null과 초기화 후 focus=null 모두 같은 시작 API를 사용한다. 재개는 새 행 생성과 다르다.
-- 경과는 저장 밀리초 + 유효 RUNNING 구간의 서버 시간 차로 계산하고 목표 시간으로 제한한다. 일시정지 시간·목표 초과분은 포함하지 않는다.
-- 초기화·완료 때만 floor(확정 경과 밀리초/600000)개의 ELAPSED(각1P), 완료만 GOAL1개(3P). 10/20/25/180분 완료는4/5/5/21P.13분 RESET1P 후 다른17분 RESET1P는2P이며 나머지는 이월하지 않는다.
-- Study→Challenge 순서로 잠그고 원장 신규 삽입·Study.points 원자적 증가·상태 종료·키 폐기를 같은 트랜잭션으로 처리한다. 신규 원장 행에 해당하는 금액만 증가시키며 충돌 무시 후 무조건 증가시키지 않는다. 실패 시 전부 롤백한다.
-- 같은 pause 재요청은 PAUSED200으로 중복 경과 증가 없음. 이미 RUNNING의 resume 재요청은409이며 시작 시각을 덮어쓰지 않는다. 목표 전에 complete는409 FOCUS_NOT_FINISHED, 유효 연결 상태에서 목표 후 pause는409 FOCUS_FINISHED로 complete 안내.
-- 종료 후 타이머 키는 무효다. 초기화/완료 응답 유실로 동일 종료 동작을 재확인하려면 **유효 일반 토큰으로 해당 terminal 행의 동일 reset/complete 요청만** 허용한다. 이미 정산한 동일 동작은200·신규0P. RESET에 complete 또는 COMPLETED에 reset은409. 토큰도 만료됐다면 비밀번호 재확인 후 재요청한다. 이전 키만으로 재요청하면401이다.
-- 조회는 원장을 만들지 않는다. 유효 연결에서0초가 됐는데 정산이 안 된 경우 클라이언트가 complete를 보낸다. 별도 백그라운드 지급 작업은 없다.
+- FC-02 body {durationMinutes}, 10~180 정수(기본 10). DB의 goalMinutes로 저장한다. focusId·attemptNumber를 시작 입력으로 받지 않는다.
+- 모든 집중 API는 비밀번호 헤더를 검증한다. FC-03~06은 본문이 없으며 stateVersion·reason·키를 보내지 않는다. 경로 focusId가 조작할 행을 지정한다.
+- RUNNING/PAUSED가 있으면 새 시작은 409 FOCUS_CONFLICT다. PAUSED A가 있으면 재개하거나 초기화해야 한다. Study 잠금과 활성 부분 UNIQUE로 스터디당 합계 1개를 보장한다.
+- 실제 경과: RUNNING은 min(goalMinutes×60000, elapsedMilliseconds + max(0, 서버 현재 시각-lastStartedAt)), 그 외는 저장된 elapsedMilliseconds다. 조회는 DB 경과를 반복 가산하지 않는다.
+- pause는 실제 경과를 저장하고 lastStartedAt=null로 한다. resume는 저장 경과를 유지하고 lastStartedAt을 현재 서버 시각으로 설정한다. 정지 시간·목표 초과분은 포함하지 않는다.
+- reset은 PAUSED에서만 가능하다. 행을 삭제하지 않고 RESET으로 남기며 awardedPoints=0을 유지한다. 프론트만 기존 목표·경과 0의 시작 전 상태로 돌아간다. 다음 Start는 새 행이다.
+- **완료 시에만** floor(goalMinutes/10)+3P를 지급한다. 10/20/25/180분은 4/5/5/21P. 상한 없음. 정지·재개·초기화·조회에는 지급하지 않는다.
+- Study→Challenge 잠금 → 비밀번호/소속/현재 상태/서버 경과 확인 → RUNNING/PAUSED를 COMPLETED로 조건부 전환 → awardedPoints 저장·Study.points 원자 증가를 같은 트랜잭션으로 처리한다. 전이에 실제 성공한 요청만 증가하며 실패 시 전부 롤백한다.
+- 이미 PAUSED인 pause 재요청은 200·경과 변화 없음. 이미 RUNNING인 resume는 409 INVALID_FOCUS_STATE이며 시작 시각을 덮어쓰지 않는다.
+- 같은 RESET의 reset 재요청은 200·settlement=null. 같은 COMPLETED의 complete 재요청은 200·신규 지급 0P이며 저장된 Focus.awardedPoints와 Study.points는 그대로다.
+- RESET에 complete, COMPLETED에 reset, 종료 상태의 pause/resume는 409 INVALID_FOCUS_STATE다. 목표 전 complete는 409 FOCUS_NOT_FINISHED. 목표에 도달한 RUNNING의 pause 또는 PAUSED의 resume는 409 FOCUS_FINISHED로 완료를 안내한다.
+- 조회는 상태 종료·포인트 지급을 수행하지 않는다. 남은 시간이 0이면 클라이언트가 complete를 보내고 서버가 목표 도달을 검증한다. 백그라운드 자동 지급 작업은 없다.
+- 활성 슬롯은 명시적 reset/complete가 처리될 때 해제한다. 브라우저가 닫힌 동안 목표를 채워도 재접속 후 완료 처리하기 전에는 새 시작을 허용하지 않는다.
+- stateVersion·브라우저 소유권은 없다. 다른 브라우저의 비밀번호 검증 후 같은 집중 조작을 허용하며 오래된 요청의 순서 충돌 방지는 이번 범위에서 제외한다. 기본 상태 검사·단일 활성·완료 반복 지급 방지는 유지한다.
 
-## 8. 15초 연결 확인·90초 만료·여러 탭 (ADR-047)
+## 8. 내부 이동·새로고침·브라우저 종료
 
-- Start/resume 성공 시 lastStartedAt과 lastHeartbeatAt을 서버 시각으로 설정한다. 같은 origin·브라우저 프로필의 스터디별 담당 탭 하나가 타이머 키로15초마다 heartbeat를 보낸다. 일반 토큰의 자정 만료와 무관하다.
-- 서버 시각 - lastHeartbeatAt >= 90000밀리초이면 만료다. 정확히90초부터 만료이며90초를 집중 시간에 더하지 않는다. 만료된 RUNNING은 저장 경과 + max(0,lastHeartbeatAt-lastStartedAt)을 목표로 제한하여 PAUSED·lastStartedAt=null·stateVersion+1로 확정한다. 키·마지막 확인 시각은 보존하고 지급하지 않는다.
-- 집중 조회·시작·조작·복구는 인증/소속 확인 후 Study→Challenge 잠금 안에서 만료를 먼저 검사한다. 요청이 없으면 물리적 상태 변경은 늦을 수 있지만 다음 요청의 처리 전에 복구한다. 별도 서버 주기 작업은 도입하지 않는다.
-- 만료를 발견한 heartbeat는 갱신 없이 복구된 PAUSED를200으로 반환한다. 다른 오래된 버전의 조작은409 STALE_FOCUS_STATE로 최신 상태 재조회 후 사용자가 다시 실행한다. 늦은 heartbeat로 자동 재개·유효기간 소급 연장하지 않는다.
-- 마지막 유효 확인까지 목표를 채웠다면 PAUSED에서도 명시적 complete로 정산 가능하다. 목표 미달이면 complete 거절, 이미 목표에 도달한 PAUSED의resume는409 FOCUS_FINISHED로 완료를 안내한다.
-- 새로고침·탭 닫기·외부 주소 이동의 종료 이벤트에서는 pause를 보내지 않는다. 이전 reason=leave 계약을 폐기하고 수동 정지만 reason=manual을 사용한다. 종료 이벤트만으로 새로고침과 창 닫기를 구분하지 않는다.
-- 새로고침 후 저장된 키로 조회하여90초 이내 RUNNING이면 연결 확인을 재개한다. 이미 만료되면 PAUSED이며 사용자 Start 전에는 자동 재개하지 않는다.
-- 같은 프로필의 추가 탭은 상태 표시·사용자 조작이 가능하지만 정기heartbeat는 담당 탭만 보낸다. 보조 탭을 닫아도 영향 없다. 담당 탭 새로고침·종료·응답 중단은 다른 열린 탭이 담당 역할을 이어받는다. 키·최신 상태 버전·담당 변경을 탭끼리 공유한다.
-- 담당 탭 선정·인계는 프론트 공통 관리에서 브라우저 내장 통신/저장 기능으로 구현한다. 스터디별 탭 식별과 짧은 담당 임대를 사용하되 탭을 DB 소유자로 저장하지 않는다. 인계는90초 만료보다 충분히 빨라야 하며 실제 검증값을 구현 문서에 기록한다. 동시 인계의 잠깐 중복 heartbeat는 허용하며 경과·포인트를 더하지 않는다.
-- 서비스를 연 탭이 하나라도 연결을 유지하면 진행한다. 담당 탭이 외부 주소로 이동해도 다른 사이트 탭이 남아 있으면 인계한다. 모든 사이트 탭 종료·외부 이동으로 확인이 끊기면 마지막 확인 시각 기준으로 정지한다.
-- 다른 브라우저는 키가 없어 차단하고 명시적 비밀번호 복구 때만 키를 교체한다. 잘못된 키·오래된 버전은 확인 시각을 연장하지 못한다.
-- 탭 전환 자체는 정지 사유가 아니다. 백그라운드 제한·절전·통신 단절로90초 확인이 끊기면 정지할 수 있다. 15초 전달 또는 모든 환경에서 무중단 진행을 보장하지 않는다. [MDN Page Visibility](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API)
-- 인수 검증: 만료89.999초/90초 경계, 담당/보조 탭 종료, 새로고침, 탭 인계 중 중복, 모든 탭 종료, 늦은 과거heartbeat와정지, 자정·목표 종료·키 복구 경합.
+- 자동 일시정지·15초 Heartbeat·90초 연결 만료·담당 탭·키 복구는 제외한다. 해당 API-AU-02·API-FC-07도 제거했다.
+- RUNNING은 브라우저·페이지 존재와 무관하게 서버 시간으로 계속 흐른다. 페이지 종료 이벤트에서 pause를 보내지 않는다. PAUSED는 사용자의 resume까지 그대로다.
+- 페이지 이탈·새로고침은 비밀번호 메모리를 폐기한다. 재진입 때 AU-01 확인 후 FC-01로 상태를 조회한다. 이전에 RUNNING이면 서버 시간으로 남은 시간을 복원하고 PAUSED면 그 상태를 보여준다.
+- 자정은 집중 상태·진행 시간·완료 보상에 영향을 주지 않는다. 습관의 한국 날짜 경계와 구분한다.
+- 창이 닫힌 동안 목표에 도달한 경우에도 접속 중 주기 작업 없이 복귀 후 완료 요청으로 지급한다. 오프라인 화면이 서버 없이 임의로 지급하지 않는다.
 
 ## 9. 실패 목록
 
@@ -184,16 +210,10 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | 400 | PASSWORD_CONFIRM_MISMATCH | 생성 비밀번호 확인 불일치 |
 | 400 | INVALID_BACKGROUND | 최종 배경 목록 외 키; 목록 수신 전 완료 처리 불가 |
 | 400 | INVALID_EMOJI | 허용 이모지/표현 규칙 위반; 세부 미정 |
-| 401 | PASSWORD_MISMATCH | 발급·삭제·복구 비밀번호 오류 |
-| 401 | VERIFICATION_REQUIRED | 일반 토큰 누락 |
-| 401 | INVALID_TOKEN | 서명·payload 오류 |
-| 401 | VERIFICATION_EXPIRED | 한국 자정 토큰 만료 |
-| 401 | TIMER_KEY_REQUIRED | 활성 타이머 조작 키 누락 |
-| 401 | INVALID_TIMER_KEY | 불일치·폐기·이전 복구 키 |
-| 403 | STUDY_FORBIDDEN | 서명된 일반 토큰의 studyId 불일치 |
+| 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
+| 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |
 | 404 | STUDY_NOT_FOUND / HABIT_NOT_FOUND / FOCUS_NOT_FOUND | 대상 없음 또는 하위 데이터 소속 불일치 |
 | 409 | FOCUS_CONFLICT | 스터디에 RUNNING/PAUSED 존재 |
-| 409 | STALE_FOCUS_STATE | 상태 전환 이후 도착한 과거 stateVersion. 최신 조회 후 재조작 |
 | 409 | INVALID_FOCUS_STATE | 진행 중 reset·종료 상태의 다른 조작 등 |
 | 409 | FOCUS_NOT_FINISHED / FOCUS_FINISHED | 완료 전 complete / 완료해야 하는 상태의 pause·resume |
 | 409 | HABIT_ENDED | 종료된 습관 체크·이름 변경 |
@@ -201,7 +221,7 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | 409 | REACTION_POLICY_CONFLICT | 같은 studyId/browserId/emoji 중복 |
 | 500 | INTERNAL_ERROR | DB·내부 장애; 민감값 미노출 |
 
-스터디 중복 생성·습관18개 범위에 대한 오류 코드는 정책 확정 후 추가한다. 다른 브라우저의 시작은 FOCUS_CONFLICT, 기존 조작은 TIMER_KEY_REQUIRED/INVALID_TIMER_KEY로 경고한다. 클라이언트가 토큰/키를 지웠다는 이유만으로 서버 검증을 생략하지 않는다.
+스터디 중복 생성·습관18개 범위에 대한 오류 코드는 정책 확정 후 추가한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 FOCUS_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
 
 ## 10. 남은 결정
 
@@ -212,10 +232,10 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | API-Q-06 | 공백 처리·이모지를 포함한 글자 수 계산, 습관18개 적용 범위 | 입력/DB 제약 |
 | API-Q-07 | 응원 허용 이모지·유니코드 동일성·강사 확인 결과 | 응원 |
 | API-Q-08 | 기본green 외 배경7종의 키·이미지 자산, 중복 생성 규칙 | 생성/수정 |
-| API-Q-09 · 해결 | 15초 확인·90초 만료·새로고침 유지·담당 탭 인계 확정. 기기별 절전 지연은 구현 검증 대상 | 이탈 복구 |
+| API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭 인계·자동 일시정지 제외(ADR-052) | 미정 아님 |
 | API-Q-12 | 구체 오류·완료 화면·반응형 시안, SCSS 도입 여부 | 프론트 |
 
-토큰·키·자정 유지·RESET 새 행·종료일 포함·주간 겹침·총점 저장·다건 조회·검색3필드·동률 정렬은 더 이상 미정으로 표기하지 않는다. 삭제 비밀번호 재확인·수정 도착 페이지 모달은 최근 구체 결정 기준으로 유지하며 킥오프의 예전 흐름은 ADR-046에 비교 기록한다.
+요청별 비밀번호 헤더·Challenge 축소·완료 전용 지급·RESET 뒤 새 행·종료일 포함·주간 겹침·총점 저장·다건 조회·검색 3필드·동률 정렬은 확정/기술 계약으로 구분해 위 절에 반영했다. 삭제 비밀번호 재확인·수정 도착 페이지 모달은 최근 구체 결정 기준으로 유지하며 킥오프의 예전 흐름은 ADR-046에 비교 기록한다.
 
 ## 11. 기능 ID 대응
 
@@ -247,29 +267,29 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | F-FC-002 | 프론트 시작 전 설정 + API-FC-02 입력. RESET/COMPLETED 이후 최근 목표 복원 |
 | F-FC-003 | API-FC-02 |
 | F-FC-004 | API-FC-06 |
-| F-FC-005 | API-FC-05 초기화 정산·API-FC-06 종료 정산 및 지급 누적 조회 |
+| F-FC-005 | API-FC-06 완료 지급·Challenge.awardedPoints·Study.points 조회 |
 | F-FC-006 | 프론트 이동 중 상태 유지 + API-FC-01 |
 | F-FC-007 | API-FC-01 |
-| F-FC-008 | API-FC-03 + API-FC-07 연결 확인 만료 복구 |
+| F-FC-008 | 이번 범위 제외. 자동 일시정지 API 없음 |
 | F-FC-009 | API-FC-01 |
 | F-FC-010 | API-FC-03 |
 | F-FC-011 | API-FC-04 |
 | F-FC-012 | API-FC-05 |
-| F-AU-001 | API-AU-01 일반 토큰 발급·보호 API 토큰 검증 |
-| F-AU-002 | 유효 일반 토큰 공유·재접속 유지, 한국 자정 만료. 활성 집중은 타이머 키로 계속 사용 |
+| F-AU-001 | API-AU-01 페이지 진입 확인·보호 API마다 비밀번호 헤더 검증 |
+| F-AU-002 | 이번 범위 제외. 재진입·새로고침마다 비밀번호 확인 |
 
-## 12. 오래된 요청·습관 동시 요청 차단 (ADR-048)
+## 12. 습관 동시 요청
 
-### 집중 stateVersion
+Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 종료와 체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은 409 HABIT_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 재삭제는 최초 endsOn을 바꾸지 않는다.
 
-Challenge.stateVersion은1부터 시작한다. pause/resume/reset/complete·자동 만료 정지·조작권 복구의 실제 변경마다1증가한다. 단순 조회·heartbeat·같은 정지 재확인은 증가하지 않는다. 이는 집중 행을 재사용하는 attemptNumber가 아니라 같은 행의 상태 변경 세대다.
+집중의 stateVersion·여러 브라우저 요청 순서 보장은 제외했지만 위 습관 기록 무결성과 완료 중복 지급 방지를 함께 제거하지 않는다.
 
-활성 키로 FC-03~07을 요청할 때 양의 정수 stateVersion을 필수 전달한다. 서버는 인증/소속 → 잠금 → 만료 복구 → 현재 버전 비교 → 상태 검사 → 변경 순으로 처리한다. 버전 불일치는409 STALE_FOCUS_STATE이며 자동으로 최신 버전으로 바꿔 재전송하지 않는다. 새로 조회하고 사용자 의도를 다시 확인한다. 만료를 방금 발견한heartbeat의200 PAUSED 복구 응답은8절의 예외다.
+## 13. 실패 메시지의 상태
 
-프론트는 focus.stateVersion을 보관하고 탭 간 최신 결과를 공유한다. 늦게 도착한 작은 버전의 응답으로 상태를 덮어쓰지 않는다. 같은 버전의heartbeat는 확인 시각을 서버에서 갱신할 뿐 경과를 중복 가산하지 않는다. 정지 A 지연 → 정지 B → 재개 후 A 도착은 이전 버전으로 거절한다. PAUSED200 재확인은 이미 최신 버전을 가진 요청만 해당한다.
+실패 응답의 code·HTTP·조건은 9절을 따른다. message는 사용자 표시 문구이며 정확한 문구는 아직 미정이다. details는 필드 오류 등 보충 정보이며 민감값을 포함하지 않는다. 구현자가 임의 문구를 확정 명세로 기록하지 않고 해당 기능 구현 계획에서 확인한다.
 
-terminal 동일 reset/complete 재확인은 기존 일반 토큰 예외 계약을 유지하며 body와stateVersion이 없어도 신규0P로 조회 확인한다. 활성 조작에 이 예외를 적용하지 않는다. 키 복구는 비밀번호 body만으로 현재 상태를 잠금 확인하고 버전을 증가시켜 이전 키/버전 모두 무효화한다.
+실패 모양 예시(message 문자열은 확정 문구가 아닌 자리표시자):
+```json
+{"error":{"code":"PASSWORD_MISMATCH","message":"<확정할 사용자 안내 문구>","details":null}}
+```
 
-### 습관 체크·수정·종료
-
-Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 종료와체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은409 HABIT_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 재삭제는 최초 endsOn을 바꾸지 않는다. 모든 습관 쓰기 요청에서 같은 잠금 순서를 유지한다.

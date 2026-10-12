@@ -1,7 +1,7 @@
-// 공부의 숲 DB 설계 v0.6 — DB.md / ADR-043~048
+// 공부의 숲 DB 설계 v0.7 — docs/DB.md / ADR-051~053
 // 문서용 스키마 초안. 연결·생성·migration 실행 없음.
-// VerificationToken 테이블 없음. 일반 인증은 서명 토큰, 타이머 조작은 전용 키 해시.
-// DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.
+// 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
+// docs/DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,11 +15,6 @@ enum ChallengeStatus {
   PAUSED
   COMPLETED
   RESET
-}
-
-enum PointKind {
-  ELAPSED
-  GOAL
 }
 
 model Study {
@@ -75,35 +70,18 @@ model Challenge {
   studyId             String          @db.Uuid
   goalMinutes         Int             @default(10)
   status              ChallengeStatus @default(RUNNING)
-  // 상태 전환마다 증가. heartbeat 자체는 증가시키지 않는다.
-  stateVersion        Int             @default(1)
+  // 이전 실행 구간에서 확정한 누적 시간. 진행 중 구간은 서버 시각으로 파생한다.
   elapsedMilliseconds Int             @default(0)
+  // 현재 실행 구간의 시작 시각. PAUSED/RESET/COMPLETED에서는 null.
   lastStartedAt       DateTime?       @db.Timestamptz(3)
-  lastHeartbeatAt     DateTime?       @db.Timestamptz(3)
-  // 32바이트 난수 키의 SHA-256 해시. 원문 키는 저장하지 않는다.
-  timerKeyHash        String?         @db.VarChar(64)
-  // 종료 확정 시각. COMPLETED/RESET에서만 필수.
-  endedAt             DateTime?       @db.Timestamptz(3)
+  // 목표 완료 시에만 지급. Study.points 증가와 같은 트랜잭션으로 저장한다.
+  awardedPoints       Int             @default(0)
   createdAt           DateTime        @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime        @updatedAt @db.Timestamptz(3)
 
-  study        Study          @relation(fields: [studyId], references: [id], onDelete: Cascade)
-  pointHistory PointHistory[]
+  study Study @relation(fields: [studyId], references: [id], onDelete: Cascade)
 
   @@index([studyId, status])
   @@index([studyId, createdAt, id])
-}
-
-model PointHistory {
-  challengeId String    @db.Uuid
-  kind        PointKind
-  // ELAPSED: 1=10분, 2=20분… 각1P. GOAL: 0, 3P.
-  sequence    Int
-  grantedAt   DateTime  @default(now()) @db.Timestamptz(3)
-
-  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-
-  @@id([challengeId, kind, sequence])
 }
 
 model Reaction {
