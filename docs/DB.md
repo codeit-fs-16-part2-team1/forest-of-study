@@ -1,7 +1,7 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.7 축소 설계 초안 · 2026-10-12 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~053; 습관·응원은 ADR-045~046.
+- 버전:0.8 DB·API 용어 통일 초안 · 2026-10-12 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~054; 습관·응원은 ADR-045~046.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
 - 이번에는 문서·스키마만 갱신한다. 기존 데이터 변경·migration·generate·db push를 실행하지 않는다.
 
@@ -167,7 +167,7 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 ### 컬럼 의미와 파생값
 
 - Study.nickname/name/introduction 최대10/15/100, Routine.name 최대20. 문자열 공백·글자 수 기준은 API-Q-06에서 확정한다. DB varchar와 프론트 글자 수가 다를 수 있으므로 이모지 경계도 검증한다.
-- Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 키·자산 목록은 추후 전달받는다. API background와 명시적으로 매핑한다.
+- Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 키·자산 목록은 추후 전달받는다. API도 같은 backgroundKey를 사용한다.
 - Study.passwordHash는 bcrypt, points 기본0·음수 금지. 닉네임·이름 중복 UNIQUE는 미정 정책을 임의 확정하지 않기 위해 추가하지 않는다.
 - Routine.startsOn/endsOn은 양 끝 포함. 종료일이null이면 열린 기간이다. 종료 즉시 오늘 목록에서 숨기고 체크·이름 변경 금지. 생성 당일 종료도 유효하며 startsOn=endsOn 허용.
 - RoutineHistory.completed=false 행은 체크 해제 사실로 남긴다. 유효 날짜에 행이 없으면 조회 시false, 유효 기간 밖은 exists=false/completed=null. 이름은 Routine에서 조회하여 과거 표에도 현재 이름 반영.

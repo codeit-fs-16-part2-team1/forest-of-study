@@ -1,4 +1,4 @@
-// 공부의 숲 DB 설계 v0.7 — docs/DB.md / ADR-051~053
+// 공부의 숲 DB 설계 v0.8 — docs/DB.md / ADR-051~054
 // 문서용 스키마 초안. 연결·생성·migration 실행 없음.
 // 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
 // docs/DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.

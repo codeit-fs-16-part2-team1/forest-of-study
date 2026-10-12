@@ -11,7 +11,7 @@
 - DB 설계·ERD: [DB.md](docs/DB.md) / 스키마: [api/prisma/schema.prisma](api/prisma/schema.prisma)
 - 현재 축소안은 5개 테이블의 DB 설계·ERD·Prisma 스키마 초안이다(ADR-051~053). 관계차수·선택성·정규화·컬럼·제약은 DB.md에서 검토한다. 화면의 남은 세부 사항은 후속 확인 항목으로 유지한다.
 - 아래 ‘명세 반영’은 요구사항을 문서에 포함했다는 뜻이며 구현·테스트 완료를 뜻하지 않는다.
-- 최신 설계 반영: 2026-10-12 ADR-051~053. 요청별 비밀번호 검증·8개 컬럼의 Challenge·완료 시에만 지급·Challenge.awardedPoints 저장을 적용했다. 이전 토큰·Heartbeat·PointHistory 설계는 대체됐다. 로컬 환경·이슈 번호는 ADR-050을 유지한다.
+- 최신 설계 반영: 2026-10-12 ADR-051~054. 요청별 비밀번호 검증·8개 컬럼의 Challenge·완료 시에만 지급·Challenge.awardedPoints 저장을 적용했다. 이전 토큰·Heartbeat·PointHistory 설계는 대체됐다. API 경로·필드·실패 코드도 DB 이름으로 통일했다(ADR-054). 로컬 환경·이슈 번호는 ADR-050을 유지한다.
 
 ## 로컬 DB 개발 환경
 

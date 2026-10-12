@@ -1,17 +1,17 @@
-# 공부의 숲 API v0.8 — docs/API.md / ADR-051~053
+# 공부의 숲 API v0.9 — docs/API.md / ADR-051~054
 # 문서용 수동 요청 예시. 서버 구현・요청 실행・DB 적용은 하지 않았다.
 # 아래 비밀번호는 테스트용 가상 값이다. 실제 비밀번호를 커밋하지 않는다.
 # 보호 요청은 X-Study-Password, 진입 검증·삭제·생성은 본문 비밀번호.
 # 각 요청을 개별 실행하며 RESET 경로와 COMPLETED 경로는 서로 다른 집중으로 검증한다.
 @baseUrl = http://localhost:3000/api
 @studyId = 11111111-1111-4111-8111-111111111111
-@focusId = 22222222-2222-4222-8222-222222222222
-@habitId = 33333333-3333-4333-8333-333333333333
+@challengeId = 22222222-2222-4222-8222-222222222222
+@routineId = 33333333-3333-4333-8333-333333333333
 @browserId = 44444444-4444-4444-8444-444444444444
 @otherStudyId = 55555555-5555-4555-8555-555555555555
 @studyPassword = Forest123!
 @todayDate = 2026-10-12
-# studyId/habitId/focusId는 실제 생성 응답 ID, todayDate는 서버 한국 날짜로 교체한다.
+# studyId/routineId/challengeId는 실제 생성 응답 ID, todayDate는 서버 한국 날짜로 교체한다.
 
 ### API-ST-02 생성
 # 201 Study. 배경 생략은 첫 초록색.
@@ -83,18 +83,18 @@ Content-Type: application/json
   "nickname": "연우",
   "name": "개발공장",
   "introduction": "함께 공부해요",
-  "background": "green"
+  "backgroundKey": "green"
 }
 
 ### API-HB-01 오늘목록
 # 기대 상태 200.
-GET {{baseUrl}}/studies/{{studyId}}/habits
+GET {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-HB-02 생성
 # 기대 상태 201.
-POST {{baseUrl}}/studies/{{studyId}}/habits
+POST {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
@@ -105,7 +105,7 @@ Content-Type: application/json
 
 ### API-HB-03 이름수정
 # 기대 상태 200.
-PATCH {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
@@ -116,37 +116,37 @@ Content-Type: application/json
 
 ### API-HB-05 체크
 # 기대 상태 200.
-PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "date": "{{todayDate}}",
+  "recordDate": "{{todayDate}}",
   "completed": true
 }
 
 ### API-HB-05 해제
 # 기대 상태 200.
-PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "date": "{{todayDate}}",
+  "recordDate": "{{todayDate}}",
   "completed": false
 }
 
 ### API-HB-04 종료
 # 204 종료일포함기록보존. 목록숨김·추가조작금지.
-DELETE {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}
+DELETE {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-ST-06 주간표
 # 종료일포함·사용기간과조회주겹침.
-GET {{baseUrl}}/studies/{{studyId}}/habit-records?weekStart=2026-10-05
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=2026-10-05
 Accept: application/json
 
 ### API-ST-07 응원
@@ -161,85 +161,85 @@ Content-Type: application/json
 }
 
 ### API-FC-01 현재 집중 조회
-GET {{baseUrl}}/studies/{{studyId}}/focus
+GET {{baseUrl}}/studies/{{studyId}}/challenges/current
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-02 새집중
-# 201 새 focusId를 복사한다. 초기화 후 Start도 새 행. 새 키는 발급하지 않는다.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+# 201 새 challengeId를 복사한다. 초기화 후 Start도 새 행. 새 키는 발급하지 않는다.
+POST {{baseUrl}}/studies/{{studyId}}/challenges
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "durationMinutes": 10
+  "goalMinutes": 10
 }
 
 ### API-FC-03 수동정지
 # 200 PAUSED. 지급 없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/pause
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-04 재개
 # 200 같은 행·기존 경과 유지·정지 시간 제외·지급 없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/resume
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/resume
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-03 수동정지 재확인
 # 200 PAUSED. 경과·총점 불변.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/pause
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/pause
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-05 초기화
 # 200 PAUSED만. RESET 이력 보존·포인트 0·settlement=null. 화면은 목표 시간으로 복원.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/reset
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-05 종료재확인
 # 200 이미 RESET인 동일 행. 상태·총점 불변, settlement=null.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/reset
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-06 목표완료
-# 별도 새 집중의 focusId로 교체하고 목표 도달 후 실행. 200 COMPLETED.
-# 10분 목표라면 focus.awardedPoints=4, settlement.awardedPoints=4, Study.points는 4 증가.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+# 별도 새 집중의 challengeId로 교체하고 목표 도달 후 실행. 200 COMPLETED.
+# 10분 목표라면 challenge.awardedPoints=4, settlement.awardedPoints=4, Study.points는 4 증가.
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/complete
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-FC-06 완료재확인
-# 200 동일 COMPLETED 행. focus.awardedPoints는 기존 지급량, settlement.awardedPoints=0, 총점 불변.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+# 200 동일 COMPLETED 행. challenge.awardedPoints는 기존 지급량, settlement.awardedPoints=0, 총점 불변.
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/complete
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### 활성 집중 중 새 시작 차단
-# 활성행존재시409 FOCUS_CONFLICT.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+# 활성행존재시409 CHALLENGE_CONFLICT.
+POST {{baseUrl}}/studies/{{studyId}}/challenges
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "durationMinutes": 20
+  "goalMinutes": 20
 }
 
 ### 진행중초기화거절
-# RUNNING이면409 INVALID_FOCUS_STATE.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/reset
+# RUNNING이면409 INVALID_CHALLENGE_STATE.
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/reset
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 
 ### 조기완료거절
-# 목표전409 FOCUS_NOT_FINISHED.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+# 목표전409 CHALLENGE_NOT_FINISHED.
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/complete
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
@@ -256,7 +256,7 @@ Content-Type: application/json
 
 ### 습관21글자거절
 # 400 VALIDATION_ERROR.
-POST {{baseUrl}}/studies/{{studyId}}/habits
+POST {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
@@ -278,13 +278,13 @@ Content-Type: application/json
 
 ### 옛날짜체크거절
 # 해당행미종료·서버오늘이아닐때409 DATE_CHANGED.
-PUT {{baseUrl}}/studies/{{studyId}}/habits/{{habitId}}/check
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "date": "2026-10-01",
+  "recordDate": "2026-10-01",
   "completed": true
 }
 
@@ -300,28 +300,28 @@ Content-Type: application/json
 
 ### 보호 요청 비밀번호 헤더 누락
 # 401 VERIFICATION_REQUIRED. 앞에서 진입 검증을 성공했어도 거절한다.
-GET {{baseUrl}}/studies/{{studyId}}/habits
+GET {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 
 ### 보호 요청 비밀번호 오답
 # 401 PASSWORD_MISMATCH. 상태·포인트 변경 없음.
-GET {{baseUrl}}/studies/{{studyId}}/focus
+GET {{baseUrl}}/studies/{{studyId}}/challenges/current
 Accept: application/json
 X-Study-Password: Wrong123!
 
 ### RESET 뒤 새로운 집중 시작
 # 이전 RESET 이후 실행. 201 새 ID, elapsedSeconds=0, awardedPoints=0.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions
+POST {{baseUrl}}/studies/{{studyId}}/challenges
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "durationMinutes": 10
+  "goalMinutes": 10
 }
 
 ### RESET 행의 완료 요청 거절
-# focusId를 RESET 이력 ID로 지정. 409 INVALID_FOCUS_STATE, 신규 지급 없음.
-POST {{baseUrl}}/studies/{{studyId}}/focus-sessions/{{focusId}}/complete
+# challengeId를 RESET 이력 ID로 지정. 409 INVALID_CHALLENGE_STATE, 신규 지급 없음.
+POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/complete
 Accept: application/json
 X-Study-Password: {{studyPassword}}

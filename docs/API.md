@@ -1,9 +1,10 @@
 # 공부의 숲 API Docs
 
-- 버전: 0.8 축소 설계 초안 · 2026-10-12 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~053; 습관·응원·조회는 ADR-045~046.
+- 버전: 0.9 DB 용어 통일 초안 · 2026-10-12 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~054; 습관·응원·조회는 ADR-045~046.
 - 요청 예시: [api.http](../api/api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
-- 사용자 확정 정책과 기술 계약을 구분한다. 아래 경로·필드·코드은 구현을 위한 기술 설계이며 남은 제품 결정은 10절에 둔다.
+- 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
+- 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
 - 이전 Authorization·X-Timer-Key·stateVersion·Heartbeat·조작권 복구·초기화 보상 계약은 폐기한다. API-AU-02·API-FC-07 ID는 재사용하지 않는다. brief.md 원문은 보존한다.
 
 ## 1. 공통 계약과 인증
@@ -33,44 +34,52 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 | API-ST-03 | GET | /studies/{studyId} | 상세·상위 응원 | 공개 | 200 |
 | API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 비밀번호 헤더 | 200 |
 | API-ST-05 | DELETE | /studies/{studyId} | 스터디·연결 데이터 삭제 | 삭제 모달 비밀번호 | 204 |
-| API-ST-06 | GET | /studies/{studyId}/habit-records | 주간 기록표 | 공개 | 200 |
+| API-ST-06 | GET | /studies/{studyId}/routine-histories | 주간 기록표 | 공개 | 200 |
 | API-ST-07 | POST | /studies/{studyId}/reactions | 응원 추가 | 공개 | 200 |
 | API-ST-08 | GET | /studies/batch | 최근 조회용 ID 다건 조회 | 공개 | 200 |
 | API-AU-01 | POST | /studies/{studyId}/password-verifications | 페이지 진입 비밀번호 검증 | 비밀번호 본문 | 200 |
-| API-HB-01 | GET | /studies/{studyId}/habits | 오늘 목록 | 비밀번호 헤더 | 200 |
-| API-HB-02 | POST | /studies/{studyId}/habits | 습관 생성 | 비밀번호 헤더 | 201 |
-| API-HB-03 | PATCH | /studies/{studyId}/habits/{habitId} | 이름 수정 | 비밀번호 헤더 | 200 |
-| API-HB-04 | DELETE | /studies/{studyId}/habits/{habitId} | 종료 | 비밀번호 헤더 | 204 |
-| API-HB-05 | PUT | /studies/{studyId}/habits/{habitId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 |
-| API-FC-01 | GET | /studies/{studyId}/focus | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 |
-| API-FC-02 | POST | /studies/{studyId}/focus-sessions | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 |
-| API-FC-03 | POST | /studies/{studyId}/focus-sessions/{focusId}/pause | 사용자 일시정지 | 비밀번호 헤더 | 200 |
-| API-FC-04 | POST | /studies/{studyId}/focus-sessions/{focusId}/resume | 정지된 집중 재개 | 비밀번호 헤더 | 200 |
-| API-FC-05 | POST | /studies/{studyId}/focus-sessions/{focusId}/reset | 무지급·RESET 종료 | 비밀번호 헤더 | 200 |
-| API-FC-06 | POST | /studies/{studyId}/focus-sessions/{focusId}/complete | 목표 완료·지급 | 비밀번호 헤더 | 200 |
+| API-HB-01 | GET | /studies/{studyId}/routines | 오늘 목록 | 비밀번호 헤더 | 200 |
+| API-HB-02 | POST | /studies/{studyId}/routines | 습관 생성 | 비밀번호 헤더 | 201 |
+| API-HB-03 | PATCH | /studies/{studyId}/routines/{routineId} | 이름 수정 | 비밀번호 헤더 | 200 |
+| API-HB-04 | DELETE | /studies/{studyId}/routines/{routineId} | 종료 | 비밀번호 헤더 | 204 |
+| API-HB-05 | PUT | /studies/{studyId}/routines/{routineId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 |
+| API-FC-01 | GET | /studies/{studyId}/challenges/current | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 |
+| API-FC-02 | POST | /studies/{studyId}/challenges | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 |
+| API-FC-03 | POST | /studies/{studyId}/challenges/{challengeId}/pause | 사용자 일시정지 | 비밀번호 헤더 | 200 |
+| API-FC-04 | POST | /studies/{studyId}/challenges/{challengeId}/resume | 정지된 집중 재개 | 비밀번호 헤더 | 200 |
+| API-FC-05 | POST | /studies/{studyId}/challenges/{challengeId}/reset | 무지급·RESET 종료 | 비밀번호 헤더 | 200 |
+| API-FC-06 | POST | /studies/{studyId}/challenges/{challengeId}/complete | 목표 완료·지급 | 비밀번호 헤더 | 200 |
 
 ## 3. 데이터 모양
 
 | DTO | 필드 |
 | --- | --- |
-| Study | id, nickname, name, introduction, background(API; DB backgroundKey), points(Study.points), createdAt, updatedAt |
+| Study | id, nickname, name, introduction, backgroundKey, points(Study.points), createdAt, updatedAt |
 | ReactionSummary | emoji, count |
-| Habit | id, studyId, name, startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
-| Focus | id, studyId, status(RUNNING/PAUSED/COMPLETED/RESET), configuredMinutes(DB goalMinutes), elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null), awardedPoints(Challenge.awardedPoints; 해당 집중의 완료 지급량) |
-| Settlement | focusId, elapsedPoints, goalPoints, awardedPoints(이번 신규 지급 합계) |
+| Routine | id, studyId, name, startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
+| Challenge | id, studyId, goalMinutes, status(RUNNING/PAUSED/COMPLETED/RESET), elapsedMilliseconds, lastStartedAt(null 허용), awardedPoints, createdAt, elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null) |
+| Settlement | challengeId, elapsedPoints, goalPoints, awardedPoints(이번 신규 지급 합계) |
 
-Focus에는 비밀번호·해시·토큰·키를 넣지 않는다. elapsedSeconds는 실제 경과 밀리초를 버림, remainingSeconds는 남은 밀리초를 올림한다. 모든 파생값은 한 서버 시각을 기준으로 계산한다. endsAt은 RUNNING에서 서버 현재 시각 + 남은 밀리초이며 PAUSED/terminal은 null이다.
+Challenge에는 비밀번호·해시·토큰·키를 넣지 않는다. elapsedSeconds는 실제 경과 밀리초를 버림, remainingSeconds는 남은 밀리초를 올림한다. 모든 파생값은 한 서버 시각을 기준으로 계산한다. endsAt은 RUNNING에서 서버 현재 시각 + 남은 밀리초이며 PAUSED/terminal은 null이다.
 
-DB와 API 이름은 다음처럼 매핑한다. 기존 API의 habits/focus 경로를 DB 명칭에 맞춰 임의로 변경하지 않는다.
+### DB 기준 명명 규칙
 
-| API | DB 또는 처리 |
+- 모델명은 PascalCase(Study, Routine, RoutineHistory, Challenge, Reaction), JSON 필드는 DB 컬럼과 같은 camelCase를 사용한다.
+- API 컬렉션 경로는 /studies, /routines, /routine-histories, /challenges, /reactions다. 현재 활성 집중 조회는 /studies/{studyId}/challenges/current다.
+- API-HB / API-FC와 F-HB / F-FC는 문서 추적 ID다. 기존 연결을 보존하며 리소스명으로 사용하지 않는다. 화면 주소도 README의 기존 6개 주소를 유지한다.
+- password·passwordConfirm은 입력 전용이며 DB에는 passwordHash만 저장한다. passwordHash는 공개하지 않는다.
+- date 형식의 DB 컬럼 recordDate·startsOn·endsOn은 YYYY-MM-DD, 타임스탬프는 UTC ISO 8601로 전달한다.
+- elapsedSeconds·remainingSeconds·serverTime·endsAt·weekStart·dates·cells·exists·settlement는 조회/표시용 파생값이며 새 DB 컬럼이 아니다. 시간 단위가 다른 값을 DB 컬럼과 같은 이름으로 보내지 않는다.
+- Routine의 completed는 서버 한국 날짜에 해당하는 RoutineHistory.completed에서 조회한다. 주간 cells의 recordDate도 RoutineHistory.recordDate를 따른다.
+- Challenge의 DB 시간 필드와 파생값은 아래 기준으로 구분한다.
+
+| 필드 | 의미 |
 | --- | --- |
-| Habit·habits·habitId | Routine·Routine.id |
-| 날짜별 date / completed | RoutineHistory.recordDate / completed |
-| Focus·focusId | Challenge·Challenge.id |
-| 시작 입력 durationMinutes / 응답 configuredMinutes | Challenge.goalMinutes |
-| Focus.awardedPoints | Challenge.awardedPoints |
-| points | Study.points |
+| elapsedMilliseconds | DB에 확정 저장한 이전 실행 구간의 누적 밀리초 |
+| lastStartedAt | 현재 실행 구간의 시작 시각; PAUSED/RESET/COMPLETED는 null |
+| createdAt | 해당 Challenge 행의 생성 시각 |
+| elapsedSeconds | 서버 현재 시각까지 포함한 실제 경과 밀리초를 초 단위로 버림 |
+| remainingSeconds | 목표까지 남은 밀리초를 초 단위로 올림 |
 
 비밀번호 확인 응답:
 ```json
@@ -78,9 +87,9 @@ DB와 API 이름은 다음처럼 매핑한다. 기존 API의 habits/focus 경로
 ```
 이 응답을 저장해서 다음 보호 요청을 우회하지 않는다.
 
-집중 조회: {data:{focus,points,serverTime,configuredMinutes}}. 활성 행을 우선 반환한다. 활성 행이 없으면 focus=null이며 가장 최근 RESET/COMPLETED의 goalMinutes를 configuredMinutes로 반환하고 이력도 없으면 10이다. 최신 순은 createdAt DESC, id DESC다. points는 현재 Study.points다.
+집중 조회: {data:{challenge,points,serverTime,goalMinutes}}. 활성 행을 우선 반환한다. 활성 행이 없으면 challenge=null이며 가장 최근 RESET/COMPLETED의 goalMinutes를 반환하고 이력도 없으면 10이다. 최신 순은 createdAt DESC, id DESC다. points는 현재 Study.points다.
 
-집중 변경: {data:{focus,points,settlement}}. 시작·정지·재개·초기화에는 settlement=null. 완료만 Settlement를 반환하며 elapsedPoints=floor(goalMinutes/10), goalPoints=3, awardedPoints=이번 신규 지급 합계다. Focus.awardedPoints는 그 행에 저장한 전체 지급량이므로 완료 재요청의 Settlement.awardedPoints=0과 다를 수 있다.
+집중 변경: {data:{challenge,points,settlement}}. 시작·정지·재개·초기화에는 settlement=null. 완료만 Settlement를 반환하며 elapsedPoints=floor(goalMinutes/10), goalPoints=3, awardedPoints=이번 신규 지급 합계다. Challenge.awardedPoints는 그 행에 저장한 전체 지급량이므로 완료 재요청의 Settlement.awardedPoints=0과 다를 수 있다.
 
 위 분해 값은 최초 완료 지급 기준이다. 동일 완료 재요청은 settlement의 elapsedPoints·goalPoints·awardedPoints 모두 0이다.
 
@@ -89,11 +98,14 @@ DB와 API 이름은 다음처럼 매핑한다. 기존 API의 habits/focus 경로
 ```json
 {
   "data": {
-    "focus": {
+    "challenge": {
       "id": "22222222-2222-4222-8222-222222222222",
       "studyId": "11111111-1111-4111-8111-111111111111",
       "status": "COMPLETED",
-      "configuredMinutes": 10,
+      "goalMinutes": 10,
+      "elapsedMilliseconds": 600000,
+      "lastStartedAt": null,
+      "createdAt": "2026-10-12T01:00:00.000Z",
       "elapsedSeconds": 600,
       "remainingSeconds": 0,
       "serverTime": "2026-10-12T01:10:00.000Z",
@@ -102,7 +114,7 @@ DB와 API 이름은 다음처럼 매핑한다. 기존 API의 habits/focus 경로
     },
     "points": 4,
     "settlement": {
-      "focusId": "22222222-2222-4222-8222-222222222222",
+      "challengeId": "22222222-2222-4222-8222-222222222222",
       "elapsedPoints": 1,
       "goalPoints": 3,
       "awardedPoints": 4
@@ -125,9 +137,9 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 
 ### API-ST-02 생성 / API-ST-04 수정
 
-생성 body: {nickname,name,introduction,background?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,background?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100글자. 비밀번호4~20, `/^[A-Za-z0-9!@#$%^&*]+$/`, 확인값 일치. 비밀번호를 trim하지 않는다.
+생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100글자. 비밀번호4~20, `/^[A-Za-z0-9!@#$%^&*]+$/`, 확인값 일치. 비밀번호를 trim하지 않는다.
 
-배경은 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 나머지 키·자산은 사용자가 전달할 때 확정한다. 미정 키를 임의로 만들지 않으며 전8종 검증 구현은 자산 목록 수신 후 완료한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
+backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 나머지 키·자산은 사용자가 전달할 때 확정한다. 미정 키를 임의로 만들지 않으며 전8종 검증 구현은 자산 목록 수신 후 완료한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
 
 ### API-ST-03 상세 / API-ST-05 삭제
 
@@ -140,7 +152,7 @@ query: weekStart=YYYY-MM-DD를 명시하고 연속7일을 조회하는 계약이
 
 조회 주 첫날 W, 마지막날 E에 대해 Routine.startsOn <= E AND (endsOn IS NULL OR endsOn >= W)인 습관만 조회한다. 날짜 칸은 startsOn <= 날짜 AND (endsOn IS NULL OR 날짜 <= endsOn)이면 exists=true, 아니면 exists=false다. 존재하지 않는 칸은 회색 아이콘이다.
 
-응답: {data:{weekStart,dates:[날짜7개],habits:[{id,name,startsOn,endsOn,cells:[{date,exists,completed}]}]}}. 유효한 칸에 이력 행이 없으면 completed=false, exists=false면 completed=null. 종료 당일 체크는 유지하고 생성일 이전은 존재하지 않는다. 이름은 최신 Routine.name을 사용한다. 행 색상은 정해진 순서를 적용하며 실제 색상표·행 순서는 추가 확인한다.
+응답: {data:{weekStart,dates:[날짜7개],routines:[{id,name,startsOn,endsOn,cells:[{recordDate,exists,completed}]}]}}. 유효한 칸에 이력 행이 없으면 completed=false, exists=false면 completed=null. 종료 당일 체크는 유지하고 생성일 이전은 존재하지 않는다. 이름은 최신 Routine.name을 사용한다. 행 색상은 정해진 순서를 적용하며 실제 색상표·행 순서는 추가 확인한다.
 
 ### API-ST-07 응원
 
@@ -162,10 +174,10 @@ body {password}. Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true
 
 ## 6. 습관 API
 
-HB-01: {data:{date,serverTime,habits:[Habit]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회한다. 이름 수정은 과거 표에도 반영된다.
-HB-02 body {name}, 201 {data:Habit}. HB-03 body {name}, 200 {data:Habit}. 이름 필수·최대20글자, 공백·글자 계산 규칙은 미정. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
+HB-01: {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회한다. 이름 수정은 과거 표에도 반영된다.
+HB-02 body {name}, 201 {data:Routine}. HB-03 body {name}, 200 {data:Routine}. 이름 필수·최대20글자, 공백·글자 계산 규칙은 미정. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
 HB-04 DELETE body 없음. 처음 종료 시 endsOn=서버 오늘 한국 날짜,204. 이미 종료된 행의 재삭제는 날짜를 덮어쓰지 않고204. 물리 삭제하지 않는다.
-HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,date) upsert, 해제도 completed=false 행 유지. 200 {data:{habitId,date,completed}}. 날짜 불일치409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
+HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,recordDate) upsert, 해제도 completed=false 행 유지. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
 
 습관 최대18개는 킥오프 요구다. 활성 개수인지 전체 보존 개수인지는 미정이므로 숫자만으로 잘못된 총이력 제한을 추가하지 않는다. 확정 후 스터디 잠금 안에서 생성 개수를 검사해야 한다.
 
@@ -179,17 +191,17 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | reset(FC-05) | PAUSED | RESET 종료·이력 보존·지급 없음 |
 | complete(FC-06) | 서버가 계산한 경과가 목표에 도달한 RUNNING/PAUSED | COMPLETED·목표 경과 확정·완료 포인트 지급 |
 
-- FC-02 body {durationMinutes}, 10~180 정수(기본 10). DB의 goalMinutes로 저장한다. focusId·attemptNumber를 시작 입력으로 받지 않는다.
-- 모든 집중 API는 비밀번호 헤더를 검증한다. FC-03~06은 본문이 없으며 stateVersion·reason·키를 보내지 않는다. 경로 focusId가 조작할 행을 지정한다.
-- RUNNING/PAUSED가 있으면 새 시작은 409 FOCUS_CONFLICT다. PAUSED A가 있으면 재개하거나 초기화해야 한다. Study 잠금과 활성 부분 UNIQUE로 스터디당 합계 1개를 보장한다.
+- FC-02 body {goalMinutes}, 10~180 정수(기본 10). 같은 이름의 DB 컬럼 goalMinutes로 저장한다. challengeId·attemptNumber를 시작 입력으로 받지 않는다.
+- 모든 집중 API는 비밀번호 헤더를 검증한다. FC-03~06은 본문이 없으며 stateVersion·reason·키를 보내지 않는다. 경로 challengeId가 조작할 행을 지정한다.
+- RUNNING/PAUSED가 있으면 새 시작은 409 CHALLENGE_CONFLICT다. PAUSED A가 있으면 재개하거나 초기화해야 한다. Study 잠금과 활성 부분 UNIQUE로 스터디당 합계 1개를 보장한다.
 - 실제 경과: RUNNING은 min(goalMinutes×60000, elapsedMilliseconds + max(0, 서버 현재 시각-lastStartedAt)), 그 외는 저장된 elapsedMilliseconds다. 조회는 DB 경과를 반복 가산하지 않는다.
 - pause는 실제 경과를 저장하고 lastStartedAt=null로 한다. resume는 저장 경과를 유지하고 lastStartedAt을 현재 서버 시각으로 설정한다. 정지 시간·목표 초과분은 포함하지 않는다.
 - reset은 PAUSED에서만 가능하다. 행을 삭제하지 않고 RESET으로 남기며 awardedPoints=0을 유지한다. 프론트만 기존 목표·경과 0의 시작 전 상태로 돌아간다. 다음 Start는 새 행이다.
 - **완료 시에만** floor(goalMinutes/10)+3P를 지급한다. 10/20/25/180분은 4/5/5/21P. 상한 없음. 정지·재개·초기화·조회에는 지급하지 않는다.
 - Study→Challenge 잠금 → 비밀번호/소속/현재 상태/서버 경과 확인 → RUNNING/PAUSED를 COMPLETED로 조건부 전환 → awardedPoints 저장·Study.points 원자 증가를 같은 트랜잭션으로 처리한다. 전이에 실제 성공한 요청만 증가하며 실패 시 전부 롤백한다.
-- 이미 PAUSED인 pause 재요청은 200·경과 변화 없음. 이미 RUNNING인 resume는 409 INVALID_FOCUS_STATE이며 시작 시각을 덮어쓰지 않는다.
-- 같은 RESET의 reset 재요청은 200·settlement=null. 같은 COMPLETED의 complete 재요청은 200·신규 지급 0P이며 저장된 Focus.awardedPoints와 Study.points는 그대로다.
-- RESET에 complete, COMPLETED에 reset, 종료 상태의 pause/resume는 409 INVALID_FOCUS_STATE다. 목표 전 complete는 409 FOCUS_NOT_FINISHED. 목표에 도달한 RUNNING의 pause 또는 PAUSED의 resume는 409 FOCUS_FINISHED로 완료를 안내한다.
+- 이미 PAUSED인 pause 재요청은 200·경과 변화 없음. 이미 RUNNING인 resume는 409 INVALID_CHALLENGE_STATE이며 시작 시각을 덮어쓰지 않는다.
+- 같은 RESET의 reset 재요청은 200·settlement=null. 같은 COMPLETED의 complete 재요청은 200·신규 지급 0P이며 저장된 Challenge.awardedPoints와 Study.points는 그대로다.
+- RESET에 complete, COMPLETED에 reset, 종료 상태의 pause/resume는 409 INVALID_CHALLENGE_STATE다. 목표 전 complete는 409 CHALLENGE_NOT_FINISHED. 목표에 도달한 RUNNING의 pause 또는 PAUSED의 resume는 409 CHALLENGE_FINISHED로 완료를 안내한다.
 - 조회는 상태 종료·포인트 지급을 수행하지 않는다. 남은 시간이 0이면 클라이언트가 complete를 보내고 서버가 목표 도달을 검증한다. 백그라운드 자동 지급 작업은 없다.
 - 활성 슬롯은 명시적 reset/complete가 처리될 때 해제한다. 브라우저가 닫힌 동안 목표를 채워도 재접속 후 완료 처리하기 전에는 새 시작을 허용하지 않는다.
 - stateVersion·브라우저 소유권은 없다. 다른 브라우저의 비밀번호 검증 후 같은 집중 조작을 허용하며 오래된 요청의 순서 충돌 방지는 이번 범위에서 제외한다. 기본 상태 검사·단일 활성·완료 반복 지급 방지는 유지한다.
@@ -212,16 +224,16 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 | 400 | INVALID_EMOJI | 허용 이모지/표현 규칙 위반; 세부 미정 |
 | 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
 | 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |
-| 404 | STUDY_NOT_FOUND / HABIT_NOT_FOUND / FOCUS_NOT_FOUND | 대상 없음 또는 하위 데이터 소속 불일치 |
-| 409 | FOCUS_CONFLICT | 스터디에 RUNNING/PAUSED 존재 |
-| 409 | INVALID_FOCUS_STATE | 진행 중 reset·종료 상태의 다른 조작 등 |
-| 409 | FOCUS_NOT_FINISHED / FOCUS_FINISHED | 완료 전 complete / 완료해야 하는 상태의 pause·resume |
-| 409 | HABIT_ENDED | 종료된 습관 체크·이름 변경 |
+| 404 | STUDY_NOT_FOUND / ROUTINE_NOT_FOUND / CHALLENGE_NOT_FOUND | 대상 없음 또는 하위 데이터 소속 불일치 |
+| 409 | CHALLENGE_CONFLICT | 스터디에 RUNNING/PAUSED 존재 |
+| 409 | INVALID_CHALLENGE_STATE | 진행 중 reset·종료 상태의 다른 조작 등 |
+| 409 | CHALLENGE_NOT_FINISHED / CHALLENGE_FINISHED | 완료 전 complete / 완료해야 하는 상태의 pause·resume |
+| 409 | ROUTINE_ENDED | 종료된 습관 체크·이름 변경 |
 | 409 | DATE_CHANGED | 체크 요청 날짜가 서버 한국 오늘과 다름 |
 | 409 | REACTION_POLICY_CONFLICT | 같은 studyId/browserId/emoji 중복 |
 | 500 | INTERNAL_ERROR | DB·내부 장애; 민감값 미노출 |
 
-스터디 중복 생성·습관18개 범위에 대한 오류 코드는 정책 확정 후 추가한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 FOCUS_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
+스터디 중복 생성·습관18개 범위에 대한 오류 코드는 정책 확정 후 추가한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 CHALLENGE_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
 
 ## 10. 남은 결정
 
@@ -280,7 +292,7 @@ HB-05 PUT body {date,completed:boolean}. 서버 오늘 한국 날짜와 일치�
 
 ## 12. 습관 동시 요청
 
-Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 종료와 체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은 409 HABIT_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 재삭제는 최초 endsOn을 바꾸지 않는다.
+Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 종료와 체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은 409 ROUTINE_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 재삭제는 최초 endsOn을 바꾸지 않는다.
 
 집중의 stateVersion·여러 브라우저 요청 순서 보장은 제외했지만 위 습관 기록 무결성과 완료 중복 지급 방지를 함께 제거하지 않는다.
 
