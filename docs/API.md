@@ -1,7 +1,7 @@
 # 공부의 숲 API Docs
 
-- 버전: 0.9 DB 용어 통일 초안 · 2026-10-12 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~054; 습관·응원·조회는 ADR-045~046.
+- 버전: 0.10 킥오프 입력·습관 정책 반영 · 2026-10-13 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~058; 습관·응원·조회는 ADR-045~046의 후속 보완을 따른다.
 - 요청 예시: [api.http](../api/requests/api.http). 이번에는 문서·스키마만 변경하며 서버 구현·요청 실행·DB 적용을 하지 않는다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
@@ -22,6 +22,12 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 - 인증 토큰·타이머 전용 키·서명·만료·VerificationToken 테이블·조작권 복구를 사용하지 않는다. 응원 browserId는 비밀번호 검증과 무관하다.
 - 비밀번호를 아는 다른 브라우저도 같은 집중을 조작할 수 있다. 브라우저별 소유권과 여러 브라우저 요청 순서 충돌 처리는 제외한다. 스터디당 활성 1개와 완료 중복 지급 방지는 유지한다.
 - 한국 자정은 습관 날짜 경계에만 적용한다. 비밀번호 만료 시각·타이머 자동 정지 기준으로 사용하지 않는다.
+
+### 공통 문자열 입력 기준 — ADR-056~057
+
+닉네임·스터디 이름·소개·습관 이름은 문자열만 받고 trim()으로 앞뒤 공백을 제거한 뒤 Intl.Segmenter("ko", {granularity:"grapheme"})로 센다. 허용 범위는 각각 1~10·1~15·1~100·1~20그래핌이다. 빈 문자열·공백만 있는 입력과 범위 밖 값은 400 VALIDATION_ERROR다. 생성·수정 모두 정리한 문자열을 저장하며 프론트와 서버의 계산 기준을 일치시킨다. 단순 String.length·Array.from(text).length·HTML maxlength만으로 이 제한을 대신하지 않는다. 그래핌 개수를 저장하는 별도 필드는 추가하지 않는다.
+
+비밀번호·확인값에는 위 trim 규칙을 적용하지 않는다. 길이 4~20, `/^[A-Za-z0-9!@#$%^&*]+$/`를 원문에 적용해 공백·탭·줄바꿈 등 허용 문자 밖 입력을 거절한다. 앞뒤·중간 공백을 제거해서 통과시키지 않는다. 생성·확인·삭제·보호 요청의 비밀번호에 같은 원칙을 적용하며 형식 오류는 400 VALIDATION_ERROR, 필요한 값 누락은 기존 VERIFICATION_REQUIRED 계약, 형식이 맞지만 bcrypt가 불일치하면 401 PASSWORD_MISMATCH다. 생성 확인값은 형식 검사 후 불일치 시 400 PASSWORD_CONFIRM_MISMATCH다. 프론트도 타이핑·붙여넣기 등으로 공백이 들어가지 않도록 처리한다.
 
 ## 2. API 계약 표
 
@@ -158,9 +164,9 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 
 ### API-ST-02 생성 / API-ST-04 수정
 
-생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100글자. 비밀번호4~20, `/^[A-Za-z0-9!@#$%^&*]+$/`, 확인값 일치. 비밀번호를 trim하지 않는다.
+생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 문자열 입력 기준의 원문 검사와 불일치 처리를 따른다.
 
-backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 나머지 키·자산은 사용자가 전달할 때 확정한다. 미정 키를 임의로 만들지 않으며 전8종 검증 구현은 자산 목록 수신 후 완료한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
+backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 담당자가 나머지 7종의 임시 키와 표시 자산을 지정해 공유한다. 프론트·서버는 같은 임시 목록으로 표시·검증하며 목록 밖 키는 400 INVALID_BACKGROUND다. 최종 명칭 대기만으로 구현을 보류하지 않는다. 구체 임시 키는 담당자가 공유할 목록을 따르며 여기서 임의로 고정하지 않는다. 추후 키 변경 시 이미 저장된 backgroundKey의 매핑·migration을 함께 검토한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
 
 ### API-ST-03 상세 / API-ST-05 삭제
 
@@ -195,12 +201,14 @@ body {password}. Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true
 
 ## 6. 습관 API
 
-HB-01: {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회한다. 이름 수정은 과거 표에도 반영된다.
-HB-02 body {name}, 201 {data:Routine}. HB-03 body {name}, 200 {data:Routine}. 이름 필수·최대20글자, 공백·글자 계산 규칙은 미정. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
+HB-01: {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회하고 createdAt ASC → id ASC로 반환한다. 이름 수정은 과거 표에도 반영된다. 조회 기준은 오늘 목록이며 주간 표의 행 순서는 별도 미정이다.
+HB-02 body {name}, 201 {data:Routine}. HB-03 body {name}, 200 {data:Routine}. 이름은 trim 후 그래핌 기준 1~20개이며 조합 이모지도 각각 1글자로 센다. 빈 문자열·공백만 있는 입력은 400 VALIDATION_ERROR로 거절한다. 정리한 이름을 TEXT에 저장하고 서버에서 반드시 검사한다. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
 HB-04 DELETE body 없음. 처음 종료 시 endsOn=서버 오늘 한국 날짜,204. 이미 종료된 행의 재삭제는 날짜를 덮어쓰지 않고204. 물리 삭제하지 않는다.
 HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,recordDate) upsert, 해제도 completed=false 행 유지. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
 
-습관 최대18개는 킥오프 요구다. 활성 개수인지 전체 보존 개수인지는 미정이므로 숫자만으로 잘못된 총이력 제한을 추가하지 않는다. 확정 후 스터디 잠금 안에서 생성 개수를 검사해야 한다.
+습관 최대18개는 해당 스터디의 endsOn IS NULL인 행만 센다. 종료된 습관과 날짜별 기록은 제외한다. 기존 활성18개에서 생성하면 400 VALIDATION_ERROR이며 종료로 활성17개가 되면 다시 생성할 수 있다. 스터디 잠금과 같은 트랜잭션 안에서 count → create를 처리한다.
+
+드래그앤드롭 순서 변경은 후속 ISS-031에서 다룬다. 현재 요청·응답에 position/order 필드나 순서 변경 API를 추가하지 않으며 DB에도 순서 컬럼을 두지 않는다.
 
 ## 7. 집중 상태·완료 지급·중복 요청
 
@@ -239,9 +247,9 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 
 | HTTP | code | 조건 |
 | --- | --- | --- |
-| 400 | VALIDATION_ERROR | UUID·타입·범위·필수·지원하지 않는 필드 오류 |
+| 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 필드·활성 습관18개 초과·비밀번호 허용 문자/길이 오류 |
 | 400 | PASSWORD_CONFIRM_MISMATCH | 생성 비밀번호 확인 불일치 |
-| 400 | INVALID_BACKGROUND | 최종 배경 목록 외 키; 목록 수신 전 완료 처리 불가 |
+| 400 | INVALID_BACKGROUND | 담당자가 공유한 8종 임시 배경 목록 밖 키; 최종 키 확정 전에도 임시 목록으로 검증 |
 | 400 | INVALID_EMOJI | 허용 이모지/표현 규칙 위반; 세부 미정 |
 | 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
 | 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |
@@ -254,7 +262,7 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | 409 | REACTION_POLICY_CONFLICT | 같은 studyId/browserId/emoji 중복 |
 | 500 | INTERNAL_ERROR | DB·내부 장애; 민감값 미노출 |
 
-스터디 중복 생성·습관18개 범위에 대한 오류 코드는 정책 확정 후 추가한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 CHALLENGE_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
+스터디 중복 생성의 별도 오류 정책은 미정이다. 습관 활성18개 초과는 기존 VALIDATION_ERROR(400)를 사용한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 CHALLENGE_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
 
 ## 10. 남은 결정
 
@@ -262,11 +270,12 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | --- | --- | --- |
 | API-Q-04 | 초기·최근 표시 개수·기본 정렬·생성 당일0/1일·다건 수 상한 | 목록/카드 |
 | API-Q-05 | 기본 주·과거/미래 조회 허용 범위·기록표 행 순서/색상표 | 주간 조회·시안 |
-| API-Q-06 | 공백 처리·이모지를 포함한 글자 수 계산, 습관18개 적용 범위 | 입력/DB 제약 |
+| API-Q-06 · 확정 | trim·그래핌 계산·TEXT 저장·활성 습관18개·오늘 목록 생성일 오름차순, 비밀번호 공백 금지(ADR-056~057) | 입력/DB 제약. 그래핌 수와 별개인 바이트 상한은 이번 결정에 포함하지 않음 |
 | API-Q-07 | 응원 허용 이모지·유니코드 동일성·강사 확인 결과 | 응원 |
-| API-Q-08 | 기본green 외 배경7종의 키·이미지 자산, 중복 생성 규칙 | 생성/수정 |
+| API-Q-08 | 기본green 외 7종 임시 키·자산은 담당자가 지정·공유 후 구현, 최종 목록은 추후 변경. 중복 생성 규칙은 미정 | 생성/수정 |
 | API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭 인계·자동 일시정지 제외(ADR-052) | 미정 아님 |
-| API-Q-12 | 구체 오류·완료 화면·반응형 시안, SCSS 도입 여부 | 프론트 |
+| API-Q-12 | 안내 문구 최종 확정·완료 화면·반응형 시안, SCSS 도입 여부. 오류 문구는 확정 전 임시 구현 허용(ADR-058) | 프론트·공통 오류 |
+| API-Q-13 · 후속 | 드래그앤드롭 순서 저장·변경 API·주간 표 적용 범위 | ISS-031. 현재 생성일 정렬 계약은 유지 |
 
 요청별 비밀번호 헤더·Challenge 축소·완료 전용 지급·RESET 뒤 새 행·종료일 포함·주간 겹침·총점 저장·다건 조회·검색 3필드·동률 정렬은 확정/기술 계약으로 구분해 위 절에 반영했다. 삭제 비밀번호 재확인·수정 도착 페이지 모달은 최근 구체 결정 기준으로 유지하며 킥오프의 예전 흐름은 ADR-046에 비교 기록한다.
 
@@ -319,10 +328,20 @@ Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·
 
 ## 13. 실패 메시지의 상태
 
-실패 응답의 code·HTTP·조건은 9절을 따른다. message는 사용자 표시 문구이며 정확한 문구는 아직 미정이다. details는 필드 오류 등 보충 정보이며 민감값을 포함하지 않는다. 구현자가 임의 문구를 확정 명세로 기록하지 않고 해당 기능 구현 계획에서 확인한다.
+실패 응답의 code·HTTP·조건은 9절을 따른다. message의 최종 문구는 추후 확정하며 그전에는 구현자가 임시 안내 문구를 정해 사용한다(ADR-058). 명세의 자리표시자를 실제 응답에 남길 필요는 없다. 임시 문구를 최종 확정으로 기록하지 않고 공통 메시지 정의로 관리한다. details는 필드 오류 등 보충 정보이며 민감값을 포함하지 않는다. INTERNAL_ERROR에는 DB 오류·접속 정보·스택을 넣지 않는다.
 
-실패 모양 예시(message 문자열은 확정 문구가 아닌 자리표시자):
+다음은 임시 구현용 문구 예시이며 최종 승인 문구가 아니다. 상황별 구체 안내도 같은 code로 제공할 수 있다.
+
+| code | 임시 안내 예시 |
+| --- | --- |
+| VALIDATION_ERROR | 요청 내용을 확인해주세요. |
+| VALIDATION_ERROR · 습관 이름 | 습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요. |
+| VALIDATION_ERROR · 습관 개수 | 종료되지 않은 습관은 스터디당 최대 18개까지 만들 수 있습니다. |
+| PASSWORD_CONFIRM_MISMATCH | 비밀번호 확인이 일치하지 않습니다. |
+| INTERNAL_ERROR | 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요. |
+
+실패 모양 예시(message는 임시 문구):
 ```json
-{"error":{"code":"PASSWORD_MISMATCH","message":"<확정할 사용자 안내 문구>","details":null}}
+{"error":{"code":"PASSWORD_CONFIRM_MISMATCH","message":"비밀번호 확인이 일치하지 않습니다.","details":null}}
 ```
 
