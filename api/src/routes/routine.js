@@ -1,4 +1,5 @@
 import express from "express";
+import { isValidRecordDate } from "../utils/date.js";
 import { countGraphemes } from "../utils/string.js";
 import {
   routineErrorMessages,
@@ -9,6 +10,7 @@ import {
 import {
   createRoutine,
   getTodayRoutines,
+  setRoutineCheck,
 } from "../services/routineService.js";
 
 const routineRouter = express.Router({ mergeParams: true });
@@ -72,6 +74,52 @@ routineRouter.post("/", async (req, res) => {
 routineRouter.get("/", async (req, res) => {
   try {
     const result = await getTodayRoutines({ studyId: req.params.studyId });
+    return res.status(200).json({ data: result });
+  } catch (error) {
+    return handleRoutineError(res, error);
+  }
+});
+
+routineRouter.put("/:routineId/check", async (req, res) => {
+  const { studyId, routineId } = req.params;
+  if (!uuidPattern.test(routineId)) {
+    return sendRoutineError(
+      res,
+      "VALIDATION_ERROR",
+      routineErrorMessages.invalidRoutineId,
+    );
+  }
+
+  const body = req.body;
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    Array.isArray(body) ||
+    Object.keys(body).length !== 2 ||
+    typeof body.recordDate !== "string" ||
+    typeof body.completed !== "boolean"
+  ) {
+    return sendRoutineError(
+      res,
+      "VALIDATION_ERROR",
+      routineErrorMessages.invalidCheckBody,
+    );
+  }
+  if (!isValidRecordDate(body.recordDate)) {
+    return sendRoutineError(
+      res,
+      "VALIDATION_ERROR",
+      routineErrorMessages.invalidRecordDate,
+    );
+  }
+
+  try {
+    const result = await setRoutineCheck({
+      studyId,
+      routineId,
+      recordDate: body.recordDate,
+      completed: body.completed,
+    });
     return res.status(200).json({ data: result });
   } catch (error) {
     return handleRoutineError(res, error);

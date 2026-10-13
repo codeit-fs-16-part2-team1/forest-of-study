@@ -95,6 +95,81 @@ export const getTodayRoutines = async ({ studyId }) => {
   };
 };
 
+export const setRoutineCheck = async ({
+  studyId,
+  routineId,
+  recordDate,
+  completed,
+}) => {
+  return prisma.$transaction(async (tx) => {
+    // 생성·수정·종료와 동일하게 Study → Routine 순서로 잠근다.
+    const studies = await tx.$queryRaw`
+      SELECT "id" FROM "Study" WHERE "id" = ${studyId}::uuid FOR UPDATE
+    `;
+    if (studies.length === 0) {
+      throw new RoutineServiceError("STUDY_NOT_FOUND");
+    }
+
+    const routines = await tx.$queryRaw`
+      SELECT "id", "startsOn", "endsOn" FROM "Routine"
+      WHERE "id" = ${routineId}::uuid AND "studyId" = ${studyId}::uuid
+      FOR UPDATE
+    `;
+    const routine = routines[0];
+    if (!routine) {
+      throw new RoutineServiceError("ROUTINE_NOT_FOUND");
+    }
+    if (routine.endsOn !== null) {
+      throw new RoutineServiceError("ROUTINE_ENDED");
+    }
+
+    // 잠금 대기 중 자정을 넘었을 수 있으므로 두 잠금을 얻은 뒤 계산한다.
+    const todayDate = getKoreanDate(new Date());
+    if (recordDate !== todayDate) {
+      throw new RoutineServiceError("DATE_CHANGED");
+    }
+    const today = new Date(`${todayDate}T00:00:00.000Z`);
+    if (routine.startsOn > today) {
+      throw new RoutineServiceError(
+        "VALIDATION_ERROR",
+        routineErrorMessages.outsideRoutinePeriod,
+      );
+    }
+
+    const where = { routineId_recordDate: { routineId, recordDate: today } };
+    const select = { routineId: true, recordDate: true, completed: true };
+    let history;
+    if (completed) {
+      history = await tx.routineHistory.upsert({
+        where,
+        create: { routineId, recordDate: today, completed: true },
+        update: { completed: true },
+        select,
+      });
+    } else {
+      // 기록 없는 해제는 새 행을 만들지 않고 거절한다.
+      const existing = await tx.routineHistory.findUnique({
+        where,
+        select: { routineId: true },
+      });
+      if (!existing) {
+        throw new RoutineServiceError("ROUTINE_HISTORY_NOT_FOUND");
+      }
+      history = await tx.routineHistory.update({
+        where,
+        data: { completed: false },
+        select,
+      });
+    }
+
+    return {
+      routineId: history.routineId,
+      recordDate: history.recordDate.toISOString().slice(0, 10),
+      completed: history.completed,
+    };
+  });
+};
+
 // 개발용 스크립트 전용이다. HTTP 요청에서는 호출하지 않는다.
 // 실제 스터디 API 연동 후에는 준비한 고정 ID 대신 생성 응답의 ID를 사용한다.
 export const prepareRoutineTestStudy = async () => {
