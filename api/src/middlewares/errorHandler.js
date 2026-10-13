@@ -1,4 +1,4 @@
-import { createApiError, isApiError } from "../utils/api-error.js";
+import { createApiError, isApiError } from "../utils/apiError.js";
 
 // Express가 오류 미들웨어로 인식하려면 인자 4개를 유지해야 한다.
 export const errorHandler = (error, req, res, next) => {

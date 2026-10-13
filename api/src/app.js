@@ -3,7 +3,7 @@ import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import challengeRouter from "./routes/challenge.js";
-import { errorHandler } from "./middlewares/error-handler.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 import cors from "cors";
 
 const app = express();
