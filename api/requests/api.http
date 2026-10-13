@@ -1,4 +1,4 @@
-# 공부의 숲 API v0.9 — docs/API.md / ADR-051~054
+# 공부의 숲 API v0.10 — docs/API.md / ADR-051~058
 # 문서용 수동 요청 예시. 서버 구현・요청 실행・DB 적용은 하지 않았다.
 # 아래 비밀번호는 테스트용 가상 값이다. 실제 비밀번호를 커밋하지 않는다.
 # 보호 요청은 X-Study-Password, 진입 검증·삭제·생성은 본문 비밀번호.
@@ -115,13 +115,13 @@ Content-Type: application/json
 }
 
 ### API-HB-01 오늘목록
-# 기대 상태 200.
+# 기대 상태 200. endsOn=null·startsOn<=한국 오늘, createdAt ASC → id ASC.
 GET {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
 ### API-HB-02 생성
-# 기대 상태 201.
+# 기대 상태 201. trim 후 1~20그래핌, 조합 이모지도 각각1글자. 활성18개는400.
 POST {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
@@ -132,7 +132,7 @@ Content-Type: application/json
 }
 
 ### API-HB-03 이름수정
-# 기대 상태 200.
+# 기대 상태 200. 생성과 같은 trim·그래핌 제한을 적용한다.
 PATCH {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}
 Accept: application/json
 X-Study-Password: {{studyPassword}}
@@ -283,7 +283,7 @@ Content-Type: application/json
 }
 
 ### 습관21글자거절
-# 400 VALIDATION_ERROR.
+# 400 VALIDATION_ERROR. trim 후 그래핌 기준. 임시 문구는 최종 확정 대기.
 POST {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
@@ -353,3 +353,234 @@ Content-Type: application/json
 POST {{baseUrl}}/studies/{{studyId}}/challenges/{{challengeId}}/complete
 Accept: application/json
 X-Study-Password: {{studyPassword}}
+
+# 킥오프 검증 예시 — ADR-056~058
+# 전체 API 계약용이며 비밀번호 검증까지 연동된 서버에서 개별 실행한다.
+# 현재 작업은 문서·스키마 수정만 수행했다. 아래 요청의 실제 실행 결과는 별도로 기록한다.
+
+### 킥오프 — 스터디 그래핌 최대값 허용
+# 201. trim 후 닉네임10·이름15·소개100그래핌. TEXT migration 적용 후 실행. 응답에는 앞뒤 공백이 없어야 한다.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "  👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽  ",
+  "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+  "introduction": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가👨‍👩‍👧‍👦",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+### 킥오프 — 스터디 닉네임11그래핌 거절
+# 400 VALIDATION_ERROR. 임시 안내 문구는 최종 확정 문자열과 비교하지 않는다.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+### 킥오프 — 스터디 이름16그래핌 거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+### 킥오프 — 스터디 소개101그래핌 거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가👨‍👩‍👧‍👦",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+### 킥오프 — 스터디 공백만 있는 입력 거절
+# 400 VALIDATION_ERROR. nickname/name/introduction 각각 공백만 있는 값으로 바꿔 확인한다.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "   ",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+### 킥오프 — 습관 trim·그래핌20개 허용
+# 201. 활성18개 미만·TEXT migration 적용 후 실행. 저장 이름은 가족 이모지20개, 앞뒤 공백 없음. 생성 ID를 기억한다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "  👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦  "
+}
+
+### 킥오프 — 습관 조합 이모지21개 거절
+# 400 VALIDATION_ERROR. DB 저장 전 거절해야 한다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"
+}
+
+### 킥오프 — 습관 공백만 있는 이름 거절
+# 400 VALIDATION_ERROR. 빈 문자열도 같은 결과.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "   "
+}
+
+### 킥오프 — 오늘 목록 생성일 순 확인
+# 200. 여러 습관을 순서대로 생성한 뒤 오래된 ID부터 반환되는지 확인. createdAt ASC → id ASC, 생성/정렬용 필드를 응답에 추가하지 않는다.
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+### 킥오프 — 활성 습관18개에서 생성 거절
+# 사전 조건: endsOn=null인 습관이18개. 400 VALIDATION_ERROR. 종료 습관·RoutineHistory 개수는 제한에 포함하지 않는다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "18개 제한 확인"
+}
+
+### 킥오프 — 종료 후 새 습관 생성 허용
+# 위18개 조건에서 기존 API-HB-04로 하나를 종료한 후 실행. 201. 과거 종료 습관의 기록은 유지하고 오늘 목록에서는 제외.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "종료 후 새 습관"
+}
+
+### 킥오프 — 비밀번호 앞 공백 거절
+# 400 VALIDATION_ERROR. trim해서 정상 비밀번호로 처리하면 안 된다.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": " Forest123!",
+  "passwordConfirm": " Forest123!"
+}
+
+### 킥오프 — 비밀번호 중간 공백 거절
+# 400 VALIDATION_ERROR. 공백을 제거해 저장하면 안 된다.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "Forest 123!",
+  "passwordConfirm": "Forest 123!"
+}
+
+### 킥오프 — 비밀번호 뒤 공백 거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "Forest123! ",
+  "passwordConfirm": "Forest123! "
+}
+
+### 킥오프 — 비밀번호 확인값 공백 거절
+# 400 VALIDATION_ERROR. 확인값에도 공백 금지·원문 검사 적용.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "Forest123! "
+}
+
+### 킥오프 — 비밀번호 확인 불일치
+# 400 PASSWORD_CONFIRM_MISMATCH. 두 값은 모두 형식에 맞지만 서로 다름. 임시 안내 문구로 응답.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "Forest456!"
+}
+
+### 킥오프 — 진입 검증 비밀번호 공백 거절
+# 400 VALIDATION_ERROR. 앞뒤 공백 제거 없이 원문 검사.
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": " Forest123!"
+}
+
+### 킥오프 — 임시 배경 목록 밖 키 거절
+# 400 INVALID_BACKGROUND. backgroundKey를 담당자가 공유한 임시8종 목록에 없는 값으로 지정.
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "연우",
+  "name": "개발공장",
+  "introduction": "매일 공부해요",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}",
+  "backgroundKey": "unknown-background"
+}
+

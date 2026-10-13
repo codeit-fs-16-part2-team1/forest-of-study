@@ -1,7 +1,7 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.8 DB·API 용어 통일 초안 · 2026-10-12 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~054; 습관·응원은 ADR-045~046.
+- 버전:0.9 킥오프 그래핌·습관 정책 반영 · 2026-10-13 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~058; 습관·응원은 ADR-045~046의 후속 보완을 따른다.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
 - 이번에는 문서·스키마만 갱신한다. 기존 데이터 변경·migration·generate·db push를 실행하지 않는다.
 
@@ -111,9 +111,9 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 | 컬럼 | Prisma 선언 | NULL |
 | --- | --- | --- |
 | id | `String   @id @default(uuid()) @db.Uuid` | 불가 |
-| nickname | `String   @db.VarChar(10)` | 불가 |
-| name | `String   @db.VarChar(15)` | 불가 |
-| introduction | `String   @db.VarChar(100)` | 불가 |
+| nickname | `String   @db.Text` | 불가 |
+| name | `String   @db.Text` | 불가 |
+| introduction | `String   @db.Text` | 불가 |
 | backgroundKey | `String   @default("green") @db.Text` | 불가 |
 | passwordHash | `String   @db.Text` | 불가 |
 | points | `Int      @default(0)` | 불가 |
@@ -126,7 +126,7 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 | --- | --- | --- |
 | id | `String    @id @default(uuid()) @db.Uuid` | 불가 |
 | studyId | `String    @db.Uuid` | 불가 |
-| name | `String    @db.VarChar(20)` | 불가 |
+| name | `String    @db.Text` | 불가 |
 | startsOn | `DateTime  @db.Date` | 불가 |
 | endsOn | `DateTime? @db.Date` | 허용 |
 | createdAt | `DateTime  @default(now()) @db.Timestamptz(3)` | 불가 |
@@ -166,10 +166,12 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 
 ### 컬럼 의미와 파생값
 
-- Study.nickname/name/introduction 최대10/15/100, Routine.name 최대20. 문자열 공백·글자 수 기준은 API-Q-06에서 확정한다. DB varchar와 프론트 글자 수가 다를 수 있으므로 이모지 경계도 검증한다.
-- Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 키·자산 목록은 추후 전달받는다. API도 같은 backgroundKey를 사용한다.
-- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 닉네임·이름 중복 UNIQUE는 미정 정책을 임의 확정하지 않기 위해 추가하지 않는다.
+- Study.nickname/name/introduction은 trim 후 그래핌 기준 1~10/1~15/1~100개, Routine.name은 1~20개다. 빈 문자열·공백만 있는 입력은 거절하고 정리한 문자열을 저장한다. Intl.Segmenter를 사용해 조합 이모지도 각각 1글자로 센다. 네 컬럼은 TEXT로 저장해 DB의 문자 길이 제한과 충돌하지 않게 한다. 최대 그래핌 수는 서버에서 검사하며 프론트에서도 같은 기준으로 안내한다(ADR-056~057).
+- Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 중 나머지 7종의 임시 키·자산은 담당자가 지정·공유하고 추후 변경한다. API와 프론트는 같은 목록을 쓴다. TEXT 타입을 유지하며 최종 목록 변경 시 기존 저장값 매핑을 함께 검토한다.
+- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 원문 비밀번호는 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`이며 앞뒤·중간 공백을 모두 거절한다. trim·공백 제거를 하지 않고 DB에는 해시만 저장한다. 닉네임·이름 중복 UNIQUE는 미정 정책을 임의 확정하지 않기 위해 추가하지 않는다.
 - Routine.startsOn/endsOn은 양 끝 포함. 종료일이null이면 열린 기간이다. 종료 즉시 오늘 목록에서 숨기고 체크·이름 변경 금지. 생성 당일 종료도 유효하며 startsOn=endsOn 허용.
+- 습관18개 제한은 studyId별 endsOn IS NULL인 행만 센다. 종료 행과 RoutineHistory는 개수에 포함하지 않는다. count와 create는 Study 잠금 안의 같은 트랜잭션으로 처리한다. 행 합계 제한을 단일 행 CHECK로 대신하지 않는다.
+- 오늘 목록은 createdAt ASC → id ASC다. 사용자 순서 변경은 후속 ISS-031이며 이번 스키마에 position/order 컬럼을 추가하지 않는다. 주간 표 행 순서는 별도 미정이다.
 - RoutineHistory.completed=false 행은 체크 해제 사실로 남긴다. 유효 날짜에 행이 없으면 조회 시false, 유효 기간 밖은 exists=false/completed=null. 이름은 Routine에서 조회하여 과거 표에도 현재 이름 반영.
 - Challenge.goalMinutes는 목표 **길이**, lastStartedAt은 **시각**이다. 서로 대체할 수 없다. elapsedMilliseconds는 일시정지 전에 실제로 진행한 구간의 누적 시간이다.
 - RUNNING의 실제 경과 = min(goalMinutes × 60000, elapsedMilliseconds + max(0, 서버 현재 시각 - lastStartedAt)). PAUSED/RESET/COMPLETED의 경과는 저장된 elapsedMilliseconds다.
@@ -206,7 +208,7 @@ Study.points = COALESCE(SUM(해당 스터디 Challenge.awardedPoints), 0)을 대
 - 주간 행: startsOn <= 주 마지막날 AND (endsOn IS NULL OR endsOn >= 주 첫날).
 - 오늘 생성→체크→종료도 오늘 체크는 남고 목록에서만 제거된다. 지난달 종료 습관이 이번 주 빈 행으로 나오지 않는다.
 - endsOn은 종료 시 최초 오늘 날짜로만 설정하며 재삭제로 날짜를 바꾸지 않는다. 날짜가 유효해도 종료된 습관 조작은 거절한다.
-- 최대18개는 킥오프 요구이며 활성/전체 범위는 미정. 현재 DB 이력 관계의0..N에 총18개 제한을 붙이지 않는다.
+- 최대18개는 `endsOn IS NULL`인 습관에만 적용한다. 종료된 습관·날짜별 기록은 제외하며 DB 이력 관계는 0..N을 유지한다. 오늘 목록은 `createdAt ASC → id ASC`로 반환한다.
 
 ### 집중 생명주기
 
@@ -243,7 +245,7 @@ stateDiagram-v2
 
 ## 7. 제약·인덱스와 후속 migration
 
-Prisma에는 PK·FK·NULL·varchar·일반 인덱스를 표현했다. 아래 SQL은 후속 migration에 포함할 설계이며 실행하지 않았다. CHECK는 다른 행의 합계 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
+Prisma에는 PK·FK·NULL·문자열 저장 타입·일반 인덱스를 표현했다. 아래 SQL은 후속 migration에 포함할 설계이며 실행하지 않았다. 문자열의 최대 그래핌 수와 스터디당 활성 습관18개는 서버에서 검사한다. CHECK는 다른 행의 합계 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
 
 ```sql
 CREATE UNIQUE INDEX "Challenge_one_active_per_study"
@@ -288,5 +290,13 @@ ADD CONSTRAINT "Challenge_award_state" CHECK (
 
 이번 변경은 문서·Prisma 초안뿐이다. 기존 PointHistory/PointKind 제거, Challenge 컬럼 축소·awardedPoints 추가, CHECK 교체는 후속 migration 작업이며 실행하지 않았다. Prisma CLI 설치·validate·generate·migration도 실행하지 않았다. 필요 명령은 후속 구현 계획에서 사람이 실행하도록 안내한다.
 
-남은 결정: 습관 18개 범위, 중복 스터디 정책, 배경 7종 키·자산, 공백·글자 계산·이모지 동일성, 기본 주/조회 범위·색상표. 자세한 목록은 API.md 10절과 issues.md에 연결한다.
+### 킥오프 후속 스키마 변경 — ADR-056~057
+
+Study.nickname/name/introduction과 Routine.name을 TEXT로 변경했다. 길이 제한 자체를 없애는 것이 아니라, 최대 그래핌 수 검증을 서버가 맡도록 저장 타입을 변경한 것이다. NOT NULL과 기존 Routine_name_nonempty는 유지한다. DB를 직접 수정하거나 별도 스크립트로 저장할 때도 같은 입력 규칙을 지켜야 한다.
+
+현재 변경 범위는 명세와 schema.prisma다. 기존 migration SQL은 수정하지 않았고 새 migration 파일도 이번 작업에서는 작성하지 않았다. 적용 담당자가 실제 브랜치의 migration 상태를 확인한 뒤 변경이 필요한 네 컬럼에 대해 새 ALTER COLUMN TYPE TEXT migration을 추가해야 한다. 이미 Routine.name 변경 migration이 있다면 중복 작성하지 않는다. migration 적용·generate·실제 저장 확인 전에는 DB 적용 완료로 보지 않는다.
+
+검증: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성18개 생성 거절·종료 후 생성 성공, 생성일 순 조회. 실제 명령·API·DB 검증은 실행하지 않았다.
+
+남은 결정: 중복 스터디 정책, 담당자가 공유할 배경 임시 키·자산과 최종 변경, 응원 이모지 동일성, 기본 주/조회 범위·색상표, 후속 사용자 정렬 저장 방식. 안내 문구는 최종 확정 전 임시 구현을 허용한다. 자세한 목록은 API.md 10절과 issues.md에 연결한다.
 
