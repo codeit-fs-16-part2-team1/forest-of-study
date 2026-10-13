@@ -5,6 +5,19 @@ import { prisma } from "../lib/prisma.js";
 
 const studyRouter = express.Router();
 
+//조회 응답에 사용되는 공개필드. prisma조회에서 select: studySelect로 조회. 
+const studySelect = {
+  id: true,
+  nickname: true,
+  name: true,
+  introduction: true,
+  backgroundKey: true,
+  points: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+
 // 비밀번호에서 모든 공백을 제거할 때 사용합니다.
 const removeWhitespace = (value) => value.replace(/\s/gu, "");
 
@@ -60,6 +73,117 @@ const createStudySchema = z.object({
   );
 
 
+//스터디목록 조회 
+const studyListQuerySchema = z.object({
+
+  //건너뛰는 스터디목록 개수.   
+  //offset을 문자열로 받지만, 숫자로 변환 후, 0 이상의 정수인지 검사합니다. 기본값은 0입니다.  
+  offset: z.string()
+    .regex(/^\d+$/)
+    .default("0")
+    .transform(Number)
+    .pipe(z.number().int().min(0)),
+
+  //한번에 보여줄 스터디 수.    
+  //limit을 문자열로 받지만, 숫자로 변환 후, 1 이상의 정수인지 검사합니다. 기본값은 6입니다.  
+  limit: z.string()
+    .regex(/^\d+$/)
+    .default("6")
+    .transform(Number)
+    .pipe(z.number().int().min(1)),
+
+  //정렬 기준.    
+  sort: z.enum([
+    "latest",
+    "oldest",
+    "points_desc",
+    "points_asc",
+  ]).default("latest"),
+});
+
+//object()객체 안의 필드가 uuid 형식인지 검사 
+const studyIdParamsSchema = z.object({
+  studyId: z.uuid(),
+});
+
+
+//스터디목록 조회 요청 -> 쿼리검사 단계 
+studyRouter.get("/", async (req, res) => {
+  
+  const result = studyListQuerySchema.safeParse(req.query);
+  //req.query에 URL의 offset, limit, sort가 들어옴.
+  //safeParse()로 쿼리검사. 검사 실패 시, 400 응답. 검사 성공 시, offset, limit, sort를 result.data에 담음.  
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "",
+        details: null,
+      },
+    });
+  }
+
+  const { offset, limit, sort } = result.data;
+
+  //최근순, 오래된순, 포인트 높은순, 포인트 낮은순 정렬 조건을 orderByMap에 정의.
+  //생성시각, 포인트 같을 시 id 오름차순으로 정렬.
+  const orderByMap = {
+  latest: [
+    { createdAt: "desc" },
+    { id: "asc" },
+  ],
+  oldest: [
+    { createdAt: "asc" },
+    { id: "asc" },
+  ],
+  points_desc: [
+    { points: "desc" },
+    { id: "asc" },
+  ],
+  points_asc: [
+    { points: "asc" },
+    { id: "asc" },
+  ],
+};
+
+const orderBy = orderByMap[sort];
+
+// 다음 단계: 정렬 조건 설정 → DB 조회 → 200 응답
+
+try {
+  const [studies, total] = await prisma.$transaction([
+    prisma.study.findMany({  //Study 테이블에서 스터디목록 조회
+      select: studySelect,
+      orderBy,
+      skip: offset,  //정렬된 목록에서 offset만큼 건너뜀
+      take: limit,   //최대 limit만큼 조회
+    }),
+    prisma.study.count(),
+  ]);
+
+  return res.status(200).json({
+    data: studies,
+    pagination: {  //더보기 처리에 필요한 정보를 담아 응답.
+      offset,
+      limit,
+      total,
+      hasMore: offset + studies.length < total, //다음에 가져올 스터디가 남았는지 계산. true면 더보기 가능
+    },
+  });
+} catch {
+  return res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "",
+      details: null,
+    },
+  });
+}  
+});
+
+
+
 studyRouter.post("/", async (req, res) => {
   const result = createStudySchema.safeParse(req.body);
 
@@ -108,6 +232,7 @@ studyRouter.post("/", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   //10:해시 계산비용을 정하는 값. passwordHarsh:DB에 저장할 해시값. 10이면 2^10번의 연산을 수행하여 해시를 생성.
   const study = await prisma.study.create({
+    
     //data:DB에 저장할 데이터. 원문 비밀번호 확인값은 저장 x
     data: {
       nickname,
@@ -117,16 +242,7 @@ studyRouter.post("/", async (req, res) => {
       passwordHash,
     },
     //select:DB에서 가져올 데이터. passwordHash는 가져오지 않음.
-    select: {
-      id: true,
-      nickname: true,
-      name: true,
-      introduction: true,
-      backgroundKey: true,
-      points: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select:studySelect,
   });
 
   return res.status(201).json({
@@ -144,6 +260,54 @@ studyRouter.post("/", async (req, res) => {
   
 });
 
+
+//상세조회 요청에서 스터디 ID 검사 
+studyRouter.get("/:studyId", async (req, res) => {
+  const result = studyIdParamsSchema.safeParse(req.params);
+
+  if (!result.success) {
+    return res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "",
+        details: null,
+      },
+    });
+  }
+
+  const { studyId } = result.data;
+
+  // 다음 단계: 스터디 조회 → 없는 경우 404 → 응원 집계
+
+  try {
+  const study = await prisma.study.findUnique({
+    where: {
+      id: studyId,
+    },
+    select: studySelect,
+  });
+
+  if (!study) {
+    return res.status(404).json({
+      error: {
+        code: "STUDY_NOT_FOUND",
+        message: "",
+        details: null,
+      },
+    });
+  }
+
+  // 다음 단계: 응원 집계 → 스터디 정보와 함께 200 응답
+} catch {
+  return res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "",
+      details: null,
+    },
+  });
+}
+});
 
 
 export default studyRouter;
