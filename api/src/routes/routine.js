@@ -3,6 +3,7 @@ import { isValidRecordDate } from "../utils/date.js";
 import { countGraphemes } from "../utils/string.js";
 import { uuidSchema } from "../utils/uuid.js";
 import { createApiError } from "../utils/apiError.js";
+import { sendSuccess } from "../utils/apiResponse.js";
 
 import {
   createRoutine,
@@ -54,12 +55,8 @@ routineRouter.get("/", async (req, res) => {
 
 routineRouter.put("/:routineId/check", async (req, res) => {
   const { studyId, routineId } = req.params;
-  if (!uuidPattern.test(routineId)) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidRoutineId,
-    );
+  if (!uuidSchema.safeParse(routineId).success) {
+    throw createApiError("VALIDATION_ERROR");
   }
 
   const body = req.body;
@@ -71,31 +68,19 @@ routineRouter.put("/:routineId/check", async (req, res) => {
     typeof body.recordDate !== "string" ||
     typeof body.completed !== "boolean"
   ) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidCheckBody,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
   if (!isValidRecordDate(body.recordDate)) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidRecordDate,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
 
-  try {
-    const result = await setRoutineCheck({
-      studyId,
-      routineId,
-      recordDate: body.recordDate,
-      completed: body.completed,
-    });
-    return res.status(200).json({ data: result });
-  } catch (error) {
-    return handleRoutineError(res, error);
-  }
+  const result = await setRoutineCheck({
+    studyId,
+    routineId,
+    recordDate: body.recordDate,
+    completed: body.completed,
+  });
+  return sendSuccess(res, result);
 });
 
 export default routineRouter;
