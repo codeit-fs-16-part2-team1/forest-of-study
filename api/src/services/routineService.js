@@ -1,10 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { getKoreanDate } from "../utils/date.js";
-import {
-  RoutineServiceError,
-  routineErrorMessages,
-} from "../utils/routineError.js";
+import { createApiError } from "../utils/apiError.js";
 
 const MAX_ACTIVE_ROUTINES = 18;
 const TEST_STUDY_ID = "11111111-1111-4111-8111-111111111111";
@@ -34,17 +31,14 @@ export const createRoutine = async ({ studyId, name }) => {
       SELECT "id" FROM "Study" WHERE "id" = ${studyId}::uuid FOR UPDATE
     `;
     if (studies.length === 0) {
-      throw new RoutineServiceError("STUDY_NOT_FOUND");
+      throw createApiError("STUDY_NOT_FOUND");
     }
 
     const count = await tx.routine.count({
       where: { studyId, endsOn: null },
     });
     if (count >= MAX_ACTIVE_ROUTINES) {
-      throw new RoutineServiceError(
-        "VALIDATION_ERROR",
-        routineErrorMessages.routineLimit,
-      );
+      throw createApiError("VALIDATION_ERROR");
     }
 
     // 잠금 대기 중 자정을 넘었을 수 있으므로 저장 직전에 오늘 날짜를 정한다.
@@ -67,7 +61,7 @@ export const getTodayRoutines = async ({ studyId }) => {
     select: { id: true },
   });
   if (!study) {
-    throw new RoutineServiceError("STUDY_NOT_FOUND");
+    throw createApiError("STUDY_NOT_FOUND");
   }
 
   const now = new Date();
@@ -107,7 +101,7 @@ export const setRoutineCheck = async ({
       SELECT "id" FROM "Study" WHERE "id" = ${studyId}::uuid FOR UPDATE
     `;
     if (studies.length === 0) {
-      throw new RoutineServiceError("STUDY_NOT_FOUND");
+      throw createApiError("STUDY_NOT_FOUND");
     }
 
     const routines = await tx.$queryRaw`
@@ -117,50 +111,31 @@ export const setRoutineCheck = async ({
     `;
     const routine = routines[0];
     if (!routine) {
-      throw new RoutineServiceError("ROUTINE_NOT_FOUND");
+      throw createApiError("ROUTINE_NOT_FOUND");
     }
     if (routine.endsOn !== null) {
-      throw new RoutineServiceError("ROUTINE_ENDED");
+      throw createApiError("ROUTINE_ENDED");
     }
 
     // 잠금 대기 중 자정을 넘었을 수 있으므로 두 잠금을 얻은 뒤 계산한다.
     const todayDate = getKoreanDate(new Date());
     if (recordDate !== todayDate) {
-      throw new RoutineServiceError("DATE_CHANGED");
+      throw createApiError("DATE_CHANGED");
     }
     const today = new Date(`${todayDate}T00:00:00.000Z`);
     if (routine.startsOn > today) {
-      throw new RoutineServiceError(
-        "VALIDATION_ERROR",
-        routineErrorMessages.outsideRoutinePeriod,
-      );
+      throw createApiError("VALIDATION_ERROR");
     }
 
     const where = { routineId_recordDate: { routineId, recordDate: today } };
     const select = { routineId: true, recordDate: true, completed: true };
-    let history;
-    if (completed) {
-      history = await tx.routineHistory.upsert({
-        where,
-        create: { routineId, recordDate: today, completed: true },
-        update: { completed: true },
-        select,
-      });
-    } else {
-      // 기록 없는 해제는 새 행을 만들지 않고 거절한다.
-      const existing = await tx.routineHistory.findUnique({
-        where,
-        select: { routineId: true },
-      });
-      if (!existing) {
-        throw new RoutineServiceError("ROUTINE_HISTORY_NOT_FOUND");
-      }
-      history = await tx.routineHistory.update({
-        where,
-        data: { completed: false },
-        select,
-      });
-    }
+    // 체크·해제 모두 기록이 없으면 생성하고 있으면 같은 행을 갱신한다.
+    const history = await tx.routineHistory.upsert({
+      where,
+      create: { routineId, recordDate: today, completed },
+      update: { completed },
+      select,
+    });
 
     return {
       routineId: history.routineId,

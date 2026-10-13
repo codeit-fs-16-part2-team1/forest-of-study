@@ -1,11 +1,9 @@
 import express from "express";
 import { isValidRecordDate } from "../utils/date.js";
 import { countGraphemes } from "../utils/string.js";
-import {
-  routineErrorMessages,
-  sendRoutineError,
-  handleRoutineError,
-} from "../utils/routineError.js";
+import { uuidSchema } from "../utils/uuid.js";
+import { createApiError } from "../utils/apiError.js";
+import { sendSuccess } from "../utils/apiResponse.js";
 
 import {
   createRoutine,
@@ -14,23 +12,14 @@ import {
 } from "../services/routineService.js";
 
 const routineRouter = express.Router({ mergeParams: true });
-const uuidPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 routineRouter.use((req, res, next) => {
   res.set("Cache-Control", "no-store");
-  if (!uuidPattern.test(req.params.studyId)) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidStudyId,
-    );
+  if (!uuidSchema.safeParse(req.params.studyId).success) {
+    return next(createApiError("VALIDATION_ERROR"));
   }
   if (Object.keys(req.query).length > 0) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.unsupportedQuery,
-    );
+    return next(createApiError("VALIDATION_ERROR"));
   }
   next();
 });
@@ -46,48 +35,28 @@ routineRouter.post("/", async (req, res) => {
     Object.keys(body).length !== 1 ||
     typeof body.name !== "string"
   ) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidBody,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
 
   const name = body.name.trim();
   const length = countGraphemes(name);
   if (length < 1 || length > 20) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidName,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
 
-  try {
-    const routine = await createRoutine({ studyId: req.params.studyId, name });
-    return res.status(201).json({ data: routine });
-  } catch (error) {
-    return handleRoutineError(res, error);
-  }
+  const routine = await createRoutine({ studyId: req.params.studyId, name });
+  return res.status(201).json({ data: routine });
 });
 
 routineRouter.get("/", async (req, res) => {
-  try {
-    const result = await getTodayRoutines({ studyId: req.params.studyId });
-    return res.status(200).json({ data: result });
-  } catch (error) {
-    return handleRoutineError(res, error);
-  }
+  const result = await getTodayRoutines({ studyId: req.params.studyId });
+  return res.status(200).json({ data: result });
 });
 
 routineRouter.put("/:routineId/check", async (req, res) => {
   const { studyId, routineId } = req.params;
-  if (!uuidPattern.test(routineId)) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidRoutineId,
-    );
+  if (!uuidSchema.safeParse(routineId).success) {
+    throw createApiError("VALIDATION_ERROR");
   }
 
   const body = req.body;
@@ -99,31 +68,19 @@ routineRouter.put("/:routineId/check", async (req, res) => {
     typeof body.recordDate !== "string" ||
     typeof body.completed !== "boolean"
   ) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidCheckBody,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
   if (!isValidRecordDate(body.recordDate)) {
-    return sendRoutineError(
-      res,
-      "VALIDATION_ERROR",
-      routineErrorMessages.invalidRecordDate,
-    );
+    throw createApiError("VALIDATION_ERROR");
   }
 
-  try {
-    const result = await setRoutineCheck({
-      studyId,
-      routineId,
-      recordDate: body.recordDate,
-      completed: body.completed,
-    });
-    return res.status(200).json({ data: result });
-  } catch (error) {
-    return handleRoutineError(res, error);
-  }
+  const result = await setRoutineCheck({
+    studyId,
+    routineId,
+    recordDate: body.recordDate,
+    completed: body.completed,
+  });
+  return sendSuccess(res, result);
 });
 
 export default routineRouter;
