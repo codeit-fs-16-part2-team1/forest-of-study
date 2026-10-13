@@ -1,0 +1,5 @@
+### 공통 JSON 파서 오류 검사 — 별도 API ID 없음
+POST http://localhost:3000/
+Content-Type: application/json
+
+{

@@ -3,6 +3,8 @@ import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import { createChallengeRouter } from "./routes/challenge.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
+import { createApiError } from "./utils/apiError.js";
 import cors from "cors";
 
 const app = express();
@@ -21,24 +23,23 @@ app.get("/", (req, res) => {
 app.use("/study", studyRouter);
 app.use("/routine", routineRouter);
 
-// 공통 구현이 준비되면 실제 함수를 import하고 아래 객체로 연결한다.
-// { verifyStudyPassword, createApiError, errorHandler }
-const challengeCommon = null;
+// ISS-007의 실제 비밀번호 검증 미들웨어가 준비되면 import해서 연결한다.
+// null인 동안은 집중 API를 등록하지 않는다.
+const verifyStudyPassword = null;
 
-if (challengeCommon !== null) {
-  const { errorHandler } = challengeCommon;
-
-  if (typeof errorHandler !== "function" || errorHandler.length !== 4) {
-    throw new TypeError("공통 오류 처리 함수는 (error, req, res, next) 형태로 연결해주세요.");
-  }
-
+if (verifyStudyPassword !== null) {
+  const challengeRouter = createChallengeRouter({
+    verifyStudyPassword,
+    createApiError,
+  });
   app.use(
     "/api/studies/:studyId/challenges",
-    createChallengeRouter(challengeCommon),
+    challengeRouter,
   );
-  // 라우트 오류와 express.json() 오류를 함께 처리한다.
-  app.use(errorHandler);
 }
+
+// 기능 라우터는 이 오류 미들웨어보다 앞에 등록한다.
+app.use(errorHandler);
 
 try {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
