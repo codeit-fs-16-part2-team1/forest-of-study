@@ -3,6 +3,8 @@ import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import challengeRouter from "./routes/challenge.js";
+import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
+import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import cors from "cors";
 
 const app = express();
@@ -21,6 +23,33 @@ app.get("/", (req, res) => {
 app.use("/study", studyRouter);
 app.use("/routine", routineRouter);
 app.use("/challenge", challengeRouter);
+
+// 실제 공통 인증·오류 함수가 준비되면 이 객체에 연결한다.
+// createApiError(code): 공통 오류 객체
+// verifyStudyPassword(req, res, next): 비밀번호 헤더 검증 미들웨어
+// errorHandler(error, req, res, next): 공통 실패 응답 미들웨어
+const challengeCompletionDependencies = null;
+
+if (challengeCompletionDependencies !== null) {
+  const { verifyStudyPassword, createApiError, errorHandler } =
+    challengeCompletionDependencies;
+
+  if (typeof errorHandler !== "function" || errorHandler.length !== 4) {
+    throw new TypeError("공통 오류 처리에는 인자 4개의 Express 미들웨어를 연결해주세요.");
+  }
+
+  const completeChallenge = createCompleteChallengeService(
+    challengeCompletionDependencies,
+  );
+  const completeChallengeRouter = createCompleteChallengeRouter({
+    verifyStudyPassword,
+    createApiError,
+    completeChallenge,
+  });
+
+  app.use("/api/studies/:studyId/challenges", completeChallengeRouter);
+  app.use(errorHandler);
+}
 
 try {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
