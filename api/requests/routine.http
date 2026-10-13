@@ -69,7 +69,7 @@ Content-Type: application/json
 
 ### API-HB-02 빈 이름 — 거절
 # 400 error.code=VALIDATION_ERROR.
-# message: 습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요.
+# message: 요청 내용을 확인해주세요.
 POST {{baseUrl}}/studies/{{studyId}}/routines
 Content-Type: application/json
 
@@ -91,7 +91,7 @@ Content-Type: application/json
 
 ### API-HB-02 숫자 이름 — 거절
 # 400 VALIDATION_ERROR.
-# message: 습관 이름(name)만 문자열로 보내주세요.
+# message: 요청 내용을 확인해주세요.
 POST {{baseUrl}}/studies/{{studyId}}/routines
 Content-Type: application/json
 
@@ -113,9 +113,17 @@ Content-Type: application/json
 
 ### API-HB-01 잘못된 UUID
 # 400 VALIDATION_ERROR.
-# message: 스터디 ID 형식이 올바르지 않습니다.
+# message: 요청 내용을 확인해주세요.
 GET {{baseUrl}}/studies/not-a-uuid/routines
 Accept: application/json
+
+### API-HB-02 잘못된 UUID
+# 400 VALIDATION_ERROR, details:null. 습관을 생성하지 않는다.
+# message: 요청 내용을 확인해주세요.
+POST {{baseUrl}}/studies/not-a-uuid/routines
+Content-Type: application/json
+
+{"name":"독서"}
 
 ### API-HB-01 없는 스터디
 # 404 STUDY_NOT_FOUND. missingStudyId는 실제 DB에 없는 UUID여야 한다.
@@ -125,7 +133,7 @@ Accept: application/json
 
 ### API-HB-01 지원하지 않는 조회 조건
 # 400 VALIDATION_ERROR.
-# message: 요청 주소에 추가한 조회 조건을 제거해주세요.
+# message: 요청 내용을 확인해주세요.
 GET {{baseUrl}}/studies/{{studyId}}/routines?keyword=test
 Accept: application/json
 
@@ -139,7 +147,7 @@ Content-Type: application/json
 ### API-HB-02 활성 18개 상한 확인
 # 같은 요청을 활성 개수 18개가 될 때까지 개별 실행한다(남은 자리만큼 201).
 # 이미 18개면 400 VALIDATION_ERROR. 재조회해 18개를 넘지 않았는지 확인한다.
-# message: 종료되지 않은 습관은 스터디당 최대 18개까지 만들 수 있습니다.
+# message: 요청 내용을 확인해주세요.
 # 종료된 습관은 제한에서 제외한다. 종료 API는 이번 작업에 포함하지 않는다.
 POST {{baseUrl}}/studies/{{studyId}}/routines
 Content-Type: application/json
