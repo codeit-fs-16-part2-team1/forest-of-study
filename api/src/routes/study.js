@@ -104,7 +104,46 @@ studyRouter.post("/", async (req, res) => {
     password,
   } = result.data;
 
-  // 다음 단계: 비밀번호 해시 생성 → DB 저장 → 201 응답
+  try {
+  const passwordHash = await bcrypt.hash(password, 10);
+  //10:해시 계산비용을 정하는 값. passwordHarsh:DB에 저장할 해시값. 10이면 2^10번의 연산을 수행하여 해시를 생성.
+  const study = await prisma.study.create({
+    //data:DB에 저장할 데이터. 원문 비밀번호 확인값은 저장 x
+    data: {
+      nickname,
+      name,
+      introduction,
+      backgroundKey,
+      passwordHash,
+    },
+    //select:DB에서 가져올 데이터. passwordHash는 가져오지 않음.
+    select: {
+      id: true,
+      nickname: true,
+      name: true,
+      introduction: true,
+      backgroundKey: true,
+      points: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return res.status(201).json({
+    data: study,
+  });
+} catch {
+  return res.status(500).json({
+    error: {
+      code: "INTERNAL_ERROR",
+      message: "",
+      details: null,
+    },
+  });
+}
+  
 });
+
+
 
 export default studyRouter;

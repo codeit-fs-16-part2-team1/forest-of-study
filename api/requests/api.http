@@ -55,6 +55,7 @@ Content-Type: application/json
   "passwordConfirm": "{{studyPassword}}"
 }
 
+
 ### API-ST-01 목록
 # 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
