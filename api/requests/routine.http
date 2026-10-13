@@ -1,0 +1,152 @@
+# GitHub #1 / ISS-011 — 습관 생성·조회 개발용 요청
+# 비밀번호 검증은 아직 연결하지 않는다. 기존 api.http는 전체 계약 예시로 보존한다.
+# 1. api 폴더에서 node scripts/prepare-routine-study.js로 테스트 스터디를 준비한다.
+# 2. 서버를 시작하고 아래 요청을 개별 실행한다. 파일 전체를 일괄 실행하지 않는다.
+# 3. 다른 스터디를 쓰려면 실제 DB에 존재하는 ID로 studyId를 바꾼다.
+# ORM·테이블은 실제 DB를 사용한다. 준비 스크립트 재실행은 습관을 지우지 않는다.
+# 조합 이모지 저장 검증 전 20261013000100_routine_name_text migration을 적용한다.
+@baseUrl = http://localhost:3000/api
+@studyId = 11111111-1111-4111-8111-111111111111
+@missingStudyId = ffffffff-ffff-4fff-bfff-ffffffffffff
+
+### API-HB-01 오늘 목록 — 먼저 빈 목록 확인
+# 200 data:{recordDate,serverTime,routines:[]}. 기존 습관이 있으면 해당 목록.
+# recordDate는 한국 오늘, serverTime은 UTC ISO 8601.
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+
+### API-HB-02 생성 — 앞뒤 공백 제거
+# 201 data:{id,studyId,name:"물 2L 마시기",startsOn,endsOn:null}.
+# startsOn은 한국 오늘. 생성 응답에는 completed·createdAt·updatedAt을 추가하지 않는다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+Content-Type: application/json
+
+{
+  "name": "  물 2L 마시기  "
+}
+
+### API-HB-01 생성 후 조회 — 위 GET 재실행과 동일
+# 200 생성 ID·정리된 이름 확인. 체크 이력이 없으면 completed:false.
+# 순서는 createdAt ASC → id ASC. 조회는 RoutineHistory 행을 만들지 않는다.
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+
+### API-HB-02 한 글자 — 허용
+# 201. 이후 성공 생성 요청은 모두 활성 18개 제한에 포함된다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"물"}
+
+### API-HB-02 정확히 20글자 — 허용
+# 201. 가 20개.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"가가가가가가가가가가가가가가가가가가가가"}
+
+### API-HB-02 이모지 20개 — 그래핌 기준
+# 201. Intl.Segmenter의 그래핌 기준으로 이모지 하나를 1글자로 센다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"}
+
+### API-HB-02 조합 이모지 20개 — 그래핌 기준 허용
+# 201. 가족 이모지 하나를 1글자로 센다. TEXT 변경 migration 적용이 선행 조건이다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"}
+
+### API-HB-02 조합 이모지 21개 — 거절
+# 400 VALIDATION_ERROR. DB에 저장하기 전에 거절한다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"}
+
+### API-HB-02 빈 이름 — 거절
+# 400 error.code=VALIDATION_ERROR.
+# message: 습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":""}
+
+### API-HB-02 공백만 — 거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"   "}
+
+### API-HB-02 21글자 — 거절
+# 400 VALIDATION_ERROR. 가 21개.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"가가가가가가가가가가가가가가가가가가가가가"}
+
+### API-HB-02 숫자 이름 — 거절
+# 400 VALIDATION_ERROR.
+# message: 습관 이름(name)만 문자열로 보내주세요.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":123}
+
+### API-HB-02 필수 필드 누락 — 거절
+# 400 VALIDATION_ERROR.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{}
+
+### API-HB-02 계약 밖 필드 — 거절
+# 400 VALIDATION_ERROR. startsOn은 서버가 지정한다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"독서","startsOn":"2026-10-12"}
+
+### API-HB-01 잘못된 UUID
+# 400 VALIDATION_ERROR.
+# message: 스터디 ID 형식이 올바르지 않습니다.
+GET {{baseUrl}}/studies/not-a-uuid/routines
+Accept: application/json
+
+### API-HB-01 없는 스터디
+# 404 STUDY_NOT_FOUND. missingStudyId는 실제 DB에 없는 UUID여야 한다.
+# message: 스터디를 찾을 수 없습니다.
+GET {{baseUrl}}/studies/{{missingStudyId}}/routines
+Accept: application/json
+
+### API-HB-01 지원하지 않는 조회 조건
+# 400 VALIDATION_ERROR.
+# message: 요청 주소에 추가한 조회 조건을 제거해주세요.
+GET {{baseUrl}}/studies/{{studyId}}/routines?keyword=test
+Accept: application/json
+
+### API-HB-02 없는 스터디
+# 404 STUDY_NOT_FOUND.
+POST {{baseUrl}}/studies/{{missingStudyId}}/routines
+Content-Type: application/json
+
+{"name":"독서"}
+
+### API-HB-02 활성 18개 상한 확인
+# 같은 요청을 활성 개수 18개가 될 때까지 개별 실행한다(남은 자리만큼 201).
+# 이미 18개면 400 VALIDATION_ERROR. 재조회해 18개를 넘지 않았는지 확인한다.
+# message: 종료되지 않은 습관은 스터디당 최대 18개까지 만들 수 있습니다.
+# 종료된 습관은 제한에서 제외한다. 종료 API는 이번 작업에 포함하지 않는다.
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"개수 확인"}
+
+# 추후 연동:
+# 실제 스터디 생성 응답 ID로 studyId를 교체한다.
+# 비밀번호 검증 미들웨어 연결 후 각 요청에 X-Study-Password를 추가하고
+# 누락 401 VERIFICATION_REQUIRED / 오답 401 PASSWORD_MISMATCH를 확인한다.

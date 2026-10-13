@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/study", studyRouter);
-app.use("/routine", routineRouter);
+app.use("/api/studies/:studyId/routines", routineRouter);
 app.use("/challenge", challengeRouter);
 
 try {
