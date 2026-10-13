@@ -1,20 +1,12 @@
 import { prisma } from "../lib/prisma.js";
 import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { createApiError } from "../utils/apiError.js";
 
 const activeStatuses = ["RUNNING", "PAUSED"];
 const latestOrder = [{ createdAt: "desc" }, { id: "desc" }];
 
-// 사용자용 message는 공통 오류 처리에서 확정된 문구로 연결한다.
-const createServiceError = (code, statusCode) => {
-  const error = new Error();
-  error.name = "ChallengeServiceError";
-  error.code = code;
-  error.statusCode = statusCode;
-  return error;
-};
-
 const isActiveChallengeConflict = (error) => {
-  if (error.code !== "P2002") {
+  if (error?.code !== "P2002") {
     return false;
   }
 
@@ -35,7 +27,7 @@ export const getCurrentChallenge = async (studyId) =>
       });
 
       if (study === null) {
-        throw createServiceError("STUDY_NOT_FOUND", 404);
+        throw createApiError("STUDY_NOT_FOUND");
       }
 
       const challenge = await tx.challenge.findFirst({
@@ -82,7 +74,7 @@ export const startChallenge = async (studyId, goalMinutes) => {
         const study = studies[0];
 
         if (study === undefined) {
-          throw createServiceError("STUDY_NOT_FOUND", 404);
+          throw createApiError("STUDY_NOT_FOUND");
         }
 
         const active = await tx.challenge.findFirst({
@@ -91,7 +83,7 @@ export const startChallenge = async (studyId, goalMinutes) => {
         });
 
         if (active !== null) {
-          throw createServiceError("CHALLENGE_CONFLICT", 409);
+          throw createApiError("CHALLENGE_CONFLICT");
         }
 
         const serverTime = new Date();
@@ -116,7 +108,7 @@ export const startChallenge = async (studyId, goalMinutes) => {
     );
   } catch (error) {
     if (isActiveChallengeConflict(error)) {
-      throw createServiceError("CHALLENGE_CONFLICT", 409);
+      throw createApiError("CHALLENGE_CONFLICT");
     }
     throw error;
   }
