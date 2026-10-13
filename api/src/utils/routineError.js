@@ -34,6 +34,8 @@ export const routineErrorMessages = {
   invalidRoutineId: "습관 ID 형식이 올바르지 않습니다.",
   invalidCheckBody: "recordDate와 completed만 보내고 completed는 true 또는 false로 입력해주세요.",
   invalidRecordDate: "recordDate는 실제 존재하는 날짜를 YYYY-MM-DD 형식으로 입력해주세요.",
+  invalidWeekStart: "weekStart는 7일 전체를 표현할 수 있는 실제 날짜를 YYYY-MM-DD 형식으로 입력해주세요.",
+  invalidWeekQuery: "조회 조건은 weekStart 하나만 YYYY-MM-DD 형식으로 보내주세요.",
   outsideRoutinePeriod: "습관 사용 기간에 해당하는 날짜만 변경할 수 있습니다.",
   unsupportedQuery: "요청 주소에 추가한 조회 조건을 제거해주세요.",
   invalidBody: "습관 이름(name)만 문자열로 보내주세요.",

@@ -22,3 +22,25 @@ export const isValidRecordDate = (value) => {
   const date = new Date(`${value}T00:00:00.000Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
+
+// 입력한 날짜가 속한 주의 월요일부터 일요일까지 날짜를 반환한다.
+// Date는 날짜 계산용 UTC 자정으로만 사용하여 서버 시간대의 영향을 피한다.
+export const getWeekDates = (value) => {
+  if (!isValidRecordDate(value)) return null;
+
+  const monday = new Date(`${value}T00:00:00.000Z`);
+  const daysSinceMonday = (monday.getUTCDay() + 6) % 7;
+  monday.setUTCDate(monday.getUTCDate() - daysSinceMonday);
+
+  const dates = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+
+  // PostgreSQL에는 서기 0년이 없고 API 날짜는 네 자리 연도만 표현한다.
+  if (dates.some((date) => date.startsWith("0000") || !isValidRecordDate(date))) {
+    return null;
+  }
+  return dates;
+};

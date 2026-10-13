@@ -2,6 +2,7 @@ import express from "express";
 import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
+import routineHistoryRouter from "./routes/routineHistory.js";
 import challengeRouter from "./routes/challenge.js";
 import cors from "cors";
 
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 
 app.use("/study", studyRouter);
 app.use("/api/studies/:studyId/routines", routineRouter);
+app.use("/api/studies/:studyId/routine-histories", routineHistoryRouter);
 app.use("/challenge", challengeRouter);
 
 try {
