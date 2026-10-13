@@ -1,10 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { getKoreanDate } from "../utils/date.js";
-import {
-  RoutineServiceError,
-  routineErrorMessages,
-} from "../utils/routineError.js";
+import { createApiError } from "../utils/apiError.js";
 
 const MAX_ACTIVE_ROUTINES = 18;
 const TEST_STUDY_ID = "11111111-1111-4111-8111-111111111111";
@@ -34,17 +31,14 @@ export const createRoutine = async ({ studyId, name }) => {
       SELECT "id" FROM "Study" WHERE "id" = ${studyId}::uuid FOR UPDATE
     `;
     if (studies.length === 0) {
-      throw new RoutineServiceError("STUDY_NOT_FOUND");
+      throw createApiError("STUDY_NOT_FOUND");
     }
 
     const count = await tx.routine.count({
       where: { studyId, endsOn: null },
     });
     if (count >= MAX_ACTIVE_ROUTINES) {
-      throw new RoutineServiceError(
-        "VALIDATION_ERROR",
-        routineErrorMessages.routineLimit,
-      );
+      throw createApiError("VALIDATION_ERROR");
     }
 
     // 잠금 대기 중 자정을 넘었을 수 있으므로 저장 직전에 오늘 날짜를 정한다.
@@ -67,7 +61,7 @@ export const getTodayRoutines = async ({ studyId }) => {
     select: { id: true },
   });
   if (!study) {
-    throw new RoutineServiceError("STUDY_NOT_FOUND");
+    throw createApiError("STUDY_NOT_FOUND");
   }
 
   const now = new Date();
