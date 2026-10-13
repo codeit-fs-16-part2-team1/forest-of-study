@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma.js";
-import { RoutineServiceError } from "../utils/routineError.js";
+import { createApiError } from "../utils/apiError.js";
 
 export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
   const study = await prisma.study.findUnique({
@@ -7,7 +7,7 @@ export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
     select: { id: true },
   });
   if (!study) {
-    throw new RoutineServiceError("STUDY_NOT_FOUND");
+    throw createApiError("STUDY_NOT_FOUND");
   }
 
   const weekStart = weekDates[0];
