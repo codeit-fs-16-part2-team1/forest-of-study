@@ -1,4 +1,4 @@
-// 공부의 숲 DB 설계 v0.8 — docs/DB.md / ADR-051~054
+// 공부의 숲 DB 설계 v0.9 — docs/DB.md / ADR-051~058
 // 문서용 스키마 초안. 연결·생성·migration 실행 없음.
 // 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
 // docs/DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.
@@ -19,9 +19,10 @@ enum ChallengeStatus {
 
 model Study {
   id            String   @id @default(uuid()) @db.Uuid
-  nickname      String   @db.VarChar(10)
-  name          String   @db.VarChar(15)
-  introduction  String   @db.VarChar(100)
+  // trim 후 그래핌 기준 1~10 / 1~15 / 1~100개를 서버에서 검사한다.
+  nickname      String   @db.Text
+  name          String   @db.Text
+  introduction  String   @db.Text
   backgroundKey String   @default("green") @db.Text
   passwordHash  String   @db.Text
   points        Int      @default(0)
@@ -39,7 +40,8 @@ model Study {
 model Routine {
   id        String    @id @default(uuid()) @db.Uuid
   studyId   String    @db.Uuid
-  name      String    @db.VarChar(20)
+  // trim 후 그래핌 기준 1~20개를 서버에서 검사한다.
+  name      String    @db.Text
   // 서버가 한국 날짜를 지정한다. UTC 날짜를 기본값으로 쓰지 않는다.
   startsOn  DateTime  @db.Date
   // 종료일은 기록 표시에 포함한다. endsOn이 있으면 목록에서 숨기고 조작을 막는다.
