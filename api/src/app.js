@@ -2,10 +2,10 @@ import express from "express";
 import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
-import challengeRouter from "./routes/challenge.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { createChallengeRouter } from "./routes/challenge.js";
 import cors from "cors";
 
 const app = express();
@@ -23,7 +23,25 @@ app.get("/", (req, res) => {
 
 app.use("/study", studyRouter);
 app.use("/routine", routineRouter);
-app.use("/challenge", challengeRouter);
+
+// 공통 구현이 준비되면 실제 함수를 import하고 아래 객체로 연결한다.
+// { verifyStudyPassword, createApiError, errorHandler }
+const challengeCommon = null;
+
+if (challengeCommon !== null) {
+  const { errorHandler } = challengeCommon;
+
+  if (typeof errorHandler !== "function" || errorHandler.length !== 4) {
+    throw new TypeError("공통 오류 처리 함수는 (error, req, res, next) 형태로 연결해주세요.");
+  }
+
+  app.use(
+    "/api/studies/:studyId/challenges",
+    createChallengeRouter(challengeCommon),
+  );
+  // 라우트 오류와 express.json() 오류를 함께 처리한다.
+  app.use(errorHandler);
+}
 
 // 실제 공통 인증·오류 함수가 준비되면 이 객체에 연결한다.
 // createApiError(code): 공통 오류 객체
