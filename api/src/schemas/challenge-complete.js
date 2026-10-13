@@ -1,8 +1,6 @@
 import { z } from "zod";
 
-const uuidSchema = z.string().regex(
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-);
+import { uuidSchema } from "../utils/uuid.js";
 
 const completeChallengeSchema = z.strictObject({
   studyId: uuidSchema,

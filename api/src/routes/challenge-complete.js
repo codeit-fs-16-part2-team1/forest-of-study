@@ -1,18 +1,19 @@
 import express from "express";
 import { validateCompleteChallenge } from "../schemas/challenge-complete.js";
+import { createApiError } from "../utils/apiError.js";
+import { sendSuccess } from "../utils/apiResponse.js";
 
 // verifyStudyPassword는 X-Study-Password를 검증하는 Express 미들웨어다.
 export const createCompleteChallengeRouter = ({
   verifyStudyPassword,
-  createApiError,
   completeChallenge,
 }) => {
   if (
-    [verifyStudyPassword, createApiError, completeChallenge].some(
+    [verifyStudyPassword, completeChallenge].some(
       (dependency) => typeof dependency !== "function",
     )
   ) {
-    throw new TypeError("완료 라우트에 비밀번호 검증·공통 오류·완료 서비스를 연결해주세요.");
+    throw new TypeError("완료 라우트에 비밀번호 검증·완료 서비스를 연결해주세요.");
   }
 
   const router = express.Router({ mergeParams: true });
@@ -47,7 +48,7 @@ export const createCompleteChallengeRouter = ({
         req.params.studyId,
         req.params.challengeId,
       );
-      res.status(200).json({ data });
+      return sendSuccess(res, data);
     },
   );
 

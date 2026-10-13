@@ -3,13 +3,9 @@ import { checkChallengeCompletion } from "../utils/challenge-completion.js";
 import { calculateChallengePoints } from "../utils/challenge-points.js";
 import { calculateElapsedMilliseconds } from "../utils/challenge-time.js";
 import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { createApiError } from "../utils/apiError.js";
 
-// 공통 오류 함수는 실제 구현이 준비된 뒤 전달한다.
-export const createCompleteChallengeService = ({ createApiError }) => {
-  if (typeof createApiError !== "function") {
-    throw new TypeError("완료 서비스에 공통 오류 함수를 연결해주세요.");
-  }
-
+export const createCompleteChallengeService = () => {
   // UUID·비밀번호 검증을 마친 라우트에서 호출한다. 완료 요청 본문은 받지 않는다.
   return async (studyId, challengeId) =>
     prisma.$transaction(

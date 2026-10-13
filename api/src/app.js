@@ -5,6 +5,7 @@ import routineRouter from "./routes/routine.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { createApiError } from "./utils/apiError.js";
 import { createChallengeRouter } from "./routes/challenge.js";
 import cors from "cors";
 
@@ -24,45 +25,23 @@ app.get("/", (req, res) => {
 app.use("/study", studyRouter);
 app.use("/routine", routineRouter);
 
-// 공통 구현이 준비되면 실제 함수를 import하고 아래 객체로 연결한다.
-// { verifyStudyPassword, createApiError, errorHandler }
-const challengeCommon = null;
+// ISS-007의 실제 비밀번호 검증 미들웨어가 준비되면 import해서 연결한다.
+// null인 동안은 시작·조회·완료 API를 등록하지 않는다.
+const verifyStudyPassword = null;
 
-if (challengeCommon !== null) {
-  const { errorHandler } = challengeCommon;
-
-  if (typeof errorHandler !== "function" || errorHandler.length !== 4) {
-    throw new TypeError("공통 오류 처리 함수는 (error, req, res, next) 형태로 연결해주세요.");
-  }
-
+if (verifyStudyPassword !== null) {
   app.use(
     "/api/studies/:studyId/challenges",
-    createChallengeRouter(challengeCommon),
+    createChallengeRouter({ verifyStudyPassword, createApiError }),
   );
-  // 라우트 오류와 express.json() 오류를 함께 처리한다.
-  app.use(errorHandler);
+
+  const completeChallenge = createCompleteChallengeService();
+  app.use(
+    "/api/studies/:studyId/challenges",
+    createCompleteChallengeRouter({ verifyStudyPassword, completeChallenge }),
+  );
 }
 
-// 실제 공통 인증·오류 함수가 준비되면 이 객체에 연결한다.
-// createApiError(code): 공통 오류 객체
-// verifyStudyPassword(req, res, next): 비밀번호 헤더 검증 미들웨어
-const challengeCompletionDependencies = null;
-
-if (challengeCompletionDependencies !== null) {
-  const { verifyStudyPassword, createApiError } =
-    challengeCompletionDependencies;
-
-  const completeChallenge = createCompleteChallengeService(
-    challengeCompletionDependencies,
-  );
-  const completeChallengeRouter = createCompleteChallengeRouter({
-    verifyStudyPassword,
-    createApiError,
-    completeChallenge,
-  });
-
-  app.use("/api/studies/:studyId/challenges", completeChallengeRouter);
-}
 // 기능 라우터는 이 오류 미들웨어보다 앞에 등록한다.
 app.use(errorHandler);
 
