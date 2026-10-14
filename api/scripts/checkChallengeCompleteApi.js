@@ -14,6 +14,7 @@ import { errorHandler } from "../src/middlewares/errorHandler.js";
 // 로컬 DB·실제 라우터·인증을 검증한다. app.js 서버와 스터디 상세 API 검증은 별도다.
 // 기본 10분을 실제로 기다린다. 인자로 20·25·180분을 선택할 수 있다.
 // 시간·목표 도달 조건을 우회하지 않으며 운영 라우트에 테스트 기능을 추가하지 않는다.
+// PAUSED 검증은 별도 임시 집중을 함께 실행한다. 정지·재개 상태 준비는 DB로 하고 완료 API만 검사한다.
 const goalMinutes = Number(process.argv[2] ?? 10);
 const awards = new Map([[10, 4], [20, 5], [25, 5], [180, 21]]);
 const fixtureIds = [];
@@ -110,8 +111,48 @@ try {
   });
   expectError(await request({ id: otherStudyId, path: `/${reset.id}/complete`, method: "POST" }), 409, "INVALID_CHALLENGE_STATE");
 
+  step = "PAUSED 목표 미달 완료 거절·상태와 총점 불변";
+  const pauseStarted = await request({ id: otherStudyId, method: "POST", body: { goalMinutes: 10 } });
+  assert.equal(pauseStarted.status, 201);
+  const pausedChallengeId = pauseStarted.body.data.challenge.id;
+  const pauseCurrent = await request({ id: otherStudyId, path: "/current" });
+  assert.equal(pauseCurrent.status, 200);
+  const pauseSource = pauseCurrent.body.data.challenge;
+  const pausedElapsed = Math.min(600000, pauseSource.elapsedMilliseconds + Math.max(
+    0, Date.parse(pauseSource.serverTime) - Date.parse(pauseSource.lastStartedAt),
+  ));
+  assert.equal(pausedElapsed < 600000, true);
+  // 실제 조회 시각까지 흐른 시간만 저장한다. 시작 시각을 과거로 이동하지 않는다.
+  const pausedBefore = await prisma.challenge.update({
+    where: { id: pausedChallengeId },
+    data: { status: "PAUSED", elapsedMilliseconds: pausedElapsed, lastStartedAt: null },
+  });
+  const pausedComplete = () => request({
+    id: otherStudyId, path: `/${pausedChallengeId}/complete`, method: "POST",
+  });
+  expectError(await pausedComplete(), 409, "CHALLENGE_NOT_FINISHED");
+  expectError(await request({ id: otherStudyId, method: "POST", body: {} }), 409, "CHALLENGE_CONFLICT");
+  assert.deepEqual(await prisma.challenge.findUniqueOrThrow({ where: { id: pausedChallengeId } }), pausedBefore);
+  const unpaidPausedStudy = await prisma.study.findUniqueOrThrow({ where: { id: otherStudyId }, select: { points: true } });
+  assert.equal(unpaidPausedStudy.points, 0);
+  const pausedCurrent = await request({ id: otherStudyId, path: "/current" });
+  assert.equal(pausedCurrent.status, 200);
+  assert.equal(pausedCurrent.body.data.challenge.status, "PAUSED");
+  assert.equal(pausedCurrent.body.data.challenge.elapsedMilliseconds, pausedElapsed);
+  assert.equal(pausedCurrent.body.data.challenge.endsAt, null);
+  assert.equal(pausedCurrent.body.data.points, 0);
+
+  // 재개 API 대신 임시 상태를 준비한다. 현재 시각부터 남은 시간을 실제로 기다린다.
+  const resumedAt = new Date();
+  await prisma.challenge.update({
+    where: { id: pausedChallengeId },
+    data: { status: "RUNNING", lastStartedAt: resumedAt },
+  });
+
   step = "실제 목표 시간 대기";
-  const deadline = new Date(started.body.data.challenge.lastStartedAt).getTime() + goalMinutes * 60000;
+  const runningDeadline = new Date(started.body.data.challenge.lastStartedAt).getTime() + goalMinutes * 60000;
+  const pausedDeadline = resumedAt.getTime() + 600000 - pausedElapsed;
+  const deadline = Math.max(runningDeadline, pausedDeadline);
   while (Date.now() < deadline + 100) {
     const remaining = deadline + 100 - Date.now();
     console.log(`목표 완료 대기: 약 ${Math.ceil(remaining / 60000)}분 남음`);
@@ -180,7 +221,63 @@ try {
   assert.equal(restarted.body.data.challenge.awardedPoints, 0);
   assert.equal(restarted.body.data.points, expectedAward);
 
-  console.log(`집중 완료 API 검증 성공: 실제 ${goalMinutes}분·${expectedAward}P·재요청0P·롤백·합계·목표복원`);
+  step = "실제 목표를 채운 PAUSED 상태 준비·완료 전 무지급";
+  const pausedReached = await request({ id: otherStudyId, path: "/current" });
+  assert.equal(pausedReached.status, 200);
+  assert.equal(pausedReached.body.data.challenge.id, pausedChallengeId);
+  assert.equal(pausedReached.body.data.challenge.remainingSeconds, 0);
+  assert.equal(pausedReached.body.data.points, 0);
+  const reachedSource = pausedReached.body.data.challenge;
+  const reachedElapsed = Math.min(600000, reachedSource.elapsedMilliseconds + Math.max(
+    0, Date.parse(reachedSource.serverTime) - Date.parse(reachedSource.lastStartedAt),
+  ));
+  assert.equal(reachedElapsed, 600000);
+  // 실제로 흐른 시간만 확정한다. 목표 도달 전의 경과를 늘리지 않는다.
+  const reachedPausedRow = await prisma.challenge.update({
+    where: { id: pausedChallengeId },
+    data: { status: "PAUSED", elapsedMilliseconds: reachedElapsed, lastStartedAt: null },
+  });
+  assert.equal(reachedPausedRow.awardedPoints, 0);
+  const waitingPaused = await request({ id: otherStudyId, path: "/current" });
+  assert.equal(waitingPaused.status, 200);
+  assert.equal(waitingPaused.body.data.challenge.status, "PAUSED");
+  assert.equal(waitingPaused.body.data.challenge.remainingSeconds, 0);
+  assert.equal(waitingPaused.body.data.challenge.endsAt, null);
+  assert.equal(waitingPaused.body.data.points, 0);
+  expectError(await request({ id: otherStudyId, method: "POST", body: {} }), 409, "CHALLENGE_CONFLICT");
+
+  step = "PAUSED 목표 도달 완료 200·4P 지급·재요청 0P";
+  const pausedCompleted = await pausedComplete();
+  assert.equal(pausedCompleted.status, 200);
+  assert.equal(pausedCompleted.body.data.challenge.id, pausedChallengeId);
+  assert.equal(pausedCompleted.body.data.challenge.status, "COMPLETED");
+  assert.equal(pausedCompleted.body.data.challenge.elapsedMilliseconds, 600000);
+  assert.equal(pausedCompleted.body.data.challenge.lastStartedAt, null);
+  assert.equal(pausedCompleted.body.data.challenge.awardedPoints, 4);
+  assert.equal(pausedCompleted.body.data.points, 4);
+  assert.deepEqual(pausedCompleted.body.data.settlement, {
+    challengeId: pausedChallengeId, elapsedPoints: 1, goalPoints: 3, awardedPoints: 4,
+  });
+  const completedPausedRow = await prisma.challenge.findUniqueOrThrow({ where: { id: pausedChallengeId } });
+  const pausedRepeated = await pausedComplete();
+  assert.equal(pausedRepeated.status, 200);
+  assert.equal(pausedRepeated.body.data.challenge.awardedPoints, 4);
+  assert.equal(pausedRepeated.body.data.points, 4);
+  assert.deepEqual(pausedRepeated.body.data.settlement, {
+    challengeId: pausedChallengeId, elapsedPoints: 0, goalPoints: 0, awardedPoints: 0,
+  });
+  assert.deepEqual(await prisma.challenge.findUniqueOrThrow({ where: { id: pausedChallengeId } }), completedPausedRow);
+  const pausedTotal = await prisma.challenge.aggregate({ where: { studyId: otherStudyId }, _sum: { awardedPoints: true } });
+  const paidPausedStudy = await prisma.study.findUniqueOrThrow({ where: { id: otherStudyId }, select: { points: true } });
+  assert.equal(paidPausedStudy.points, 4);
+  assert.equal(pausedTotal._sum.awardedPoints, paidPausedStudy.points);
+  const pausedFinished = await request({ id: otherStudyId, path: "/current" });
+  assert.equal(pausedFinished.status, 200);
+  assert.equal(pausedFinished.body.data.challenge, null);
+  assert.equal(pausedFinished.body.data.goalMinutes, 10);
+  assert.equal(pausedFinished.body.data.points, 4);
+
+  console.log(`집중 완료 API 검증 성공: 실제 ${goalMinutes}분·${expectedAward}P·RUNNING/PAUSED 완료·재요청0P·롤백·합계·목표복원`);
 } catch {
   console.error(`집중 완료 API 검증 실패: ${step}`);
   process.exitCode = 1;
