@@ -41,6 +41,7 @@
 # 중간 범위 밖: 수정·삭제·습관 종료·집중 정지/재개/초기화 요청. 계약 예시는 아래에 보존한다.
 # 이 파일 작성은 서버 구현이나 실제 요청 실행 완료를 의미하지 않는다.
 
+
 ### API-ST-02 생성
 # 201 Study. 배경 생략은 첫 초록색.
 POST {{baseUrl}}/studies
@@ -54,6 +55,7 @@ Content-Type: application/json
   "password": "{{studyPassword}}",
   "passwordConfirm": "{{studyPassword}}"
 }
+
 
 ### API-ST-01 목록
 # 기대 상태 200.

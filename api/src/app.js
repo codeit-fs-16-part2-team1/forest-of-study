@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
   res.send("공부의 숲 서버가 살아 있어요");
 });
 
-app.use("/study", studyRouter);
+app.use("/api/studies", studyRouter);
 app.use("/routine", routineRouter);
 app.use("/challenge", challengeRouter);
 app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
