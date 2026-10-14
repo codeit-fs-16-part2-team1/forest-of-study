@@ -1,6 +1,7 @@
-// 로컬 개발 DB의 5개 테이블을 매번 삭제하고 다시 만든다.
-// 실행 전 API 서버를 중지한다. migration은 이 스크립트에서 실행하지 않는다.
-import { assertLocalSeedDatabase, buildSeedData, EXPECTED_COUNTS,
+// 선택한 로컬 또는 Neon DB 한 곳의 5개 테이블을 매번 삭제하고 다시 만든다.
+// 해당 DB를 사용하는 API를 중지한다. migration은 이 스크립트에서 실행하지 않는다.
+import { loadEnvFile } from "node:process";
+import { buildSeedData, EXPECTED_COUNTS, getSeedTarget,
   STUDY_CASES, studyId, validateSeedRows } from "./seed-data.js";
 
 // 승인된 로컬 개발용 공통 비밀번호의 bcrypt(cost 10) 해시다.
@@ -8,18 +9,22 @@ import { assertLocalSeedDatabase, buildSeedData, EXPECTED_COUNTS,
 const SEED_PASSWORD_HASH = "$2b$10$JW5N1NGCkICxI.wuvzx4GerzHvq5nOJ7zAKa0JnU4QFh/5SHgsxpK";
 
 let prisma;
-let step = "로컬 DB 주소 확인";
+let target;
+let step = "환경변수·대상 DB 주소 확인";
 
 try {
-  const { databaseUrl } = await import("./src/config/env.js");
-  const localUrl = assertLocalSeedDatabase(databaseUrl);
+  try { loadEnvFile(new URL("./.env", import.meta.url)); } catch (error) {
+    if (error.code !== "ENOENT") throw new Error("환경변수 파일 로드 실패");
+  }
+  target = getSeedTarget(process.argv.slice(2), process.env);
   // URL 검증 후에만 드라이버를 가져오고, 검증된 주소로 독립 Client를 만든다.
   // lib/prisma.js의 캐시된 설정이나 PGHOST 환경변수로 목적지가 바뀌지 않게 한다.
   step = "Prisma Client 준비";
   const [{ PrismaClient }, { PrismaPg }] = await Promise.all([
     import("@prisma/client"), import("@prisma/adapter-pg"),
   ]);
-  prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: localUrl }), log: [] });
+  prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: target.connectionString }), log: [] });
+  console.log(`초기화 대상: ${target.label} (${target.envName}). 이 DB의 기존 5개 테이블 데이터를 교체합니다.`);
 
   step = "TEXT migration 적용 여부 확인";
   const columns = await prisma.$queryRaw`
@@ -62,7 +67,7 @@ try {
     }
   }, { maxWait: 10_000, timeout: 30_000 });
 
-  console.log("로컬 DB 초기화·시드 삽입 완료 (158행). 기존 5개 테이블 데이터는 교체되었습니다.");
+  console.log(`${target.label} DB 초기화·시드 삽입 완료 (158행). 해당 DB의 기존 5개 테이블 데이터는 교체되었습니다.`);
   console.log(`한국 날짜: ${data.today}, 주간 조회 시작일: ${data.weekStart}`);
   console.log(`기준 시각(UTC): ${data.anchorTime.toISOString()}`);
   console.table(Object.entries(EXPECTED_COUNTS).map(([table, rows]) => ({ table, rows })));
@@ -77,10 +82,10 @@ try {
     status: row.status, goalMinutes: row.goalMinutes, awardedPoints: row.awardedPoints,
   })));
   console.log("모든 스터디에 공통 개발용 비밀번호의 고정 bcrypt 해시를 적용했습니다. 비밀번호 입력은 필요하지 않습니다.");
-  console.log("RUNNING은 계속 진행합니다. 시드 직후, API 조작 전에 node scripts/check-seed.js로 확인하세요.");
+  console.log(`RUNNING은 계속 진행합니다. 시드 직후, API 조작 전에 node scripts/check-seed.js --target=${target.name}로 확인하세요.`);
 } catch {
   // DB 오류 원문·URL·비밀번호·해시를 출력하지 않는다.
-  console.error(`시드 실패: ${step}. 로컬 DATABASE_URL, 의존성 및 migration을 확인해주세요.`);
+  console.error(`시드 실패: ${target?.label ?? "대상 설정"} / ${step}. 선택한 LOCAL_DATABASE_URL 또는 NEON_DATABASE_URL, 의존성 및 migration을 확인해주세요.`);
   console.error("삭제·삽입 트랜잭션이 실패했다면 변경은 함께 롤백됩니다.");
   process.exitCode = 1;
 } finally {
