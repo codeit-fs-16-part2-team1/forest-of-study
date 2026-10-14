@@ -2,12 +2,12 @@ import express from "express";
 import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
+import { createChallengeRouter } from "./routes/challenge.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import studyPasswordRouter from "./routes/studyPassword.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { verifyStudyPassword } from "./middlewares/verifyStudyPassword.js";
-import { createChallengeRouter } from "./routes/challenge.js";
 import cors from "cors";
 
 const app = express();
@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
   res.send("공부의 숲 서버가 살아 있어요");
 });
 
-app.use("/study", studyRouter);
+app.use("/api/studies", studyRouter);
 app.use("/routine", routineRouter);
 app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
 
