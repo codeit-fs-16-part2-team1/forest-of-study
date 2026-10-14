@@ -2,9 +2,12 @@ import express from "express";
 import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
-import challengeRouter from "./routes/challenge.js";
+import { createChallengeRouter } from "./routes/challenge.js";
+import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
+import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import studyPasswordRouter from "./routes/studyPassword.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { verifyStudyPassword } from "./middlewares/verifyStudyPassword.js";
 import cors from "cors";
 
 const app = express();
@@ -22,8 +25,17 @@ app.get("/", (req, res) => {
 
 app.use("/api/studies", studyRouter);
 app.use("/routine", routineRouter);
-app.use("/challenge", challengeRouter);
 app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
+
+const challengeRouter = createChallengeRouter({ verifyStudyPassword });
+app.use("/api/studies/:studyId/challenges", challengeRouter);
+
+const completeChallenge = createCompleteChallengeService();
+const completeChallengeRouter = createCompleteChallengeRouter({
+  verifyStudyPassword,
+  completeChallenge,
+});
+app.use("/api/studies/:studyId/challenges", completeChallengeRouter);
 
 // 기능 라우터는 이 오류 미들웨어보다 앞에 등록한다.
 app.use(errorHandler);
