@@ -1,0 +1,354 @@
+# httpyac: routine.http의 준비 요청을 참조해 ID·서버 날짜를 자동 사용한다.
+# 준비 요청 최초 실행 후, 오류 요청 자체가 DB를 바꾸지 않는지 확인한다.
+# 오류 응답은 error.code와 details:null을 확인한다. 요청은 개별 실행한다.
+# @import ./routine.http
+@wrongPassword = 1111
+@pastDate = 2026-10-01
+@futureDate = 2099-01-01
+@missingStudyId = ffffffff-ffff-4fff-bfff-ffffffffffff
+@missingRoutineId = eeeeeeee-eeee-4eee-beee-eeeeeeeeeeee
+@otherStudyRoutineId = 20000000-0000-4000-8000-000000000201
+@endedRoutineId = 20000000-0000-4000-8000-000000000206
+
+### 01 API-AU-01 비밀번호 오답 — 401 PASSWORD_MISMATCH
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Content-Type: application/json
+
+{"password":"{{wrongPassword}}"}
+
+### 02 API-AU-01 비밀번호 누락 — 401 VERIFICATION_REQUIRED
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Content-Type: application/json
+
+{}
+
+### 03 API-HB-01 진입 확인 후에도 헤더 누락 — 401 VERIFICATION_REQUIRED
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+
+### 04 API-HB-02 헤더 누락 생성 — 401 VERIFICATION_REQUIRED
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Content-Type: application/json
+
+{"name":"차단 검증"}
+
+### 05 API-HB-05 헤더 누락 체크 — 401 VERIFICATION_REQUIRED
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 06 API-HB-01 비밀번호 오답 — 401 PASSWORD_MISMATCH
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{wrongPassword}}
+
+### 07 API-HB-02 오답 생성 — 401 PASSWORD_MISMATCH
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{wrongPassword}}
+Content-Type: application/json
+
+{"name":"차단 검증"}
+
+### 08 API-HB-05 오답 해제 — 401 PASSWORD_MISMATCH
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{wrongPassword}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 09 API-HB-01 비밀번호 공백 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: has space
+
+### 10 API-HB-01 비밀번호 3자 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: abc
+
+### 11 API-HB-01 비밀번호 21자 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: aaaaaaaaaaaaaaaaaaaaa
+
+### 12 API-HB-01 허용하지 않는 비밀번호 문자 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: abc-def
+
+### 13 API-HB-02 빈 이름 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":""}
+
+### 14 API-HB-02 공백만 있는 이름 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"   "}
+
+### 15 API-HB-02 한글 21글자 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"가가가가가가가가가가가가가가가가가가가가가"}
+
+### 16 API-HB-02 조합 이모지 21개 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"}
+
+### 17 API-HB-02 숫자 이름 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":123}
+
+### 18 API-HB-02 이름 필드 누락 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{}
+
+### 19 API-HB-02 계약 밖 필드 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"독서","startsOn":"{{todayDate}}"}
+
+### 20 API-HB-02 배열 본문 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+[]
+
+### 21 API-HB-02 null 본문 — 400 VALIDATION_ERROR
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+null
+
+### 22 API-HB-01 잘못된 스터디 UUID — 400 VALIDATION_ERROR
+GET {{baseUrl}}/studies/not-a-uuid/routines
+X-Study-Password: {{password}}
+
+### 23 API-HB-05 잘못된 습관 UUID — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/not-a-uuid/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 24 API-HB-01 지원하지 않는 조회 조건 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines?keyword=test
+X-Study-Password: {{password}}
+
+### 25 API-HB-01 없는 스터디 — 404 STUDY_NOT_FOUND
+GET {{baseUrl}}/studies/{{missingStudyId}}/routines
+X-Study-Password: {{password}}
+
+### 26 API-HB-02 없는 스터디 — 404 STUDY_NOT_FOUND
+POST {{baseUrl}}/studies/{{missingStudyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"독서"}
+
+### 27 API-HB-05 없는 스터디 — 404 STUDY_NOT_FOUND
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{missingStudyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 28 API-HB-05 없는 습관 — 404 ROUTINE_NOT_FOUND
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{missingRoutineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 29 API-HB-05 다른 스터디 소속 습관 — 404 ROUTINE_NOT_FOUND
+# 다른 스터디의 실제 시드 습관을 조작한다.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{otherStudyRoutineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 30 API-HB-05 시드 종료 습관 체크 — 409 ROUTINE_ENDED
+# 종료일 기록은 그대로 보존되어야 한다.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{historyStudyId}}/routines/{{endedRoutineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 31 API-HB-05 시드 종료 습관 해제 — 409 ROUTINE_ENDED
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{historyStudyId}}/routines/{{endedRoutineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 32 API-HB-05 오래된 화면 날짜 — 409 DATE_CHANGED
+# pastDate는 서버 오늘과 다른 날짜로 둔다.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{pastDate}}","completed":true}
+
+### 33 API-HB-05 미래 날짜 — 409 DATE_CHANGED
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{futureDate}}","completed":false}
+
+### 34 API-HB-05 존재하지 않는 날짜 — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"2026-02-30","completed":true}
+
+### 35 API-HB-05 잘못된 날짜 형식 — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"2026-1-1","completed":true}
+
+### 36 API-HB-05 날짜 대신 타임스탬프 — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"2026-10-14T00:00:00Z","completed":true}
+
+### 37 API-HB-05 문자열 completed — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":"true"}
+
+### 38 API-HB-05 null completed — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":null}
+
+### 39 API-HB-05 completed 누락 — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}"}
+
+### 40 API-HB-05 계약 밖 필드 — 400 VALIDATION_ERROR
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true,"name":"이름 변경 금지"}
+
+### 41 API-HB-02 시드 S03 활성 18개 초과 — 400 VALIDATION_ERROR
+POST {{baseUrl}}/studies/{{limitStudyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"19번째 거절"}
+
+### 42 API-HB-02 시드 S04 생성 후 초과 — 400 VALIDATION_ERROR
+# 성공 파일의 S04 생성을 실행해 활성 18개인 상태에서 확인한다.
+POST {{baseUrl}}/studies/{{nearLimitStudyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"추가 생성 거절"}
+
+### 43 API-ST-06 조회 날짜 누락 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories
+
+### 44 API-ST-06 빈 조회 날짜 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=
+
+### 45 API-ST-06 존재하지 않는 날짜 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=2026-02-29
+
+### 46 API-ST-06 잘못된 날짜 형식 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=2026-1-1
+
+### 47 API-ST-06 타임스탬프 입력 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=2026-10-14T00:00:00Z
+
+### 48 API-ST-06 중복 조회 날짜 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}&weekStart={{todayDate}}
+
+### 49 API-ST-06 지원하지 않는 조회 필드 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}&limit=1
+
+### 50 API-ST-06 날짜 표현 범위를 넘는 주 — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart=9999-12-31
+
+### 51 API-ST-06 잘못된 스터디 UUID — 400 VALIDATION_ERROR
+# @ref routineCreate
+GET {{baseUrl}}/studies/not-a-uuid/routine-histories?weekStart={{todayDate}}
+
+### 52 API-ST-06 없는 스터디 — 404 STUDY_NOT_FOUND
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{missingStudyId}}/routine-histories?weekStart={{todayDate}}

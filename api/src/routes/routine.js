@@ -4,6 +4,7 @@ import { countGraphemes } from "../utils/string.js";
 import { uuidSchema } from "../utils/uuid.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess } from "../utils/apiResponse.js";
+import { verifyStudyPassword } from "../middlewares/verifyStudyPassword.js";
 
 import {
   createRoutine,
@@ -24,8 +25,9 @@ routineRouter.use((req, res, next) => {
   next();
 });
 
-// 개발 단계: 비밀번호 검증 없이 실행한다.
-// 추후 이 위치에 공통 비밀번호 검증 미들웨어를 연결하고 아래 핸들러는 유지한다.
+// 페이지 진입 확인 여부와 관계없이 보호 요청마다 비밀번호를 검증한다.
+routineRouter.use(verifyStudyPassword);
+
 routineRouter.post("/", async (req, res) => {
   const body = req.body;
   if (
@@ -45,12 +47,12 @@ routineRouter.post("/", async (req, res) => {
   }
 
   const routine = await createRoutine({ studyId: req.params.studyId, name });
-  return res.status(201).json({ data: routine });
+  return sendSuccess(res, routine, 201);
 });
 
 routineRouter.get("/", async (req, res) => {
   const result = await getTodayRoutines({ studyId: req.params.studyId });
-  return res.status(200).json({ data: result });
+  return sendSuccess(res, result);
 });
 
 routineRouter.put("/:routineId/check", async (req, res) => {

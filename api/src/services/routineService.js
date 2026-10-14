@@ -1,10 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
 import { getKoreanDate } from "../utils/date.js";
 import { createApiError } from "../utils/apiError.js";
 
 const MAX_ACTIVE_ROUTINES = 18;
-const TEST_STUDY_ID = "11111111-1111-4111-8111-111111111111";
 
 const routineSelect = {
   id: true,
@@ -143,34 +141,4 @@ export const setRoutineCheck = async ({
       completed: history.completed,
     };
   });
-};
-
-// 개발용 스크립트 전용이다. HTTP 요청에서는 호출하지 않는다.
-// 실제 스터디 API 연동 후에는 준비한 고정 ID 대신 생성 응답의 ID를 사용한다.
-export const prepareRoutineTestStudy = async () => {
-  try {
-    const existing = await prisma.study.findUnique({
-      where: { id: TEST_STUDY_ID },
-      select: { id: true },
-    });
-    if (existing) return existing;
-
-    // 서버의 생성·조회 API는 bcrypt 없이도 로드된다. 준비 스크립트에만 필요하다.
-    const { default: bcrypt } = await import("bcrypt");
-    const passwordHash = await bcrypt.hash(randomUUID(), 10);
-    return await prisma.study.upsert({
-      where: { id: TEST_STUDY_ID },
-      update: {},
-      create: {
-        id: TEST_STUDY_ID,
-        nickname: "테스트",
-        name: "습관 테스트",
-        introduction: "습관 생성·조회 확인용 스터디",
-        passwordHash,
-      },
-      select: { id: true },
-    });
-  } finally {
-    await prisma.$disconnect();
-  }
 };
