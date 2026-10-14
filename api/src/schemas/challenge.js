@@ -1,8 +1,7 @@
 import { z } from "zod";
+import { uuidSchema } from "../utils/uuid.js";
 
-export const challengeStudyIdSchema = z
-  .string()
-  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+export const challengeStudyIdSchema = uuidSchema;
 
 export const validateChallengeStudyId = (studyId) =>
   challengeStudyIdSchema.safeParse(studyId);
