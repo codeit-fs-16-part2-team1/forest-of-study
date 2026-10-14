@@ -4,8 +4,9 @@ import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
+import studyPasswordRouter from "./routes/studyPassword.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
-import { createApiError } from "./utils/apiError.js";
+import { verifyStudyPassword } from "./middlewares/verifyStudyPassword.js";
 import { createChallengeRouter } from "./routes/challenge.js";
 import cors from "cors";
 
@@ -24,23 +25,17 @@ app.get("/", (req, res) => {
 
 app.use("/study", studyRouter);
 app.use("/routine", routineRouter);
+app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
 
-// ISS-007의 실제 비밀번호 검증 미들웨어가 준비되면 import해서 연결한다.
-// null인 동안은 시작·조회·완료 API를 등록하지 않는다.
-const verifyStudyPassword = null;
+const challengeRouter = createChallengeRouter({ verifyStudyPassword });
+app.use("/api/studies/:studyId/challenges", challengeRouter);
 
-if (verifyStudyPassword !== null) {
-  app.use(
-    "/api/studies/:studyId/challenges",
-    createChallengeRouter({ verifyStudyPassword, createApiError }),
-  );
-
-  const completeChallenge = createCompleteChallengeService();
-  app.use(
-    "/api/studies/:studyId/challenges",
-    createCompleteChallengeRouter({ verifyStudyPassword, completeChallenge }),
-  );
-}
+const completeChallenge = createCompleteChallengeService();
+const completeChallengeRouter = createCompleteChallengeRouter({
+  verifyStudyPassword,
+  completeChallenge,
+});
+app.use("/api/studies/:studyId/challenges", completeChallengeRouter);
 
 // 기능 라우터는 이 오류 미들웨어보다 앞에 등록한다.
 app.use(errorHandler);
