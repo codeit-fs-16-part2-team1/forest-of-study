@@ -1,18 +1,21 @@
 // 읽기 전용 확인. 시드 직후 API 조작 전에 실행한다.
-// --preflight: DB에 연결하지 않고 로컬 주소와 한국 날짜 경계만 확인한다.
+// --target=local(기본값) 또는 --target=neon으로 DB 한 곳을 선택한다.
+// --preflight: DB에 연결하지 않고 대상 주소와 한국 날짜 경계만 확인한다.
 import assert from "node:assert/strict";
-import { assertLocalSeedDatabase, challengeId, dateString, EXPECTED_COUNTS,
+import { loadEnvFile } from "node:process";
+import { assertLocalSeedDatabase, assertNeonSeedDatabase, challengeId, dateString, EXPECTED_COUNTS, getSeedTarget,
   getKoreanDate, koreanInstant, routineId, SEED_BACKGROUND_KEYS, shiftDate, STUDY_CASES, studyId,
   validateSeedRows } from "../seed-data.js";
 
 let prisma;
-let step = "인자 확인";
+let target;
+let step = "환경변수·대상 DB 주소 확인";
 
 try {
-  assert(process.argv.slice(2).every((arg) => arg === "--preflight"));
-  step = "로컬 DB 주소 확인";
-  const { databaseUrl } = await import("../src/config/env.js");
-  const localUrl = assertLocalSeedDatabase(databaseUrl);
+  try { loadEnvFile(new URL("../.env", import.meta.url)); } catch (error) {
+    if (error.code !== "ENOENT") throw new Error("환경변수 파일 로드 실패");
+  }
+  target = getSeedTarget(process.argv.slice(2), process.env, { allowPreflight: true });
 
   step = "외부 DB·접속 우회 주소 거절 확인";
   // 모두 가상 주소이며 연결하지 않는다. 비밀값 없이 허용·거절 규칙만 검사한다.
@@ -28,6 +31,29 @@ try {
   ]) assert.throws(() => assertLocalSeedDatabase(rejected));
   assert.equal(new URL(assertLocalSeedDatabase("postgresql://localhost:5435/forest-of-study?schema=public")).hostname,
     "127.0.0.1");
+
+  const neonExample = "postgresql://ep-seed-example.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require&schema=public";
+  assert.throws(() => assertLocalSeedDatabase(neonExample));
+  assert.throws(() => assertNeonSeedDatabase("postgresql://127.0.0.1:5435/forest-of-study?sslmode=require"));
+  assert.throws(() => assertNeonSeedDatabase("postgresql://example.com/neondb?sslmode=require"));
+  assert.throws(() => assertNeonSeedDatabase(neonExample.replace("sslmode=require", "sslmode=disable")));
+  assert.throws(() => assertNeonSeedDatabase(`${neonExample}&host=127.0.0.1`));
+  assert.throws(() => assertNeonSeedDatabase(`${neonExample}&sslmode=disable`));
+  const checkedNeon = new URL(assertNeonSeedDatabase(neonExample));
+  assert.equal(checkedNeon.searchParams.get("sslmode"), "require");
+  assert.equal(checkedNeon.searchParams.get("channel_binding"), "require");
+  assert.equal(checkedNeon.searchParams.has("schema"), false);
+  const exampleEnv = { LOCAL_DATABASE_URL: "postgresql://localhost:5435/forest-of-study", NEON_DATABASE_URL: neonExample };
+  assert.equal(getSeedTarget([], exampleEnv).name, "local");
+  assert.equal(getSeedTarget(["--target=neon"], exampleEnv).name, "neon");
+  assert.equal(getSeedTarget([], { LOCAL_DATABASE_URL: exampleEnv.LOCAL_DATABASE_URL }).name, "local");
+  assert.equal(getSeedTarget(["--target=neon"], { NEON_DATABASE_URL: neonExample }).name, "neon");
+  assert.throws(() => getSeedTarget([], { LOCAL_DATABASE_URL: neonExample }));
+  assert.throws(() => getSeedTarget(["--target=neon"], { NEON_DATABASE_URL: exampleEnv.LOCAL_DATABASE_URL }));
+  assert.throws(() => getSeedTarget(["--target=neon"], { DATABASE_URL: neonExample }));
+  assert.throws(() => getSeedTarget([], { DATABASE_URL: exampleEnv.LOCAL_DATABASE_URL }));
+  assert.throws(() => getSeedTarget(["--target=local", "--target=neon"], exampleEnv));
+  assert.throws(() => getSeedTarget(["--target=other"], exampleEnv));
 
   step = "한국 날짜 경계 확인";
   const boundaries = [
@@ -49,16 +75,16 @@ try {
   assert.equal(shiftDate("2026-01-01", -1), "2025-12-31");
   assert.equal(shiftDate("2028-02-28", 1), "2028-02-29");
   assert.equal(shiftDate("2028-02-29", 1), "2028-03-01");
-  console.log("로컬 주소 허용: 127.0.0.1:5435 / forest-of-study (외부 주소 거절)");
+  console.log(`확인 대상: ${target.label} (${target.envName}). 로컬·Neon 교차 지정은 거절합니다.`);
   console.table(boundaries.map(([caseName, utc, koreanDate]) => ({ case: caseName, utc, koreanDate })));
 
-  if (process.argv.includes("--preflight")) {
+  if (target.preflight) {
     console.log("사전 확인 완료. DB 연결·조회·변경은 하지 않았습니다.");
   } else {
     const [{ PrismaClient }, { PrismaPg }] = await Promise.all([
       import("@prisma/client"), import("@prisma/adapter-pg"),
     ]);
-    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: localUrl }), log: [] });
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: target.connectionString }), log: [] });
     step = "시드 행·관계·기간·총점 확인";
     await prisma.$transaction(async (tx) => {
       // 여러 조회가 같은 스냅샷을 보도록 하고 SQL 쓰기도 금지한다.
@@ -152,10 +178,10 @@ try {
       console.log(`시드 한국 날짜: ${today}, weekStart: ${weekStart}`);
     }, { isolationLevel: "RepeatableRead", maxWait: 10_000, timeout: 30_000 });
     console.table(Object.entries(EXPECTED_COUNTS).map(([table, rows]) => ({ table, rows })));
-    console.log("시드 구성·DB 조회·한국 날짜 경계 확인 완료. API의 날짜 계산·자정 전후 요청·완료 지급 동작은 별도 검증이 필요합니다.");
+    console.log(`${target.label} 시드 구성·DB 조회·한국 날짜 경계 확인 완료. API의 날짜 계산·자정 전후 요청·완료 지급 동작은 별도 검증이 필요합니다.`);
   }
 } catch {
-  console.error(`시드 확인 실패: ${step}. 로컬 설정·migration을 확인하고, 전체 확인은 시드 직후 API 조작 전에 실행해주세요.`);
+  console.error(`시드 확인 실패: ${target?.label ?? "대상 설정"} / ${step}. LOCAL_DATABASE_URL 또는 NEON_DATABASE_URL·migration을 확인하고, 전체 확인은 시드 직후 API 조작 전에 실행해주세요.`);
   // URL·비밀번호·DB 오류 원문·해시를 출력하지 않는다.
   process.exitCode = 1;
 } finally {
