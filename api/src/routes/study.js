@@ -45,14 +45,14 @@ const passwordSchema = z.string()
 
 
  const backgroundSchema = z.enum([
-  "red",
-  "orange",
-  "yellow",
   "green",
+  "yellow",
   "blue",
-  "sky",
-  "purple",
-  "white",
+  "pink",
+  "image1",
+  "image2",
+  "image3",
+  "image4",
 ]).default("green"); 
 
 const createStudySchema = z.object({
