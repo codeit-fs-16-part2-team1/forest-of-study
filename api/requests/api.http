@@ -62,6 +62,7 @@ Content-Type: application/json
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
 Accept: application/json
 
+
 ### API-ST-01 6개 더보기
 # 기대 상태 200.
 GET {{baseUrl}}/studies?offset=6&limit=6&sort=latest
