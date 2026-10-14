@@ -2,6 +2,7 @@ import express from "express";
 import { prisma } from "./lib/prisma.js";
 import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
+import routineHistoryRouter from "./routes/routineHistory.js";
 import { createChallengeRouter } from "./routes/challenge.js";
 import { createChallengePauseResumeRouter } from "./routes/challengePauseResume.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
@@ -25,7 +26,8 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/studies", studyRouter);
-app.use("/routine", routineRouter);
+app.use("/api/studies/:studyId/routines", routineRouter);
+app.use("/api/studies/:studyId/routine-histories", routineHistoryRouter);
 app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
 
 const challengeRouter = createChallengeRouter({ verifyStudyPassword });
