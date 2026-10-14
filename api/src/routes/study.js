@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { prisma } from "../lib/prisma.js";
 import { uuidSchema } from "../utils/uuid.js";
 import { createApiError } from "../utils/apiError.js";
+import { Prisma } from "@prisma/client";
 
 const studyRouter = express.Router();
 
@@ -73,6 +74,12 @@ const createStudySchema = z.object({
 //스터디목록 조회 
 const studyListQuerySchema = z.object({
 
+  //검색 시 앞뒤공백 제거, NFC정규화, 기본값은 빈 문자열. 
+  keyword: z.string()
+  .trim()
+  .normalize("NFC")
+  .default(""),
+
   //건너뛰는 스터디목록 개수.   
   //offset을 문자열로 받지만, 숫자로 변환 후, 0 이상의 정수인지 검사합니다. 기본값은 0입니다.  
   offset: z.string()
@@ -108,58 +115,79 @@ const studyIdParamsSchema = z.object({
 studyRouter.get("/", async (req, res) => {
   
   const result = studyListQuerySchema.safeParse(req.query);
-  //req.query에 URL의 offset, limit, sort가 들어옴.
-  //safeParse()로 쿼리검사. 검사 실패 시, 400 응답. 검사 성공 시, offset, limit, sort를 result.data에 담음.  
-
+  
+ //검사 실패 시 400 응답. 검사 성공 시 result.data에 offset, limit, sort, keyword를 담음.
  if (!result.success) {
     throw createApiError("VALIDATION_ERROR");
   }
 
-  const { offset, limit, sort } = result.data;
+  const { offset, limit, sort, keyword } = result.data;
 
   //최근순, 오래된순, 포인트 높은순, 포인트 낮은순 정렬 조건을 orderByMap에 정의.
   //생성시각, 포인트 같을 시 id 오름차순으로 정렬.
   const orderByMap = {
-  latest: [
-    { createdAt: "desc" },
-    { id: "asc" },
-  ],
-  oldest: [
-    { createdAt: "asc" },
-    { id: "asc" },
-  ],
-  points_desc: [
-    { points: "desc" },
-    { id: "asc" },
-  ],
-  points_asc: [
-    { points: "asc" },
-    { id: "asc" },
-  ],
-};
+    latest: Prisma.sql`"createdAt" DESC, "id" ASC`,
+    oldest: Prisma.sql`"createdAt" ASC, "id" ASC`,
+    points_desc: Prisma.sql`"points" DESC, "id" ASC`,
+    points_asc: Prisma.sql`"points" ASC, "id" ASC`,
+  };
 
 
-const orderBy = orderByMap[sort];
+// 검색어가 빈 문자열인지 확인, 빈 문자열이면 검색조건 넣지 않고 전체목록 조회, 있으면 조건에 따라. 
+  // strpos를 사용해 %와 _도 일반 글자로 검색합니다.
+  const where = keyword === ""
+    ? Prisma.empty
+    : Prisma.sql`
+        WHERE
+          strpos(
+            lower(normalize("name", NFC)),
+            lower(normalize(${keyword}::text, NFC))
+          ) > 0
+          OR strpos(
+            lower(normalize("nickname", NFC)),
+            lower(normalize(${keyword}::text, NFC))
+          ) > 0
+          OR strpos(
+            lower(normalize("introduction", NFC)),
+            lower(normalize(${keyword}::text, NFC))
+          ) > 0
+      `;  // 검색어 시작 위치가 0보다 크면 검색어가 포함된 것으로 판단합니다.
 
-// 다음 단계: 정렬 조건 설정 → DB 조회 → 200 응답
+  const [studies, counts] = await prisma.$transaction([
+    prisma.$queryRaw`
+      SELECT
+        "id",
+        "nickname",
+        "name",
+        "introduction",
+        "backgroundKey",
+        "points",
+        "createdAt",
+        "updatedAt"
+      FROM "Study"
+      ${where}
+      ORDER BY ${orderByMap[sort]}
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `,
+    prisma.$queryRaw`
+      SELECT COUNT(*)::integer AS "total"
+      FROM "Study"
+      ${where}
+    `,
+  ], {
+    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+  }); //두 쿼리를 하나의 트랜잭션으로 묶어 일관된 결과를 보장합니다. isolationLevel: RepeatableRead로 설정하여 트랜잭션 내에서 동일한 쿼리 결과를 보장합니다.
 
-  const [studies, total] = await prisma.$transaction([
-    prisma.study.findMany({  //Study 테이블에서 스터디목록 조회
-      select: studySelect,
-      orderBy,
-      skip: offset,  //정렬된 목록에서 offset만큼 건너뜀
-      take: limit,   //최대 limit만큼 조회
-    }),
-    prisma.study.count(),
-  ]);
+  const total = counts[0].total;
 
   return res.status(200).json({
     data: studies,
-    pagination: {  //더보기 처리에 필요한 정보를 담아 응답.
+    pagination: {
       offset,
       limit,
       total,
-      hasMore: offset + studies.length < total, //다음에 가져올 스터디가 남았는지 계산. true면 더보기 가능
+      hasMore: offset + studies.length < total,
     },
   });
 });
