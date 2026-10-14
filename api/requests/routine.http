@@ -1,0 +1,233 @@
+# httpyac: 요청을 개별 실행한다. 필요한 준비 요청은 최초 참조 시 자동 실행된다.
+# 스터디를 다시 만들면 날짜 조회·습관 생성도 다시 실행한다. 자정 이후에는 날짜 조회를 갱신한다.
+# 시드 요청도 비밀번호 0000인 데이터를 기준으로 한다.
+@baseUrl = http://localhost:3000/api
+@password = 0000
+@studyId:={{routineStudy.data.id}}
+@routineId:={{routineCreate.data.id}}
+@todayDate:={{routineToday.data.recordDate}}
+@emptyStudyId = 10000000-0000-4000-8000-000000000001
+@historyStudyId = 10000000-0000-4000-8000-000000000002
+@limitStudyId = 10000000-0000-4000-8000-000000000003
+@nearLimitStudyId = 10000000-0000-4000-8000-000000000004
+
+### 01 API-ST-02 스터디 생성 — 201
+# 응답 ID를 후속 요청에서 자동 참조한다.
+# @name routineStudy
+POST {{baseUrl}}/studies
+Content-Type: application/json
+
+{"nickname":"습관검증","name":"습관 검증 스터디","introduction":"생성부터 주간 기록까지 수동 확인","password":"{{password}}","passwordConfirm":"{{password}}"}
+
+### 02 API-ST-01 생성 스터디 목록 확인 — 200
+# @ref routineStudy
+GET {{baseUrl}}/studies?sort=latest&limit=6
+
+### 03 API-ST-03 생성 스터디 상세 확인 — 200
+# @ref routineStudy
+GET {{baseUrl}}/studies/{{studyId}}
+
+### 04 API-AU-01 페이지 진입 비밀번호 확인 — 200
+# 진입 확인 이후에도 보호 요청의 헤더는 필수다.
+# @ref routineStudy
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Content-Type: application/json
+
+{"password":"{{password}}"}
+
+### 05 API-HB-01 빈 목록·한국 오늘 날짜 — 200
+# 서버 recordDate를 체크·주간 조회 날짜로 자동 참조한다.
+# @name routineToday
+# @ref routineStudy
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+
+### 06 API-HB-02 습관 생성·앞뒤 공백 제거 — 201
+# name=책 읽기, startsOn=서버 오늘. 습관 ID를 자동 참조한다.
+# @name routineCreate
+# @ref routineToday
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"  책 읽기  "}
+
+### 07 API-HB-01 생성 후 미체크 표시 — 200
+# 미기록 completed=false. DB 이력은 아직 0행.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+
+### 08 API-HB-05 기록 없는 해제 — 200
+# completed=false 이력 1행 생성.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 09 API-HB-05 기록 없는 해제의 반복 — 200
+# 동일 routineId+날짜 이력 1행 유지.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 10 API-HB-05 체크 — 200
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 11 API-HB-05 반복 체크 — 200
+# 반복 체크도 이력 1행 유지.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 12 API-HB-01 체크 결과 반영 — 200
+# 오늘 completed=true.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+
+### 13 API-ST-06 체크 후 주간표 — 200
+# 월요일로 보정, 날짜 7개. 오늘 true·기간 밖 null.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}
+
+### 14 API-HB-05 체크 해제 — 200
+# false 행을 보존한다.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 15 API-HB-05 반복 해제 — 200
+# 반복 해제도 이력 1행 유지.
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":false}
+
+### 16 API-HB-01 해제 결과 반영 — 200
+# 오늘 completed=false.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+
+### 17 API-ST-06 해제 후 주간표 — 200
+# 주간표의 오늘 completed=false.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}
+
+### 18 API-HB-05 재체크 — 200
+# @ref routineCreate
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"recordDate":"{{todayDate}}","completed":true}
+
+### 19 API-ST-06 재체크 반영 — 200
+# 주간표의 오늘 completed=true.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}
+
+### 20 API-HB-02 한 글자 이름 — 201
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"물"}
+
+### 21 API-HB-02 한글 20글자 — 201
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"가가가가가가가가가가가가가가가가가가가가"}
+
+### 22 API-HB-02 조합 이모지 20개 — 201
+# 가족 이모지 하나를 1그래핌으로 센다.
+# @ref routineCreate
+POST {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"}
+
+### 23 API-HB-01 생성일 순서 — 200
+# createdAt ASC → id ASC. 기본 흐름만 실행했다면 활성 4개.
+# @ref routineCreate
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: {{password}}
+
+### 24 API-HB-01 시드 S02 오늘 목록 — 200
+# 시드 초기 활성 4개. 날짜가 지난 시드는 오늘 체크 상태가 달라질 수 있다.
+GET {{baseUrl}}/studies/{{historyStudyId}}/routines
+X-Study-Password: {{password}}
+
+### 25 API-ST-06 시드 S02 주간 기록 — 200
+# 겹치는 종료 습관 포함. 미기록 false·사용 기간 밖 null.
+# @ref routineToday
+GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart={{todayDate}}
+
+### 26 API-ST-06 시드 S01 빈 기록 — 200
+# routines:[].
+# @ref routineToday
+GET {{baseUrl}}/studies/{{emptyStudyId}}/routine-histories?weekStart={{todayDate}}
+
+### 27 API-HB-01 시드 S03 활성 18개 — 200
+# 활성 18개. 시드 6번의 오늘 미기록 false·전날 이력 보존 확인.
+GET {{baseUrl}}/studies/{{limitStudyId}}/routines
+X-Study-Password: {{password}}
+
+### 28 API-HB-01 시드 S04 활성 17개 — 200
+# 초기 활성 17개.
+GET {{baseUrl}}/studies/{{nearLimitStudyId}}/routines
+X-Study-Password: {{password}}
+
+### 29 API-HB-02 시드 S04 마지막 한 자리 생성 — 201
+# 17개일 때 201. 동시 생성 2건은 201/400 각 1건.
+POST {{baseUrl}}/studies/{{nearLimitStudyId}}/routines
+X-Study-Password: {{password}}
+Content-Type: application/json
+
+{"name":"마지막 한 자리"}
+
+### 30 API-HB-01 시드 S04 생성 후 개수 — 200
+# 활성 18개.
+GET {{baseUrl}}/studies/{{nearLimitStudyId}}/routines
+X-Study-Password: {{password}}
+
+### 31 API-ST-06 월말 보정 — 200
+# weekStart=2026-09-28. 행이 있으면 09/28~10/04.
+GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart=2026-10-01
+
+### 32 API-ST-06 연말 보정 — 200
+# weekStart=2026-12-28. 행 날짜는 12/28~01/03.
+GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart=2027-01-01
+
+### 33 API-ST-06 윤년 보정 — 200
+# weekStart=2028-02-28. 행 날짜는 02/28~03/05.
+GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart=2028-02-29
+
+# DB 확인: 아래 자리표시자를 실제 ID로 바꿔 별도 SQL 편집기에서 실행한다.
+# 반복 체크·해제 후 같은 날짜 1행, 주간 GET 전후 변경 없음.
+# SELECT * FROM "RoutineHistory" WHERE "routineId"='<routineId>'::uuid ORDER BY "recordDate";
+# SELECT COUNT(*) FILTER (WHERE "endsOn" IS NULL) FROM "Routine" WHERE "studyId"='<studyId>'::uuid;
