@@ -105,6 +105,14 @@ const studyListQuerySchema = z.object({
   ]).default("latest"),
 });
 
+// 상한은 중복 제거 전 입력 개수에 적용합니다. UUID는 대소문자를 통일합니다.
+const studyBatchQuerySchema = z.object({
+  ids: z.string()
+    .transform((value) => value.split(",")) //쉼표로 구분된 문자열을 배열로 변환
+    .pipe(z.array(uuidSchema).min(1).max(100)) //변환된 배열이 1~100개인지, uuid 형식인지 검사
+    .transform((ids) => [...new Set(ids.map((id) => id.toLowerCase()))]), //중복제거 후 uuid의 영문자를 소문자로 통일
+}).strict(); //ids 이외의 쿼리필드 거절 
+
 //object()객체 안의 필드가 uuid 형식인지 검사 
 const studyIdParamsSchema = z.object({
   studyId: uuidSchema,
@@ -255,6 +263,65 @@ studyRouter.post("/", async (req, res) => {
   });
 });
 
+
+// /batch가 스터디 ID로 해석되지 않도록 상세 라우트보다 먼저 등록합니다.
+studyRouter.get("/batch", async (req, res) => {
+  const result = studyBatchQuerySchema.safeParse(req.query);
+
+  if (!result.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  const { ids } = result.data;
+  const sqlIds = Prisma.join(ids.map((id) => Prisma.sql`${id}::uuid`));
+
+  // 스터디와 응원을 각각 한 번씩 조회하고 같은 DB 스냅샷을 사용합니다.
+  const [studies, reactions] = await prisma.$transaction([
+    prisma.study.findMany({
+      where: { id: { in: ids } },
+      select: studySelect,
+    }),
+    prisma.$queryRaw`
+      WITH ranked AS (
+        SELECT
+          "studyId",
+          "emoji",
+          COUNT(*)::integer AS "count",
+          ROW_NUMBER() OVER (
+            PARTITION BY "studyId"
+            ORDER BY COUNT(*) DESC, MIN("createdAt") ASC, "emoji" COLLATE "C" ASC
+          ) AS "rank"
+        FROM "Reaction"
+        WHERE "studyId" IN (${sqlIds})
+        GROUP BY "studyId", "emoji"
+      )
+      SELECT "studyId", "emoji", "count"
+      FROM ranked
+      WHERE "rank" <= 3
+      ORDER BY "studyId", "rank"
+    `,
+  ], {
+    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+  });
+
+  const reactionsByStudy = new Map();
+  for (const { studyId, emoji, count } of reactions) {
+    if (!reactionsByStudy.has(studyId)) {
+      reactionsByStudy.set(studyId, []);
+    }
+    reactionsByStudy.get(studyId).push({ emoji, count });
+  }
+
+  const studiesById = new Map(studies.map((study) => [study.id, study]));
+  const data = ids
+    .filter((id) => studiesById.has(id))
+    .map((id) => ({
+      ...studiesById.get(id),
+      reactions: reactionsByStudy.get(id) ?? [],
+    }));
+
+  return res.status(200).json({ data });
+});
 
 //상세조회 요청에서 스터디 ID 검사 
 studyRouter.get("/:studyId", async (req, res) => {
