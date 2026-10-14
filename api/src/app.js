@@ -4,6 +4,7 @@ import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import routineHistoryRouter from "./routes/routineHistory.js";
 import challengeRouter from "./routes/challenge.js";
+import studyPasswordRouter from "./routes/studyPassword.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import cors from "cors";
 
@@ -20,10 +21,11 @@ app.get("/", (req, res) => {
   res.send("공부의 숲 서버가 살아 있어요");
 });
 
-app.use("/study", studyRouter);
+app.use("/api/studies", studyRouter);
 app.use("/api/studies/:studyId/routines", routineRouter);
 app.use("/api/studies/:studyId/routine-histories", routineHistoryRouter);
 app.use("/challenge", challengeRouter);
+app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
 
 // 기능 라우터는 이 오류 미들웨어보다 앞에 등록한다.
 app.use(errorHandler);
