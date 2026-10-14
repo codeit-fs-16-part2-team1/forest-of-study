@@ -77,9 +77,10 @@ try {
 
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
-} catch {
+} catch (error) {
   console.error(
     "서버를 시작하지 못했습니다. PORT와 DB 연결 설정을 확인해주세요.",
+    error
   );
   await prisma.$disconnect();
   process.exitCode = 1;
