@@ -4,6 +4,7 @@ import studyRouter from "./routes/study.js";
 import routineRouter from "./routes/routine.js";
 import routineHistoryRouter from "./routes/routineHistory.js";
 import { createChallengeRouter } from "./routes/challenge.js";
+import { createChallengePauseResumeRouter } from "./routes/challengePauseResume.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import studyPasswordRouter from "./routes/studyPassword.js";
@@ -31,6 +32,9 @@ app.use("/api/studies/:studyId/password-verifications", studyPasswordRouter);
 
 const challengeRouter = createChallengeRouter({ verifyStudyPassword });
 app.use("/api/studies/:studyId/challenges", challengeRouter);
+
+const challengePauseResumeRouter = createChallengePauseResumeRouter({ verifyStudyPassword });
+app.use("/api/studies/:studyId/challenges", challengePauseResumeRouter);
 
 const completeChallenge = createCompleteChallengeService();
 const completeChallengeRouter = createCompleteChallengeRouter({
