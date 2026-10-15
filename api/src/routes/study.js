@@ -1,7 +1,8 @@
 import express from "express";
 import { z } from "zod";
 import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../schemas/study.js";
-import { createStudy, getStudies, getStudy } from "../services/study.js";
+import { createStudy, getStudies, getStudy, deleteStudy } from "../services/study.js";
+import { validatePasswordVerificationBody } from "../schemas/studyPassword.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess, sendPaginatedSuccess } from "../utils/apiResponse.js";
 import { rejectQuery } from "../middlewares/rejectQuery.js";
@@ -108,13 +109,16 @@ const studyListQuerySchema = z.object({
   ]).default("latest"),
 }).strict();
 
-// 상한은 중복 제거 전 입력 개수에 적용합니다. UUID는 대소문자를 통일합니다.
+// UUID 검사 → 소문자 통일·중복 제거 → 서로 다른 ID 최대 10개 검사
 const studyBatchQuerySchema = z.object({
   ids: z.string()
-    .transform((value) => value.split(",")) //쉼표로 구분된 문자열을 배열로 변환
-    .pipe(z.array(uuidSchema).min(1).max(10)) //변환된 배열이 1~10개인지, uuid 형식인지 검사
-    .transform((ids) => [...new Set(ids.map((id) => id.toLowerCase()))]), //중복제거 후 uuid의 영문자를 소문자로 통일
-}).strict(); //ids 이외의 쿼리필드 거절 
+    .transform((value) => value.split(","))
+    .pipe(z.array(uuidSchema).min(1))
+    .transform((ids) => [
+      ...new Set(ids.map((id) => id.toLowerCase())),
+    ])
+    .pipe(z.array(uuidSchema).max(10)),
+}).strict();
 
 //object()객체 안의 필드가 uuid 형식인지 검사 
 const studyIdParamsSchema = z.object({
@@ -207,7 +211,7 @@ studyRouter.get("/batch", async (req, res) => {
 });
 
 //상세조회 요청에서 스터디 ID 검사 
-studyRouter.get("/:studyId", async (req, res) => {
+studyRouter.get("/:studyId", rejectQuery, async (req, res) => {
   const result = studyIdParamsSchema.safeParse(req.params);
   //URL에 담긴 studyId가 uuid 형식인지 검사. safeParse()로 검사실패 시 false 반환
 
@@ -248,6 +252,26 @@ studyRouter.get("/:studyId", async (req, res) => {
       reactions,
     },
   });
+});
+
+// 삭제는 보호 요청 헤더 대신 삭제 모달의 본문 비밀번호를 검증한다.
+studyRouter.delete("/:studyId", rejectQuery, async (req, res) => {
+  const paramsResult = validateStudyIdParams(req.params);
+  if (!paramsResult.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  if (req.body === undefined) {
+    throw createApiError("VERIFICATION_REQUIRED");
+  }
+
+  const bodyResult = validatePasswordVerificationBody(req.body);
+  if (!bodyResult.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  await deleteStudy(paramsResult.data.studyId, bodyResult.data.password);
+  return res.status(204).end();
 });
 
 export default studyRouter;
