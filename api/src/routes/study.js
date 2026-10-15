@@ -1,9 +1,13 @@
 import express from "express";
+import { z } from "zod";
 import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../schemas/study.js";
 import { createStudy, getStudies, getStudy } from "../services/study.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess, sendPaginatedSuccess } from "../utils/apiResponse.js";
 import { rejectQuery } from "../middlewares/rejectQuery.js";
+import { uuidSchema } from "../utils/uuid.js";
+import { prisma } from "../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 
 const studyRouter = express.Router();
 
