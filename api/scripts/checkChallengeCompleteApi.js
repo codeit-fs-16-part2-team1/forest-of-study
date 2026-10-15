@@ -3,26 +3,63 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
-import { prisma } from "../src/lib/prisma.js";
-import { createChallengeRouter } from "../src/routes/challenge.js";
-import { createCompleteChallengeRouter } from "../src/routes/challenge-complete.js";
-import { createCompleteChallengeService } from "../src/services/challenge-complete.js";
 import { calculateChallengePoints } from "../src/utils/challenge-points.js";
-import { verifyStudyPassword } from "../src/middlewares/verifyStudyPassword.js";
-import { errorHandler } from "../src/middlewares/errorHandler.js";
+import { assertLocalSeedDatabase } from "../seed-data.js";
 
 // 로컬 DB·실제 라우터·인증을 검증한다. app.js 서버와 스터디 상세 API 검증은 별도다.
 // 기본 10분을 실제로 기다린다. 인자로 20·25·180분을 선택할 수 있다.
 // 시간·목표 도달 조건을 우회하지 않으며 운영 라우트에 테스트 기능을 추가하지 않는다.
 // PAUSED 검증은 별도 임시 집중을 함께 실행한다. 정지·재개 상태 준비는 DB로 하고 완료 API만 검사한다.
-const goalMinutes = Number(process.argv[2] ?? 10);
+// --preflight는 로컬 주소 제한만 확인하고 DB 연결·생성·수정·삭제 없이 종료한다.
 const awards = new Map([[10, 4], [20, 5], [25, 5], [180, 21]]);
 const fixtureIds = [];
+let prisma;
 let server;
-let step = "지급량과 검증 목표 확인";
+let step = "검증 인자 확인";
 
-try {
+const runChecks = async () => {
+  const args = process.argv.slice(2);
+  const goalArgs = args.filter((arg) => arg !== "--preflight");
+  assert.equal(args.length <= 2, true);
+  assert.equal(args.filter((arg) => arg === "--preflight").length <= 1, true);
+  assert.equal(goalArgs.length <= 1 && goalArgs.every((arg) => /^\d+$/.test(arg)), true);
+  const goalMinutes = Number(goalArgs[0] ?? 10);
   assert.equal(awards.has(goalMinutes), true);
+
+  step = "로컬 DB 주소 확인";
+  const { databaseUrl } = await import("../src/config/env.js");
+  assertLocalSeedDatabase(databaseUrl);
+  for (const rejected of [
+    "postgresql://example.neon.tech:5435/forest-of-study",
+    "postgresql://127.0.0.1:5432/forest-of-study",
+    "postgresql://127.0.0.1:5435/other-database",
+    "postgresql://127.0.0.1:5435/forest-of-study?host=example.neon.tech",
+    "postgresql://127.0.0.1:5435/forest-of-study?hostaddr=203.0.113.1",
+    "postgresql://127.0.0.1:5435/forest-of-study?schema=other",
+  ]) assert.throws(() => assertLocalSeedDatabase(rejected));
+
+  if (args.includes("--preflight")) {
+    console.log("완료 API 사전 확인 성공: 로컬 주소 허용·외부 주소 거절. DB 연결·변경 없음");
+    return;
+  }
+
+  step = "검증 모듈 준비";
+  // 서비스·라우터도 Prisma를 가져오므로 주소 검사 후에만 불러온다.
+  ({ prisma } = await import("../src/lib/prisma.js"));
+  const [startModule, completeModule, serviceModule, passwordModule, errorModule] = await Promise.all([
+    import("../src/routes/challenge.js"),
+    import("../src/routes/challenge-complete.js"),
+    import("../src/services/challenge-complete.js"),
+    import("../src/middlewares/verifyStudyPassword.js"),
+    import("../src/middlewares/errorHandler.js"),
+  ]);
+  const { createChallengeRouter } = startModule;
+  const { createCompleteChallengeRouter } = completeModule;
+  const { createCompleteChallengeService } = serviceModule;
+  const { verifyStudyPassword } = passwordModule;
+  const { errorHandler } = errorModule;
+
+  step = "지급량과 검증 목표 확인";
   for (const [goal, points] of awards) {
     assert.equal(calculateChallengePoints(goal).awardedPoints, points);
   }
@@ -278,8 +315,15 @@ try {
   assert.equal(pausedFinished.body.data.points, 4);
 
   console.log(`집중 완료 API 검증 성공: 실제 ${goalMinutes}분·${expectedAward}P·RUNNING/PAUSED 완료·재요청0P·롤백·합계·목표복원`);
+};
+
+try {
+  await runChecks();
 } catch {
   console.error(`집중 완료 API 검증 실패: ${step}`);
+  if (step === "로컬 DB 주소 확인") {
+    console.error("로컬 전용 검증입니다. DATABASE_URL은 localhost/127.0.0.1:5435, DB 이름 forest-of-study여야 합니다. Neon은 허용하지 않습니다.");
+  }
   process.exitCode = 1;
 } finally {
   if (server !== undefined) {
@@ -294,21 +338,23 @@ try {
       server.closeIdleConnections();
     });
   }
-  for (const id of fixtureIds) {
+  if (prisma !== undefined) {
+    for (const id of fixtureIds) {
+      try {
+        await prisma.study.delete({ where: { id } });
+      } catch {
+        console.error(`임시 데이터 정리 실패. 스터디 ID: ${id}`);
+        process.exitCode = 1;
+      }
+    }
+    if (fixtureIds.length > 0 && process.exitCode !== 1) {
+      console.log("임시 스터디·집중 정리 완료");
+    }
     try {
-      await prisma.study.delete({ where: { id } });
+      await prisma.$disconnect();
     } catch {
-      console.error(`임시 데이터 정리 실패. 스터디 ID: ${id}`);
+      console.error("DB 연결 종료 실패");
       process.exitCode = 1;
     }
-  }
-  if (fixtureIds.length > 0 && process.exitCode !== 1) {
-    console.log("임시 스터디·집중 정리 완료");
-  }
-  try {
-    await prisma.$disconnect();
-  } catch {
-    console.error("DB 연결 종료 실패");
-    process.exitCode = 1;
   }
 }
