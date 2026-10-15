@@ -9,6 +9,7 @@ import { uuidSchema } from "../src/utils/uuid.js";
 // DB 일치 확인용 임시 스터디 외에는 생성 API로 만들고, 이번 실행의 데이터만 삭제한다.
 // --preflight는 주소 검사만 수행하며 서버·DB에 연결하지 않는다.
 // --complete를 붙이면 실제 10분 후 완료·상세 총점·재요청·목표 복원도 확인한다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let probeStudyId;
 let studyId;
@@ -100,7 +101,7 @@ const runChecks = async () => {
   const probeHash = await bcrypt.hash(password, 12);
   secrets.push(probeHash);
   const probeStudy = await prisma.study.create({
-    data: { nickname: "DB확인", name: "통합 검증 DB 확인", introduction: marker, passwordHash: probeHash },
+    data: { nickname: "DB확인", name: "확인" + fixtureKey, introduction: marker, passwordHash: probeHash },
     select: { id: true },
   });
   probeStudyId = probeStudy.id;
@@ -112,14 +113,24 @@ const runChecks = async () => {
   await prisma.study.delete({ where: { id: probeStudyId } });
   probeStudyId = undefined;
 
+  step = "스터디 생성의 공백 포함 비밀번호 거절";
+  for (const input of [
+    { password: spacedPassword, passwordConfirm: password },
+    { password, passwordConfirm: spacedPassword },
+  ]) {
+    expectError(await request({ method: "POST", body: {
+      nickname: "집중검증", name: "검증" + fixtureKey, introduction: marker, ...input,
+    } }), 400, "VALIDATION_ERROR");
+  }
+
   step = "API-ST-02 실제 스터디 생성 201";
   const created = await request({
     method: "POST",
     body: {
       nickname: "집중검증",
-      name: "집중 통합 검증",
+      name: "검증" + fixtureKey,
       introduction: marker,
-      password: spacedPassword,
+      password,
       passwordConfirm: password,
     },
   });
@@ -156,6 +167,7 @@ const runChecks = async () => {
   assert.equal(listed.body.data.some((study) => study.id === studyId), true);
   assert.equal(listed.body.pagination.offset, 0);
   assert.equal(listed.body.pagination.limit, 6);
+  expectError(await request({ path: "?limit=7" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "?limti=10" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "/" + studyId + "?extra=1" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "?extra=1", method: "POST", body: {} }), 400, "VALIDATION_ERROR");
@@ -280,7 +292,7 @@ const runChecks = async () => {
   assert.equal(finalDetail.body.data.points, 0);
   const finalStudy = await prisma.study.findUniqueOrThrow({ where: { id: studyId }, select: { points: true } });
   assert.equal(finalStudy.points, 0);
-  console.log("스터디·습관·집중 통합 검증 성공: 생성·목록·상세·공백 정리·쿼리 거절·체크·주간 기록·동시 시작·DB 불변");
+  console.log("스터디·습관·집중 통합 검증 성공: 생성·목록·상세·공백 거절·쿼리 거절·체크·주간 기록·동시 시작·DB 불변");
 
   if (completeMode) {
     const challengeId = before.id;

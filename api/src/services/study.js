@@ -92,19 +92,27 @@ export const createStudy = async (data) => {
     password,
   } = data;
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const study = await prisma.study.create({
-    data: {
-      nickname,
-      name,
-      introduction,
-      backgroundKey,
-      passwordHash,
-    },
-    select: studySelect,
-  });
+  // 라우트 스키마에서 trim한 저장값을 그대로 비교한다. 검색용 정규화는 적용하지 않는다.
+  const where = { nickname, name };
+  const existing = await prisma.study.findFirst({ where, select: { id: true } });
+  if (existing !== null) {
+    throw createApiError("STUDY_CONFLICT");
+  }
 
-  return study;
+  const passwordHash = await bcrypt.hash(password, 10);
+  try {
+    return await prisma.study.create({
+      data: { nickname, name, introduction, backgroundKey, passwordHash },
+      select: studySelect,
+    });
+  } catch (error) {
+    // 동시 요청은 사전 조회를 함께 통과할 수 있다. 최종 보장은 DB 복합 UNIQUE다.
+    if (error?.code === "P2002") {
+      const conflict = await prisma.study.findFirst({ where, select: { id: true } });
+      if (conflict !== null) throw createApiError("STUDY_CONFLICT");
+    }
+    throw error;
+  }
 };
 
 export const getStudy = async (studyId) => {

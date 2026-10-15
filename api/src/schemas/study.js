@@ -27,7 +27,7 @@ const studyListQuerySchema = z.strictObject({
   offset: z.string().regex(/^\d+$/).default("0")
     .transform(Number).pipe(z.number().int().min(0)),
   limit: z.string().regex(/^\d+$/).default("6")
-    .transform(Number).pipe(z.number().int().min(1)),
+    .transform(Number).pipe(z.number().int().min(1).max(6)),
   sort: z.enum(["latest", "oldest", "points_desc", "points_asc"]).default("latest"),
 });
 

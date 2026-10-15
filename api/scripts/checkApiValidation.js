@@ -5,30 +5,29 @@ import { validateStudyPassword, validatePasswordVerificationBody } from "../src/
 import { assertLocalSeedDatabase } from "../seedData.js";
 
 // 스키마와 주소 판정만 검사한다. 환경변수·DB·서버를 사용하지 않는다.
-let step = "비밀번호 정리";
+let step = "비밀번호 원문·공백 거절";
 const body = {
   nickname: "개발자", name: "검증 스터디", introduction: "DB 없는 입력 검사",
   password: "Forest123!", passwordConfirm: "Forest123!",
 };
 
 try {
-  for (const value of [" Forest123!", "Forest123! ", "For est\t123!\n"]) {
+  for (const value of ["abcd", "a".repeat(20), body.password]) {
     const result = validateStudyPassword(value);
     assert.equal(result.success, true);
-    assert.equal(result.data, body.password);
-    const created = validateCreateStudy({ ...body, password: value });
-    assert.equal(created.success, true);
-    assert.equal(created.data.password, body.password);
-    assert.equal(created.data.passwordConfirm, body.passwordConfirm);
+    assert.equal(result.data, value);
   }
-  for (const value of ["abc", "a".repeat(21), " \t\n ", "a b c", "abcd?", 1234, null]) {
+  for (const value of [
+    " Forest123!", "Forest123! ", "For est\t123!\n", "a b c d", " abcd", "abcd ",
+    "abcd\n", "abcd\r", "abcd\u2028", "abcd\u2029",
+    "abc", "a".repeat(21), " \t\n ", "abcd?", 1234, null,
+  ]) {
     assert.equal(validateStudyPassword(value).success, false);
+    assert.equal(validatePasswordVerificationBody({ password: value }).success, false);
     assert.equal(validateCreateStudy({ ...body, password: value }).success, false);
+    assert.equal(validateCreateStudy({ ...body, passwordConfirm: value }).success, false);
   }
-  assert.equal(validateStudyPassword("a b c d").data, "abcd");
-  assert.equal(validateStudyPassword(" a" + "b".repeat(19) + " ").success, true);
   assert.equal(validatePasswordVerificationBody({}).success, true);
-  assert.equal(validatePasswordVerificationBody({ password: " \t" }).success, false);
   assert.equal(validatePasswordVerificationBody({ password: body.password, extra: true }).success, false);
   const mismatched = validateCreateStudy({ ...body, passwordConfirm: "Forest456!" });
   assert.equal(mismatched.success, false);
@@ -54,8 +53,12 @@ try {
   assert.equal(validateStudyListQuery({ keyword: " %_ " }).data.keyword, "%_");
   for (const query of [
     { limti: "10" }, { keyword: ["a", "b"] }, { offset: "-1" },
-    { offset: "1.5" }, { limit: "0" }, { limit: ["6", "10"] }, { sort: "random" },
+    { offset: "1.5" }, { limit: "0" }, { limit: "7" }, { limit: "10" }, { limit: ["6", "10"] }, { sort: "random" },
   ]) assert.equal(validateStudyListQuery(query).success, false);
+  for (const limit of ["1", "6"]) {
+    assert.equal(validateStudyListQuery({ limit }).success, true);
+    assert.equal(validateStudyListQuery({ limit }).data.limit, Number(limit));
+  }
   assert.equal(validateStudyIdParams({ studyId: "11111111-1111-4111-8111-111111111111" }).success, true);
   assert.equal(validateStudyIdParams({ studyId: "invalid" }).success, false);
 
@@ -86,7 +89,7 @@ try {
     "postgresql://127.0.0.1:5435/forest-of-study?schema=other",
   ]) assert.throws(() => assertLocalSeedDatabase(url));
 
-  console.log("API 입력 검사 성공: 비밀번호 정리·그래핌 경계·엄격한 쿼리·습관 날짜·로컬 주소 제한. DB 연결 없음");
+  console.log("API 입력 검사 성공: 비밀번호 원문·공백 거절·그래핌 경계·엄격한 쿼리·습관 날짜·로컬 주소 제한. DB 연결 없음");
 } catch {
   console.error(`API 입력 검사 실패: ${step}`);
   process.exitCode = 1;

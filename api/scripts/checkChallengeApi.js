@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 
 // 실제 집중 라우터·인증을 임시 서버에서 검사한다. app.js 배포 연결 검증은 별도다.
 // 로컬 DB에 이 실행에서 만든 스터디만 사용하며 마지막에 정리한다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let studyId;
 let server;
@@ -32,7 +33,7 @@ const runChecks = async () => {
   const study = await prisma.study.create({
     data: {
       nickname: "집중검증",
-      name: "집중 API 검증",
+      name: "검증" + fixtureKey,
       introduction: "검증 종료 시 삭제하는 임시 스터디입니다.",
       passwordHash,
     },
@@ -86,10 +87,10 @@ const runChecks = async () => {
   expectError(await request({ method: "POST", body: { goalMinutes: 10, points: 100 } }), 400, "VALIDATION_ERROR");
   assert.equal(await prisma.challenge.count({ where: { studyId } }), 0);
 
-  step = "쿼리 입력 거절과 공백 정리 후 헤더 인증";
+  step = "쿼리 입력·공백 포함 헤더 거절";
   expectError(await request({ path: "/current?extra=1" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "?extra=1", method: "POST", body: {} }), 400, "VALIDATION_ERROR");
-  assert.equal((await request({ path: "/current", header: password.slice(0, 4) + " " + password.slice(4) })).status, 200);
+  expectError(await request({ path: "/current", header: password.slice(0, 4) + " " + password.slice(4) }), 400, "VALIDATION_ERROR");
 
   step = "API-FC-01 이력 없는 초기 조회";
   const initial = await request({ path: "/current" });

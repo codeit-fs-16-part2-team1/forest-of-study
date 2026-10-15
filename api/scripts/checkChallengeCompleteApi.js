@@ -13,6 +13,7 @@ import { assertLocalSeedDatabase } from "../seedData.js";
 // --preflight는 로컬 주소 제한만 확인하고 DB 연결·생성·수정·삭제 없이 종료한다.
 const awards = new Map([[10, 4], [20, 5], [25, 5], [180, 21]]);
 const fixtureIds = [];
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let server;
 let step = "검증 인자 확인";
@@ -73,7 +74,7 @@ const runChecks = async () => {
     const study = await prisma.study.create({
       data: {
         nickname: "완료검증",
-        name: `집중 완료 검증 ${index + 1}`,
+        name: `검증${fixtureKey}${index + 1}`,
         introduction: "검증 종료 시 삭제하는 임시 스터디입니다.",
         passwordHash,
       },

@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 
 // 로컬 DB의 서비스 검증용이다. HTTP·비밀번호 미들웨어 검증을 대신하지 않는다.
 // 비밀번호는 실행 중 생성해 해시만 저장하고 출력하지 않는다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let studyId;
 let step = "검증 인자 확인";
@@ -26,7 +27,7 @@ const runChecks = async () => {
   const study = await prisma.study.create({
     data: {
       nickname: "집중검증",
-      name: "집중 서비스 검증",
+      name: "검증" + fixtureKey,
       introduction: "검증 스크립트가 생성하고 종료 시 삭제하는 임시 스터디입니다.",
       passwordHash,
     },
