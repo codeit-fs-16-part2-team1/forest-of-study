@@ -1,9 +1,9 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.9 킥오프 그래핌·습관 정책 반영 · 2026-10-13 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~058; 습관·응원은 ADR-045~046의 후속 보완을 따른다.
+- 버전:0.10 조회·비밀번호 정책 동기화 · 2026-10-15 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~063; 최신 후속 결정을 우선 적용한다.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
-- 이번에는 문서·스키마만 갱신한다. 기존 데이터 변경·migration·generate·db push를 실행하지 않는다.
+- 이번에는 명세만 갱신한다. schema.prisma·구현 코드·기존 데이터·migration 파일을 변경하지 않으며 migration·generate·db push를 실행하지 않는다.
 
 ## 로컬 실행 환경 — ADR-049·050
 
@@ -13,7 +13,7 @@
 - named volume `forest-of-study-data`는 `/var/lib/postgresql`에 연결한다. 데이터는 컨테이너와 분리해 보존한다.
 - 컨테이너 이름은 `forest-of-study-db`다. 포트 매핑 `5435:5432`는 루프백 바인딩으로 제한하지 않는다. healthcheck는 `pg_isready`, 간격 10초·제한 5초·재시도 5회·시작 유예 10초다.
 - 기존 `postgres_data`의 데이터는 새 볼륨으로 자동 이전되지 않는다. 초기 계정 설정은 빈 데이터 디렉터리에서만 적용되므로 기존 볼륨의 계정은 자동 변경되지 않는다.
-- 설정 파일 작성만 완료했으며 컨테이너 시작·접속·migration은 실행하지 않았다. 테이블·FK·CHECK가 실제 생성됐다는 의미가 아니다.
+- 설정·migration 파일은 작성돼 있다. 이번 문서 작업에서는 컨테이너 시작·접속·migration 실행 여부를 확인하지 않았다. 파일 존재만으로 테이블·FK·CHECK의 실제 생성 완료를 뜻하지 않는다.
 - ISS-001은 로컬 DB 설정, ISS-005는 이후 migration·제약 적용이다. 기존 미정 정책 확인은 ISS-002다.
 - 실행 순서·기대 결과는 README.md의 ‘로컬 DB 개발 환경’을 따른다. Neon 배포 접속 정보는 로컬 개발 설정과 별도로 관리한다.
 
@@ -168,11 +168,11 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 
 - Study.nickname/name/introduction은 trim 후 그래핌 기준 1~10/1~15/1~100개, Routine.name은 1~20개다. 빈 문자열·공백만 있는 입력은 거절하고 정리한 문자열을 저장한다. Intl.Segmenter를 사용해 조합 이모지도 각각 1글자로 센다. 네 컬럼은 TEXT로 저장해 DB의 문자 길이 제한과 충돌하지 않게 한다. 최대 그래핌 수는 서버에서 검사하며 프론트에서도 같은 기준으로 안내한다(ADR-056~057).
 - Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 중 나머지 7종의 임시 키·자산은 담당자가 지정·공유하고 추후 변경한다. API와 프론트는 같은 목록을 쓴다. TEXT 타입을 유지하며 최종 목록 변경 시 기존 저장값 매핑을 함께 검토한다.
-- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 원문 비밀번호는 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`이며 앞뒤·중간 공백을 모두 거절한다. trim·공백 제거를 하지 않고 DB에는 해시만 저장한다. 닉네임·이름 중복 UNIQUE는 미정 정책을 임의 확정하지 않기 위해 추가하지 않는다.
+- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 비밀번호·확인값은 모든 공백(/\s/gu)을 제거한 뒤 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사한다. 생성은 정리된 확인값과 비교한 뒤 정리된 비밀번호만 해시하고 모든 검증 API도 정리된 값으로 bcrypt 비교한다(ADR-062). DB에는 평문을 저장하지 않고 해시만 저장한다. 닉네임·이름 중복 UNIQUE는 미정이므로 추가하지 않는다.
 - Routine.startsOn/endsOn은 양 끝 포함. 종료일이null이면 열린 기간이다. 종료 즉시 오늘 목록에서 숨기고 체크·이름 변경 금지. 생성 당일 종료도 유효하며 startsOn=endsOn 허용.
 - 습관18개 제한은 studyId별 endsOn IS NULL인 행만 센다. 종료 행과 RoutineHistory는 개수에 포함하지 않는다. count와 create는 Study 잠금 안의 같은 트랜잭션으로 처리한다. 행 합계 제한을 단일 행 CHECK로 대신하지 않는다.
-- 오늘 목록은 createdAt ASC → id ASC다. 사용자 순서 변경은 후속 ISS-031이며 이번 스키마에 position/order 컬럼을 추가하지 않는다. 주간 표 행 순서는 별도 미정이다.
-- RoutineHistory.completed=false 행은 체크 해제 사실로 남긴다. 유효 날짜에 행이 없으면 조회 시false, 유효 기간 밖은 exists=false/completed=null. 이름은 Routine에서 조회하여 과거 표에도 현재 이름 반영.
+- 오늘 목록과 주간 기록 행은 createdAt ASC → id ASC다(ADR-056·060). 사용자 순서 변경은 후속 ISS-031이며 이번 스키마에 position/order 컬럼을 추가하지 않는다.
+- RoutineHistory.completed=false 행은 체크 해제 사실로 남긴다. 유효 날짜에 행이 없으면 조회 시false, 유효 기간 밖은 completed=null이다. 주간 API의 dates·exists·행별 startsOn/endsOn은 응답에서 제외하되 DB 기간 컬럼과 종료일 포함 조회 규칙은 유지한다. 이름은 Routine에서 조회해 과거 표에도 현재 이름을 반영한다(ADR-060).
 - Challenge.goalMinutes는 목표 **길이**, lastStartedAt은 **시각**이다. 서로 대체할 수 없다. elapsedMilliseconds는 일시정지 전에 실제로 진행한 구간의 누적 시간이다.
 - RUNNING의 실제 경과 = min(goalMinutes × 60000, elapsedMilliseconds + max(0, 서버 현재 시각 - lastStartedAt)). PAUSED/RESET/COMPLETED의 경과는 저장된 elapsedMilliseconds다.
 - 조회마다 진행 중 시간을 DB에 덧셈하지 않는다. 일시정지할 때 실제 경과를 저장하고 lastStartedAt=null, 재개할 때 기존 경과를 유지하고 lastStartedAt=서버 현재 시각으로 설정한다.
@@ -243,9 +243,9 @@ stateDiagram-v2
 
 체크·이름 수정·종료는 Study→Routine 잠금 순서로 종료 상태 검사와 쓰기를 묶는다. 먼저 확정된 체크는 기록표에 보존하고 종료 뒤 도착한 체크·수정은 거절한다. 재삭제로 종료일을 바꾸지 않는다.
 
-## 7. 제약·인덱스와 후속 migration
+## 7. 제약·인덱스와 migration
 
-Prisma에는 PK·FK·NULL·문자열 저장 타입·일반 인덱스를 표현했다. 아래 SQL은 후속 migration에 포함할 설계이며 실행하지 않았다. 문자열의 최대 그래핌 수와 스터디당 활성 습관18개는 서버에서 검사한다. CHECK는 다른 행의 합계 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
+Prisma에는 PK·FK·NULL·문자열 저장 타입·일반 인덱스를 표현했다. 아래 CHECK·부분 UNIQUE에 대응하는 migration SQL 파일은 이미 저장소에 있다. 파일 존재와 실제 DB 적용은 구분하며 이번에는 실행 상태를 확인하지 않았다. 최대 그래핌 수와 활성 습관18개는 서버에서 검사한다. CHECK는 다른 행 합계의 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
 
 ```sql
 CREATE UNIQUE INDEX "Challenge_one_active_per_study"
@@ -288,15 +288,15 @@ ADD CONSTRAINT "Challenge_award_state" CHECK (
 
 기존 DB에 데이터가 있다면 PointHistory의 기존 지급 기록과 Study.points를 먼저 대조하고, 과거 초기화 보상까지 새 완료 전용 정책에 어떻게 처리할지 별도로 확인해야 한다. 기존 지급 내역을 새 awardedPoints로 기계적으로 복사하거나 삭제하지 않는다. 과거 RESET 지급 행이 있으면 새 CHECK와 충돌할 수 있다. 데이터 존재·전환 정책을 확인하기 전 파괴적 migration을 적용하지 않는다.
 
-이번 변경은 문서·Prisma 초안뿐이다. 기존 PointHistory/PointKind 제거, Challenge 컬럼 축소·awardedPoints 추가, CHECK 교체는 후속 migration 작업이며 실행하지 않았다. Prisma CLI 설치·validate·generate·migration도 실행하지 않았다. 필요 명령은 후속 구현 계획에서 사람이 실행하도록 안내한다.
+현재 저장소에는 5개 모델 생성·CHECK·Cascade·활성 부분 UNIQUE를 정의한 migration 파일이 있다. 이번 작업은 명세 업데이트뿐이며 Prisma CLI validate·generate·migration·실제 DB 검증을 실행하지 않았다. 파일이 있다는 사실만으로 적용 완료로 표시하지 않는다.
 
 ### 킥오프 후속 스키마 변경 — ADR-056~057
 
 Study.nickname/name/introduction과 Routine.name을 TEXT로 변경했다. 길이 제한 자체를 없애는 것이 아니라, 최대 그래핌 수 검증을 서버가 맡도록 저장 타입을 변경한 것이다. NOT NULL과 기존 Routine_name_nonempty는 유지한다. DB를 직접 수정하거나 별도 스크립트로 저장할 때도 같은 입력 규칙을 지켜야 한다.
 
-현재 변경 범위는 명세와 schema.prisma다. 기존 migration SQL은 수정하지 않았고 새 migration 파일도 이번 작업에서는 작성하지 않았다. 적용 담당자가 실제 브랜치의 migration 상태를 확인한 뒤 변경이 필요한 네 컬럼에 대해 새 ALTER COLUMN TYPE TEXT migration을 추가해야 한다. 이미 Routine.name 변경 migration이 있다면 중복 작성하지 않는다. migration 적용·generate·실제 저장 확인 전에는 DB 적용 완료로 보지 않는다.
+TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_grapheme_text`에 작성돼 있다. 후자는 Study의 세 컬럼과 Routine.name을 TEXT로 변경한다. Routine.name 변경이 앞 파일과 겹치지만 이번에는 기존 이력을 수정하지 않는다. 적용 담당자는 실제 DB의 migration 상태를 확인하고 기존 파일을 적용·검증한다. 비밀번호 정리·쿼리·조회 정책에 추가 테이블/컬럼은 필요하지 않아 이번 스키마 변경은 없다.
 
-검증: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성18개 생성 거절·종료 후 생성 성공, 생성일 순 조회. 실제 명령·API·DB 검증은 실행하지 않았다.
+후속 검증 기준: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성18개 생성 거절·종료 후 생성 성공, 생성일 순 조회, 공백 제거 후 같은 비밀번호의 생성·검증 일치. 이번에는 실제 명령·API·DB 검증을 실행하지 않았다.
 
-남은 결정: 중복 스터디 정책, 담당자가 공유할 배경 임시 키·자산과 최종 변경, 응원 이모지 동일성, 기본 주/조회 범위·색상표, 후속 사용자 정렬 저장 방식. 안내 문구는 최종 확정 전 임시 구현을 허용한다. 자세한 목록은 API.md 10절과 issues.md에 연결한다.
+남은 결정: 중복 스터디 정책, 배경 임시 키·자산의 공유와 최종 변경, 응원 이모지 동일성, 주간 색상표, 후속 사용자 정렬 저장 방식. 목록 기본값·검색 규칙·주간 날짜 보정/행 순서/조회 기간·다건10개 상한은 ADR-059·060·063으로 확정했다. 안내 문구는 최종 확정 전 임시 구현을 허용한다.
 

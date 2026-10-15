@@ -1,6 +1,7 @@
 # httpyac: routine.http의 준비 요청을 참조해 ID·서버 날짜를 자동 사용한다.
 # 준비 요청 최초 실행 후, 오류 요청 자체가 DB를 바꾸지 않는지 확인한다.
 # 오류 응답은 error.code와 details:null을 확인한다. 요청은 개별 실행한다.
+# ADR-059~063의 새 계약 기대값이다. 특히 비밀번호 공백 정리는 후속 코드 변경 후 검증한다.
 # @import ./routine.http
 @wrongPassword = 1111
 @pastDate = 2026-10-01
@@ -63,7 +64,8 @@ Content-Type: application/json
 
 {"recordDate":"{{todayDate}}","completed":false}
 
-### 09 API-HB-01 비밀번호 공백 — 400 VALIDATION_ERROR
+### 09 API-HB-01 공백 제거 후 비밀번호 오답 — 401 PASSWORD_MISMATCH
+# has space → hasspace는 형식에 맞지만 테스트 비밀번호0000과 다르다. 현재 공백 거절 코드는 후속 수정 대상이다.
 # @ref routineCreate
 GET {{baseUrl}}/studies/{{studyId}}/routines
 X-Study-Password: has space
