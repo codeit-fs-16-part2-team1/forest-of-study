@@ -1,7 +1,7 @@
 # 공부의 숲 API Docs
 
-- 문서 개정: 0.11 조회·비밀번호·도구 정책 확정(제품 버전 0.1.0·0.2.0·1.0.0과 별개) · 2026-10-15 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~063; 최신 후속 결정을 우선 적용한다.
+- 문서 개정: 0.13 비밀번호 공백 포함 요청 거절(제품 버전 0.1.0·0.2.0·1.0.0과 별개) · 2026-10-15 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~066; 최신 후속 결정을 우선 적용한다.
 - 요청 예시: [api.http](../api/requests/api.http). 예시는 계약 기대값이며 실제 실행·검증 결과와 구분한다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
@@ -25,13 +25,13 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 - 비밀번호를 아는 다른 브라우저도 같은 집중을 조작할 수 있다. 브라우저별 소유권과 여러 브라우저 요청 순서 충돌 처리는 제외한다. 스터디당 활성 1개와 완료 중복 지급 방지는 유지한다.
 - 한국 자정은 습관 날짜 경계에만 적용한다. 비밀번호 만료 시각·타이머 자동 정지 기준으로 사용하지 않는다.
 
-### 공통 문자열 입력 기준 — ADR-056~057
+### 공통 문자열 입력 기준 — ADR-056~057·066
 
 닉네임·스터디 이름·소개·습관 이름은 문자열만 받고 trim()으로 앞뒤 공백을 제거한 뒤 Intl.Segmenter("ko", {granularity:"grapheme"})로 센다. 허용 범위는 각각 1~10·1~15·1~100·1~20그래핌이다. 빈 문자열·공백만 있는 입력과 범위 밖 값은 400 VALIDATION_ERROR다. 생성·수정 모두 정리한 문자열을 저장하며 프론트와 서버의 계산 기준을 일치시킨다. 단순 String.length·Array.from(text).length·HTML maxlength만으로 이 제한을 대신하지 않는다. 그래핌 개수를 저장하는 별도 필드는 추가하지 않는다.
 
-비밀번호·확인값은 문자열에서 모든 공백을 제거한 뒤 검사한다(ADR-062). 공백은 JavaScript /\s/gu 기준으로 앞뒤·중간 스페이스, 탭, 줄바꿈 등을 포함하며 trim()만으로 대신하지 않는다. 프론트는 공백 입력 방지와 값 정리를 함께 수행하고 서버도 같은 정리를 수행한다. 문자열이 아닌 값을 문자열로 자동 변환하지 않는다.
+비밀번호·확인값은 공백을 제거하거나 trim하지 않고 입력 원문을 검사한다(ADR-066). 앞뒤·중간 스페이스, 탭, 줄바꿈 등 공백이 하나라도 포함되면 400 VALIDATION_ERROR로 거절한다. 프론트는 공백 입력을 막고 붙여넣기를 포함한 입력값도 검사하되 공백을 자동 삭제해 전송하지 않는다. 서버도 전달받은 원문을 검사한다. 문자열이 아닌 값을 문자열로 자동 변환하지 않는다.
 
-생성은 password·passwordConfirm 각각의 공백을 제거한 뒤 길이4~20·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사하고, 정리된 두 값이 다르면 400 PASSWORD_CONFIRM_MISMATCH다. 정리된 password만 bcrypt 해시로 저장한다. 진입 확인·삭제·보호 요청도 공백 제거 후 형식을 검사하고 정리된 값으로 bcrypt 비교한다. `ab cd`와 `abcd`는 같은 비밀번호로 처리한다. 진입 확인·삭제·보호 요청의 비밀번호 누락은 401 VERIFICATION_REQUIRED다. 생성 필수 필드 누락이나 제공된 값이 공백 제거 후 빈 문자열·길이/문자 범위 밖이면 400 VALIDATION_ERROR, 유효한 값의 bcrypt 불일치는 401 PASSWORD_MISMATCH다. 새 비밀번호 변경 API나 DB 컬럼은 추가하지 않는다.
+생성은 password·passwordConfirm 각각의 원문으로 길이4~20·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사한다. 어느 한쪽이라도 공백이 포함되거나 형식이 잘못되면 400 VALIDATION_ERROR이며, 두 값 모두 형식에 맞지만 서로 다르면 400 PASSWORD_CONFIRM_MISMATCH다. 유효한 password 원문만 bcrypt 해시로 저장한다. 진입 확인·삭제·보호 요청도 같은 형식 검사 후 원문으로 bcrypt 비교한다. `ab cd`는 거절하며 `abcd`로 바꾸어 처리하지 않는다. 진입 확인·삭제·보호 요청의 비밀번호 누락은 401 VERIFICATION_REQUIRED다. 생성 필수 필드 누락이나 제공된 값이 빈 문자열·공백 포함·길이/문자 범위 밖이면 400 VALIDATION_ERROR, 유효한 값의 bcrypt 불일치는 401 PASSWORD_MISMATCH다. 새 비밀번호 변경 API나 DB 컬럼은 추가하지 않는다.
 
 ## 2. API 계약 표
 
@@ -99,7 +99,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 위 구현 범위는 2026-10-15 로컬 라우트·서비스·app.js 연결을 조회한 결과이며 API·DB를 실행한 결과가 아니다. 기존 14개 API의 코드 연결은 확인했고 나머지 6개는 아직 라우트가 없다. 상위 응원 조회(ST-03)는 이미 있어 0.2.0에서 연결하며 응원 등록(ST-07)만 1.0.0에 남긴다.
 
-0.2.0의 작업 우선순위는 [issues.md](issues.md)의 13개 PR 묶음을 따른다. 기존 API의 공통 오류·비밀번호 공백 정리·쿼리 검증 차이는 ISS-006·007·029에서 해당 연동 전에 보완한다. 완료·중복 지급은 ISS-018·028에서 확인하고 미검증 서버 동작을 프론트의 임시 성공으로 대체하지 않는다.
+0.2.0의 작업 우선순위는 [issues.md](issues.md)의 13개 PR 묶음을 따른다. 기존 API의 공통 오류·비밀번호 공백 거절·쿼리 검증은 ISS-006·007·029에서 계약 일치 여부를 확인하고 해당 연동 전에 보완한다. 완료·중복 지급은 ISS-018·028에서 확인하고 미검증 서버 동작을 프론트의 임시 성공으로 대체하지 않는다.
 
 1.0.0은 공통 계약·배포 전체 인수 P0, 스터디 수정/삭제·습관 수정/종료 P1, ID 다건·응원 등록 P2로 진행한다. P2도 최종 필수 기능이면 출시 전에 완료한다. 기존 API 연동을 통째로 1.0.0에 미루지 않는다. API 경로·필드·상태 코드·실패·인증 계약은 이번 버전 배정으로 바꾸지 않는다.
 
@@ -182,7 +182,7 @@ RESET 응답은 종료한 행을 반환한다. DB 행에는 초기화 전 경과
 
 ### API-ST-01 목록
 
-query: offset(0 이상 정수, 기본0), limit(양의 정수, 기본6), keyword(기본 빈 문자열), sort(latest/oldest/points_desc/points_asc, 기본latest). 최초 조회6개·최신순으로 확정한다(ADR-059). 더보기는 limit=6, offset은 누적 개수다. limit의 별도 최댓값과 최근 조회 UI 표시 개수는 이번 결정에 포함하지 않는다. 정의하지 않은 쿼리는 400 VALIDATION_ERROR다.
+query: offset(0 이상 정수, 기본0), limit(1~6 정수, 기본6·최대6), keyword(기본 빈 문자열), sort(latest/oldest/points_desc/points_asc, 기본latest). 최초 조회 6개·최신순으로 확정한다(ADR-059). 더보기는 limit=6, offset은 누적 개수다. limit은6을 초과하면 400 VALIDATION_ERROR다. 최근 조회는 중복 없이 최대 3개이며 다건 API의 서로 다른ID 최대 10개 제한과 구분한다(ADR-064). 정의하지 않은 쿼리는 400 VALIDATION_ERROR다.
 
 검색 대상은 name/nickname/introduction이며 세 필드 중 하나에 keyword가 포함되는 OR 부분 검색이다. keyword는 trim 후 NFC 정규화하며 저장된 검색 대상도 NFC 정규화하고 양쪽을 소문자로 비교해 대소문자를 구분하지 않는다. trim 후 빈 검색어는 필터 없이 조회한다. 현재 코드의 strpos 방식대로 %와 _도 일반 문자로 검색한다(ADR-059). 동일 정렬 값은 id ASC로 안정화한다. points 정렬은 Study.points를 사용하며 서버가 정렬·페이지네이션한다. 응원 수는 제공 시 스터디별 일괄 집계해 N번 개별 조회하지 않는다.
 
@@ -190,9 +190,11 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 
 ### API-ST-02 생성 / API-ST-04 수정
 
-생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 공백 제거 후 검사·불일치 처리를 따른다(ADR-062).
+생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 원문 검사·공백 포함 거절·불일치 처리를 따른다(ADR-066).
 
 backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 담당자가 나머지 7종의 임시 키와 표시 자산을 지정해 공유한다. 프론트·서버는 같은 임시 목록으로 표시·검증하며 목록 밖 키는 400 INVALID_BACKGROUND다. 최종 명칭 대기만으로 구현을 보류하지 않는다. 구체 임시 키는 담당자가 공유할 목록을 따르며 여기서 임의로 고정하지 않는다. 추후 키 변경 시 이미 저장된 backgroundKey의 매핑·migration을 함께 검토한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
+
+스터디 닉네임·이름은 기존 trim 후 저장값의 조합이 같으면 중복이다. 같은 nickname만 또는 같은 name만 있는 것은 허용하며 조합이 같으면 생성은 409 STUDY_CONFLICT다. PATCH도 변경 후 조합이 다른 Study와 같으면 409 STUDY_CONFLICT로 거절한다. Study의 @@unique([nickname,name])와 서버 오류 매핑으로 동시 중복을 방지한다. 이는 기존 문자열 정리 규칙을 유지하는 것이며 검색용 대소문자 무시 정책을 중복 판정에 새로 적용하는 결정은 아니다(ADR-064).
 
 ### API-ST-03 상세 / API-ST-05 삭제
 
@@ -205,25 +207,29 @@ query: weekStart=YYYY-MM-DD는 필수다. 입력한 날짜가 속한 주의 월�
 
 조회 주 첫날 W, 마지막날 E에 대해 Routine.startsOn <= E AND (endsOn IS NULL OR endsOn >= W)인 습관만 조회한다. 행은 createdAt ASC → id ASC다. 날짜 칸은 startsOn <= 날짜 AND (endsOn IS NULL OR 날짜 <= endsOn)이면 유효하며 종료 당일을 포함한다. 기간 밖은 completed=null로 반환해 회색 아이콘으로 표시한다.
 
-응답: {data:{weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}}. weekStart는 보정된 월요일이고 cells는 월~일 순서의7개다. 유효한 칸에 이력이 없으면 completed=false, 유효 기간 밖은 completed=null이다. 별도 dates 배열·exists 필드·행별 startsOn/endsOn은 보내지 않는다. 종료 당일 체크를 유지하고 이름은 최신 Routine.name을 사용한다. 실제 행 색상표는 추가 확인하며 행 순서는 확정됐다(ADR-060).
+응답: {data:{weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}}. weekStart는 보정된 월요일이고 cells는 월~일 순서의7개다. 유효한 칸에 이력이 없으면 completed=false, 유효 기간 밖은 completed=null이다. 별도 dates 배열·exists 필드·행별 startsOn/endsOn은 보내지 않는다. 종료 당일 체크를 유지하고 이름은 최신 Routine.name을 사용한다. 행은 반환된 목록 순서대로 18개 색상을 배정하고 19번째 행부터 처음 색상으로 반복한다. 구체 색상값은 추후 지정하고 색상은 프론트에서 결정하며 응답 필드·DB 색상 컬럼을 추가하지 않는다(ADR-060·065).
 
 ### API-ST-07 응원
 
-body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 프로필 식별이며 신원 증명이 아니다. PK(studyId,browserId,emoji)로 같은 이모지1회 제한. 서로 다른 이모지 종류 수는 제한하지 않는 기존 정책을 유지하되 킥오프의 강사 확인 항목은 추가 확인 대상으로 남긴다. 임의 식별자 변경을 영구 개인별 제한으로 막는다고 설명하지 않는다.
+body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 프로필 식별이며 신원 증명이 아니다. emoji-picker-react에서 제공하는 모든 이모지를 허용한다. 서버는 피부색 수정자를 제거한 기본 이모지를 Reaction.emoji에 저장하고 동일한 값으로 중복 검사·상위 집계·응답을 처리한다. 예: 👍·👍🏽·👍🏻는 모두 👍다. PK(studyId,browserId,emoji)는 기본 이모지 기준이므로 같은 브라우저가 피부색만 바꿔도 409 REACTION_POLICY_CONFLICT다. 서로 다른 브라우저는 같은 기본 이모지 집계에 각각1회씩 포함한다. 기본 피부색 표현을 사용하며 피부색 외의 이모지 종류를 임의로 합치지 않는다(ADR-064).
 
-성공 {data:{reactions:[ReactionSummary]}}. 상위 정렬은 COUNT DESC → MIN(createdAt) ASC → emoji ASC(기술적으로 DB의 C collation 사용)이며 LIMIT3. 이모지 종류가3미만이면 있는 만큼 반환하는 기술 표시 기준이다. 허용 이모지·유니코드 동일성은 미정.
+정규화는 피부색 수정자 U+1F3FB~U+1F3FF를 제거하는 공통 처리로 정의한다. 선택창은 emoji-picker-react 기본 UI를 사용하며 별도 외부 이모지 API를 도입하지 않는다. 서로 다른 기본 이모지 종류 수는 제한하지 않는 기존 정책을 유지한다. 임의 browserId 변경을 영구 개인별 제한으로 막는다고 설명하지 않는다.
+
+성공 {data:{reactions:[ReactionSummary]}}. 상위 정렬은 COUNT DESC → MIN(createdAt) ASC → emoji ASC(기술적으로 DB의 C collation 사용)이며 LIMIT3. 이모지 종류가3미만이면 있는 만큼 반환하는 기술 표시 기준이다. 선택기의 모든 이모지를 허용하며 피부색 변형은 같은 기본 이모지로 집계한다. 피부색 변경 외의 추가 표현 통합은 이번 결정에 포함하지 않는다.
 
 ### API-ST-08 ID 다건 조회
 
-query ids=UUID,UUID,…; 모든 ID의 UUID 형식을 검사하고 첫 등장 순서로 중복을 제거한다. **중복 제거 후 서로 다른 ID 최대10개**다. 같은 ID를 반복해 원래 요청 항목이10개를 넘어도 중복 제거 후10개 이하면 허용하며 서로 다른 ID가11개 이상이면 400 VALIDATION_ERROR다. 없는/삭제된 ID를 조회 결과에서 제외하기 전에 개수 제한을 검사한다(ADR-063).
+홈의 최근 조회 UI는 최대 3개다. 실제 상세를 조회한 ID를 [방금 조회한 ID, ...기존 ID에서 해당 ID 제외] 순서로 저장하고 앞 3개만 남긴다. 뒤의 ID를 재방문하면 맨 앞으로 이동한다. 아래 ST-08 자체의 최대 10개 계약은 유지하며 UI 제한 3개로 바꾸지 않는다.
 
-조회 결과는 첫 등장 순서를 유지하고 없는/삭제된 ID는 제외하며 {data:[카드용 Study와 reactions]}를 반환한다. 모두 없으면 data:[], UUID 오류는400 VALIDATION_ERROR다. 삭제 항목은 최근 조회 LocalStorage에서도 정리한다. ids 외 keyword/sort/offset/limit 등은 혼합할 수 없고 400 VALIDATION_ERROR다. /studies/batch는 /studies/{studyId}보다 먼저 라우팅한다.
+query ids=UUID,UUID,…; 모든 ID의 UUID 형식을 검사하고 첫 등장 순서로 중복을 제거한다. **중복 제거 후 서로 다른 ID 최대 10개**다. 같은 ID를 반복해 원래 요청 항목이 10개를 넘어도 중복 제거 후 10개 이하면 허용하며 서로 다른 ID가11개 이상이면 400 VALIDATION_ERROR다. 없는/삭제된 ID를 조회 결과에서 제외하기 전에 개수 제한을 검사한다(ADR-063).
+
+조회 결과는 첫 등장 순서를 유지하고 없는/삭제된 ID는 제외하며 {data:[카드용 Study와 reactions]}를 반환한다. 모두 없으면 data:[], UUID 오류는 400 VALIDATION_ERROR다. 삭제 항목은 최근 조회 LocalStorage에서도 정리한다. ids 외 keyword/sort/offset/limit 등은 혼합할 수 없고 400 VALIDATION_ERROR다. /studies/batch는 /studies/{studyId}보다 먼저 라우팅한다.
 
 ## 5. 비밀번호 확인
 
 ### API-AU-01 페이지 진입 확인
 
-body {password}. 모든 공백 제거·형식 검사·Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true}}. 유효한 형식의 오답은 401 PASSWORD_MISMATCH다. 토큰이나 확인 효력 만료 시각은 없다. 이후 수정·습관·집중 요청도 매번 X-Study-Password에 같은 공백 정리·검증을 적용한다.
+body {password}. 원문 형식 검사·Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true}}. 공백 포함은 400 VALIDATION_ERROR, 유효한 형식의 오답은 401 PASSWORD_MISMATCH다. 토큰이나 확인 효력 만료 시각은 없다. 이후 수정·습관·집중 요청의 X-Study-Password도 매번 공백 제거 없이 같은 원문 검사·공백 포함 거절·bcrypt 검증을 적용한다.
 
 모달의 나가기/취소는 모달만 닫고 현재 주소를 유지한다. 검증하지 않은 상태에서는 보호 데이터를 불러오거나 조작하지 않는다. 요청 중간 취소 기능은 추가하지 않는다.
 
@@ -232,9 +238,9 @@ body {password}. 모든 공백 제거·형식 검사·Study 존재 확인·bcryp
 HB-01: {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회하고 createdAt ASC → id ASC로 반환한다. 이름 수정은 과거 표에도 반영된다. 주간 기록 행도 같은 생성일 오름차순을 사용한다(ADR-060).
 HB-02 body {name}, 201 {data:Routine}. HB-03 body {name}, 200 {data:Routine}. 이름은 trim 후 그래핌 기준 1~20개이며 조합 이모지도 각각 1글자로 센다. 빈 문자열·공백만 있는 입력은 400 VALIDATION_ERROR로 거절한다. 정리한 이름을 TEXT에 저장하고 서버에서 반드시 검사한다. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
 HB-04 DELETE body 없음. 처음 종료 시 endsOn=서버 오늘 한국 날짜,204. 이미 종료된 행의 재삭제는 날짜를 덮어쓰지 않고204. 물리 삭제하지 않는다.
-HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,recordDate) upsert, 해제도 completed=false 행 유지. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
+HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,recordDate) upsert, 해제도 completed=false 행 유지. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치 409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
 
-습관 최대18개는 해당 스터디의 endsOn IS NULL인 행만 센다. 종료된 습관과 날짜별 기록은 제외한다. 기존 활성18개에서 생성하면 400 VALIDATION_ERROR이며 종료로 활성17개가 되면 다시 생성할 수 있다. 스터디 잠금과 같은 트랜잭션 안에서 count → create를 처리한다.
+습관 최대 18개는 해당 스터디의 endsOn IS NULL인 행만 센다. 종료된 습관과 날짜별 기록은 제외한다. 기존 활성 18개에서 생성하면 400 VALIDATION_ERROR이며 종료로 활성17개가 되면 다시 생성할 수 있다. 스터디 잠금과 같은 트랜잭션 안에서 count → create를 처리한다.
 
 드래그앤드롭 순서 변경은 후속 ISS-031에서 다룬다. 현재 요청·응답에 position/order 필드나 순서 변경 API를 추가하지 않으며 DB에도 순서 컬럼을 두지 않는다.
 
@@ -275,37 +281,38 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 
 | HTTP | code | 조건 |
 | --- | --- | --- |
-| 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 본문/쿼리 필드·활성 습관18개 초과·공백 제거 후 비밀번호 허용 문자/길이 오류·ST-08 중복 제거 후 ID10개 초과 |
+| 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 본문/쿼리 필드·목록limit의1~6 범위 위반·활성 습관 18개 초과·비밀번호·확인값의 공백 포함 또는 허용 문자/길이 오류·ST-08 중복 제거 후 ID10개 초과 |
 | 400 | PASSWORD_CONFIRM_MISMATCH | 생성 비밀번호 확인 불일치 |
 | 400 | INVALID_BACKGROUND | 담당자가 공유한 8종 임시 배경 목록 밖 키; 최종 키 확정 전에도 임시 목록으로 검증 |
-| 400 | INVALID_EMOJI | 허용 이모지/표현 규칙 위반; 세부 미정 |
+| 400 | INVALID_EMOJI | 선택기가 제공하는 이모지가 아닌 입력·빈 값 등 유효하지 않은 이모지 표현 |
 | 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
 | 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |
 | 404 | STUDY_NOT_FOUND / ROUTINE_NOT_FOUND / CHALLENGE_NOT_FOUND | 대상 없음 또는 하위 데이터 소속 불일치 |
+| 409 | STUDY_CONFLICT | trim 후 nickname·name 조합이 이미 존재하는 생성·수정 |
 | 409 | CHALLENGE_CONFLICT | 스터디에 RUNNING/PAUSED 존재 |
 | 409 | INVALID_CHALLENGE_STATE | 진행 중 reset·종료 상태의 다른 조작 등 |
 | 409 | CHALLENGE_NOT_FINISHED / CHALLENGE_FINISHED | 완료 전 complete / 완료해야 하는 상태의 pause·resume |
 | 409 | ROUTINE_ENDED | 종료된 습관 체크·이름 변경 |
 | 409 | DATE_CHANGED | 체크 요청 날짜가 서버 한국 오늘과 다름 |
-| 409 | REACTION_POLICY_CONFLICT | 같은 studyId/browserId/emoji 중복 |
+| 409 | REACTION_POLICY_CONFLICT | 같은 studyId/browserId/기본 emoji 중복; 피부색만 바꾼 요청도 포함 |
 | 500 | INTERNAL_ERROR | DB·내부 장애; 민감값 미노출 |
 
-스터디 중복 생성의 별도 오류 정책은 미정이다. 습관 활성18개 초과는 기존 VALIDATION_ERROR(400)를 사용한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 CHALLENGE_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
+스터디 중복 조합은 409 STUDY_CONFLICT로 응답한다. 클라이언트 사전 확인만으로 대체하지 않고 DB 복합 UNIQUE 충돌도 같은 오류로 변환한다. 습관 활성 18개 초과는 기존 VALIDATION_ERROR(400)를 사용한다. 활성 행이 있는 상태의 새 시작은 브라우저와 무관하게 CHALLENGE_CONFLICT다. 비밀번호를 아는 다른 브라우저의 기존 집중 조작은 허용한다. 페이지의 verified 상태만으로 서버 검증을 생략하지 않는다.
 
-## 10. 남은 결정
+## 10. 확정 사항과 남은 자료
 
-| ID | 미정 항목 | 영향 |
+| ID | 상태·내용 | 영향 |
 | --- | --- | --- |
-| API-Q-04 · 일부 확정 | 목록 기본6개·최신순과 다건 최대10개(중복 제거 후)는 확정. 최근 조회 UI 표시 개수·생성 당일0/1일·목록limit 최댓값은 미정 | 목록/카드; ADR-059·063 |
-| API-Q-05 · 일부 확정 | 필수weekStart의 월요일 보정·월~일7일·과거/미래 기간 제한 없음·생성일 순·축소 응답 확정. 행 색상표는 미정 | 주간 조회·시안; ADR-060 |
-| API-Q-06 · 확정 | 일반 문자열trim·그래핌·TEXT·활성 습관18개·오늘 생성일 순; 비밀번호는 모든 공백 제거 후 검증으로 변경(ADR-062) | 그래핌 수와 별개인 바이트 상한은 미정 |
-| API-Q-07 | 응원 허용 이모지·유니코드 동일성·강사 확인 결과 | 응원 |
-| API-Q-08 | 기본green 외 7종 임시 키·자산은 담당자가 지정·공유 후 구현, 최종 목록은 추후 변경. 중복 생성 규칙은 미정 | 생성/수정 |
-| API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭 인계·자동 일시정지 제외(ADR-052) | 미정 아님 |
-| API-Q-12 | 안내 문구 최종 확정·완료 화면·반응형 시안은 미정. 오류 문구는 임시 구현 허용(ADR-058). Sass 사용·Vitest 미사용은 확정(ADR-061) | 프론트·공통 오류 |
-| API-Q-13 · 후속 | 드래그앤드롭 순서 저장·변경 API·주간 표 적용 범위 | ISS-031. 현재 생성일 정렬 계약은 유지 |
+| API-Q-04 · 확정 | 목록 기본/최대6·최신순, 최근 조회 중복 없는 3개·재방문 맨 앞으로, 생성 당일 1일째. 다건 상한 10개는 별도 유지 | 목록·최근·진행 일수 / ADR-064 |
+| API-Q-05 · 색상값 수신 대기 | 월~일7칸·주간 겹침·생성일 순·축소 응답 유지. 목록 순서대로 18개 색상을 순환 배정, 값은 추후 지정 | 기록표 / ADR-060·065 |
+| API-Q-06 · 확정 | 일반 문자열 trim·그래핌·TEXT·활성 18개·생성일 순 유지. 비밀번호는 공백 제거 없이 포함 시 거절. 별도 입력 바이트 상한은 미정 | ADR-056~057·066 |
+| API-Q-07 · 확정 | 모든 이모지 허용·피부색 제거 후 기본 이모지로 저장/중복/집계. emoji-picker-react 기본 UI | 응원 / ADR-064·065 |
+| API-Q-08 · 자산 수신 대기 | 기존8종 키·기본green 유지, 실제 색상·이미지는 추후 지정. 같은 nickname/name 조합은 409 STUDY_CONFLICT | 생성·수정·DB 복합 UNIQUE |
+| API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭·자동 pause 제외 | 미정 아님 |
+| API-Q-12 · 일부 자료 수신 대기 | Header 생성 버튼은 홈만·모든 기기. 모달은 배경 클릭 닫기·Escape 무시. 시간 설정은 모달. 빈 목록/실패는 기존 캡처, 완료는 시간 초과 시안, 로딩은 스켈레톤(변경 가능). 반응형·습관 편집 캡처는 추후 제공 | 화면 / ADR-065 |
+| API-Q-13 · 후속 | 드래그앤드롭 저장·변경 API와 타이머 숫자 직접 입력은 현재 확정 범위 아님 | ISS-031 및 후속 검토 |
 
-요청별 비밀번호 헤더·Challenge 축소·완료 전용 지급·RESET 뒤 새 행·종료일 포함·주간 겹침·총점 저장·다건 조회·검색 3필드·동률 정렬은 확정/기술 계약으로 구분해 위 절에 반영했다. 삭제 비밀번호 재확인·수정 도착 페이지 모달은 최근 구체 결정 기준으로 유지하며 킥오프의 예전 흐름은 ADR-046에 비교 기록한다.
+응답 필드는 유지한다. 진행 일수·최근 조회 순서·색상·Header·모달 동작은 표시·클라이언트 규칙이며 새 API나 DTO 필드를 추가하지 않는다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
 
 ## 11. 기능 ID 대응
 
@@ -315,7 +322,7 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | F-ST-002 | API-ST-01 + 프론트 목록 누적 |
 | F-ST-003 | API-ST-01; 스터디 이름·닉네임·소개 검색 |
 | F-ST-004 | API-ST-01 |
-| F-ST-005 | LocalStorage 최근 ID 기록 + API-ST-08로 실제 데이터 일괄 조회. 별도 저장 API 없음 |
+| F-ST-005 | LocalStorage에 중복 없는 최근ID3개·재방문 맨 앞으로 기록 + ST-08로 조회. 다건API 상한은 10개 유지 |
 | F-ST-006 | API-ST-02 |
 | F-ST-007 | API-ST-03, API-ST-06 |
 | F-ST-008 | API-AU-01, API-ST-04 |
@@ -324,7 +331,7 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | F-ST-011 | API-ST-03 |
 | F-ST-012 | API-ST-07 |
 | F-ST-013 | 프론트 현재 상세 링크 복사. 별도 API 없음 |
-| F-ST-014 | API-ST-01·03의 createdAt 사용; 생성 당일 일수 확인 대기 |
+| F-ST-014 | API-ST-01·03의 createdAt 사용; 생성 당일 1일째 |
 | F-HB-001 | API-HB-01 |
 | F-HB-002 | 프론트 시간 표시, API-HB-01의 서버 날짜로 기준 확인 |
 | F-HB-003 | React Router 화면 이동. 별도 API 없음 |
@@ -375,10 +382,11 @@ Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·
 
 ## 14. 명세 갱신과 현재 구현의 경계 — 2026-10-15
 
-이번 작업은 ADR-059~063을 명세·HTTP 예시에 반영한 것이며 구현·패키지·스키마·migration을 수정하지 않았다.
+현재 명세는 ADR-064~066을 포함한다. 동작·화면 정책·요청 예시와 문서용 스키마 초안을 갱신하며 애플리케이션 코드·패키지·migration·실제 DB는 수정하거나 실행하지 않았다.
 
 - 목록 기본값·검색 처리·주간 월요일 보정/행 순서/축소 응답은 현재 코드 기준이다.
-- 비밀번호 모든 공백 제거, 모든 API의 미등록 쿼리400, ST-08 다건 조회·중복 제거 후10개 상한은 후속 구현·검증이 필요하다. HTTP의 새 성공/실패 주석은 계약 기대값이며 현재 서버 통과 결과가 아니다.
+- 비밀번호·확인값의 공백 포함 요청 거절은 ADR-066을 따른다. 공백 제거를 구현할 후속 항목은 폐기하고 생성·진입 확인·삭제·보호 요청의 400 응답을 검증한다. 모든 API의 미등록 쿼리 400, ST-08 다건 조회·중복 제거 후 10개 상한은 후속 구현·검증이 필요하다. HTTP의 성공/실패 주석은 계약 기대값이며 현재 서버 통과 결과가 아니다.
 - Sass 사용·Vitest 미사용을 확정했다. package.json의 vitest 실행 명령 정리는 후속 작업이다.
-- DB 구조 변경은 없어 schema.prisma를 수정하지 않았다. 기존 TEXT/CHECK/활성 UNIQUE migration 파일 존재와 실제 DB 적용 여부는 구분한다.
+- schema.prisma 초안에 Study(nickname,name) 복합 UNIQUE와 Reaction.emoji의 피부색 정규화 저장 설명을 추가했다. 새 UNIQUE migration은 작성·실행하지 않았다. 기존 데이터의 조합 중복·피부색 정규화 충돌 검토와 전환 계획이 먼저 필요하다. 기존 TEXT/CHECK/활성 UNIQUE migration 파일 존재와 실제 DB 적용 여부도 구분한다.
+- 목록limit 최대6·최근 3개·생성일 1일째·409 STUDY_CONFLICT·피부색 통합·새 UI 기준은 후속 구현/검증 대상이다. 이번 갱신으로 구현 완료를 표시하지 않는다.
 

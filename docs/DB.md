@@ -1,9 +1,9 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.10 조회·비밀번호 정책 동기화 · 2026-10-15 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~063; 최신 후속 결정을 우선 적용한다.
+- 버전:0.12 비밀번호 공백 포함 요청 거절 · 2026-10-15 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~066; 최신 후속 결정을 우선 적용한다.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
-- 이번에는 명세만 갱신한다. schema.prisma·구현 코드·기존 데이터·migration 파일을 변경하지 않으며 migration·generate·db push를 실행하지 않는다.
+- 문서용 schema.prisma 초안의 Study 복합 UNIQUE 선언은 유지한다. 이번 비밀번호 공백 정책은 명세·요청 예시만 갱신하며 스키마·애플리케이션 코드·기존 데이터·migration 파일은 변경하지 않는다. migration·generate·db push도 실행하지 않는다.
 
 ## 로컬 실행 환경 — ADR-049·050
 
@@ -168,16 +168,17 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 
 - Study.nickname/name/introduction은 trim 후 그래핌 기준 1~10/1~15/1~100개, Routine.name은 1~20개다. 빈 문자열·공백만 있는 입력은 거절하고 정리한 문자열을 저장한다. Intl.Segmenter를 사용해 조합 이모지도 각각 1글자로 센다. 네 컬럼은 TEXT로 저장해 DB의 문자 길이 제한과 충돌하지 않게 한다. 최대 그래핌 수는 서버에서 검사하며 프론트에서도 같은 기준으로 안내한다(ADR-056~057).
 - Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 중 나머지 7종의 임시 키·자산은 담당자가 지정·공유하고 추후 변경한다. API와 프론트는 같은 목록을 쓴다. TEXT 타입을 유지하며 최종 목록 변경 시 기존 저장값 매핑을 함께 검토한다.
-- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 비밀번호·확인값은 모든 공백(/\s/gu)을 제거한 뒤 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사한다. 생성은 정리된 확인값과 비교한 뒤 정리된 비밀번호만 해시하고 모든 검증 API도 정리된 값으로 bcrypt 비교한다(ADR-062). DB에는 평문을 저장하지 않고 해시만 저장한다. 닉네임·이름 중복 UNIQUE는 미정이므로 추가하지 않는다.
+- Study.passwordHash는 bcrypt, points 기본0·음수 금지. 비밀번호·확인값은 공백을 제거하거나 trim하지 않고 원문으로 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사한다. 앞뒤·중간 공백, 탭, 줄바꿈이 포함되면 400 VALIDATION_ERROR로 거절한다. 생성은 각 값의 형식·두 값의 일치를 확인한 뒤 유효한 비밀번호 원문만 해시하고 모든 검증 API도 원문 형식 검사 후 bcrypt 비교한다(ADR-066). DB에는 평문을 저장하지 않고 해시만 저장한다. nickname·name은 trim 후 저장값의 조합이 같은 스터디를 허용하지 않는다. Study의 @@unique([nickname,name])로 보장하며 단일 nickname 또는 단일 name만 같은 것은 허용한다. 생성·수정 충돌은 409 STUDY_CONFLICT로 매핑한다(ADR-064).
 - Routine.startsOn/endsOn은 양 끝 포함. 종료일이null이면 열린 기간이다. 종료 즉시 오늘 목록에서 숨기고 체크·이름 변경 금지. 생성 당일 종료도 유효하며 startsOn=endsOn 허용.
-- 습관18개 제한은 studyId별 endsOn IS NULL인 행만 센다. 종료 행과 RoutineHistory는 개수에 포함하지 않는다. count와 create는 Study 잠금 안의 같은 트랜잭션으로 처리한다. 행 합계 제한을 단일 행 CHECK로 대신하지 않는다.
+- 습관 18개 제한은 studyId별 endsOn IS NULL인 행만 센다. 종료 행과 RoutineHistory는 개수에 포함하지 않는다. count와 create는 Study 잠금 안의 같은 트랜잭션으로 처리한다. 행 합계 제한을 단일 행 CHECK로 대신하지 않는다.
 - 오늘 목록과 주간 기록 행은 createdAt ASC → id ASC다(ADR-056·060). 사용자 순서 변경은 후속 ISS-031이며 이번 스키마에 position/order 컬럼을 추가하지 않는다.
 - RoutineHistory.completed=false 행은 체크 해제 사실로 남긴다. 유효 날짜에 행이 없으면 조회 시false, 유효 기간 밖은 completed=null이다. 주간 API의 dates·exists·행별 startsOn/endsOn은 응답에서 제외하되 DB 기간 컬럼과 종료일 포함 조회 규칙은 유지한다. 이름은 Routine에서 조회해 과거 표에도 현재 이름을 반영한다(ADR-060).
 - Challenge.goalMinutes는 목표 **길이**, lastStartedAt은 **시각**이다. 서로 대체할 수 없다. elapsedMilliseconds는 일시정지 전에 실제로 진행한 구간의 누적 시간이다.
 - RUNNING의 실제 경과 = min(goalMinutes × 60000, elapsedMilliseconds + max(0, 서버 현재 시각 - lastStartedAt)). PAUSED/RESET/COMPLETED의 경과는 저장된 elapsedMilliseconds다.
 - 조회마다 진행 중 시간을 DB에 덧셈하지 않는다. 일시정지할 때 실제 경과를 저장하고 lastStartedAt=null, 재개할 때 기존 경과를 유지하고 lastStartedAt=서버 현재 시각으로 설정한다.
 - awardedPoints는 완료 지급의 결과다. COMPLETED 전이는 서버가 목표 도달을 검증한 뒤 수행한다. RESET은 경과 이력을 보존하지만 지급하지 않는다. 새 시작은 새 행·경과 0이며 예전 행을 재사용하지 않는다.
-- Reaction.createdAt을 이모지별 MIN으로 집계해 최초 반응 시각을 구한다. 상위3종은 COUNT DESC, MIN(createdAt) ASC, emoji ASC(C collation). browserId는 일반 중복 방지 수준이며 신원 증명이 아니다.
+- Reaction.emoji는 피부색 수정자를 제거한 기본 이모지다(👍·👍🏽·👍🏻 → 👍). 정규화한 emoji로 PK 중복 검사와 상위 집계를 수행한다. 선택기의 모든 이모지를 허용하고 별도 색상·정규화 키 컬럼은 추가하지 않는다(ADR-064).
+- Reaction.createdAt을 기본 이모지별 MIN으로 집계해 최초 반응 시각을 구한다. 상위3종은 COUNT DESC, MIN(createdAt) ASC, emoji ASC(C collation). browserId는 일반 중복 방지 수준이며 신원 증명이 아니다.
 
 ## 5. 정규화와 총점 중복 저장
 
@@ -208,7 +209,7 @@ Study.points = COALESCE(SUM(해당 스터디 Challenge.awardedPoints), 0)을 대
 - 주간 행: startsOn <= 주 마지막날 AND (endsOn IS NULL OR endsOn >= 주 첫날).
 - 오늘 생성→체크→종료도 오늘 체크는 남고 목록에서만 제거된다. 지난달 종료 습관이 이번 주 빈 행으로 나오지 않는다.
 - endsOn은 종료 시 최초 오늘 날짜로만 설정하며 재삭제로 날짜를 바꾸지 않는다. 날짜가 유효해도 종료된 습관 조작은 거절한다.
-- 최대18개는 `endsOn IS NULL`인 습관에만 적용한다. 종료된 습관·날짜별 기록은 제외하며 DB 이력 관계는 0..N을 유지한다. 오늘 목록은 `createdAt ASC → id ASC`로 반환한다.
+- 최대 18개는 `endsOn IS NULL`인 습관에만 적용한다. 종료된 습관·날짜별 기록은 제외하며 DB 이력 관계는 0..N을 유지한다. 오늘 목록은 `createdAt ASC → id ASC`로 반환한다.
 
 ### 집중 생명주기
 
@@ -245,7 +246,7 @@ stateDiagram-v2
 
 ## 7. 제약·인덱스와 migration
 
-Prisma에는 PK·FK·NULL·문자열 저장 타입·일반 인덱스를 표현했다. 아래 CHECK·부분 UNIQUE에 대응하는 migration SQL 파일은 이미 저장소에 있다. 파일 존재와 실제 DB 적용은 구분하며 이번에는 실행 상태를 확인하지 않았다. 최대 그래핌 수와 활성 습관18개는 서버에서 검사한다. CHECK는 다른 행 합계의 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
+Prisma에는 PK·FK·NULL·문자열 저장 타입·일반 인덱스와 새 Study(nickname,name) 복합 UNIQUE 초안을 표현했다. 이 새 UNIQUE의 migration은 아직 작성·적용하지 않았다. 아래 CHECK·부분 UNIQUE에 대응하는 migration SQL 파일은 이미 저장소에 있다. 파일 존재와 실제 DB 적용은 구분하며 이번에는 실행 상태를 확인하지 않았다. 최대 그래핌 수와 활성 습관 18개는 서버에서 검사한다. CHECK는 다른 행 합계의 일관성을 보장하지 않으므로 총점은 위 트랜잭션으로 유지한다.
 
 ```sql
 CREATE UNIQUE INDEX "Challenge_one_active_per_study"
@@ -277,12 +278,13 @@ ADD CONSTRAINT "Challenge_award_state" CHECK (
 
 | 인덱스/키 | 목적 |
 | --- | --- |
+| Study(nickname,name) UNIQUE — 새 migration 필요 | 같은 닉네임·스터디 이름 조합 중복 방지 |
 | Study(createdAt,id), (points,id) | 생성 순·총점 순 정렬 |
 | Routine(studyId,startsOn,endsOn) | 오늘/주간 기간 조회 |
 | RoutineHistory PK | 날짜별 중복 방지 |
 | Challenge(studyId,status) + 활성 부분 UNIQUE | 단일 활성·동시 시작 방어 |
 | Challenge(studyId,createdAt,id) | 마지막 목표 복원 |
-| Reaction PK, (studyId,emoji) | 브라우저 중복·응원 집계 |
+| Reaction PK, (studyId,emoji) | 피부색 제거 후 기본 이모지 기준의 브라우저 중복·응원 집계 |
 
 ## 8. 변경 적용·검증과 미정
 
@@ -294,9 +296,17 @@ ADD CONSTRAINT "Challenge_award_state" CHECK (
 
 Study.nickname/name/introduction과 Routine.name을 TEXT로 변경했다. 길이 제한 자체를 없애는 것이 아니라, 최대 그래핌 수 검증을 서버가 맡도록 저장 타입을 변경한 것이다. NOT NULL과 기존 Routine_name_nonempty는 유지한다. DB를 직접 수정하거나 별도 스크립트로 저장할 때도 같은 입력 규칙을 지켜야 한다.
 
-TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_grapheme_text`에 작성돼 있다. 후자는 Study의 세 컬럼과 Routine.name을 TEXT로 변경한다. Routine.name 변경이 앞 파일과 겹치지만 이번에는 기존 이력을 수정하지 않는다. 적용 담당자는 실제 DB의 migration 상태를 확인하고 기존 파일을 적용·검증한다. 비밀번호 정리·쿼리·조회 정책에 추가 테이블/컬럼은 필요하지 않아 이번 스키마 변경은 없다.
+TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_grapheme_text`에 작성돼 있다. 후자는 Study의 세 컬럼과 Routine.name을 TEXT로 변경한다. Routine.name 변경이 앞 파일과 겹치지만 이번에는 기존 이력을 수정하지 않는다. 적용 담당자는 실제 DB의 migration 상태를 확인하고 기존 파일을 적용·검증한다. 비밀번호 입력 검증·쿼리·조회 정책에는 추가 테이블/컬럼이 필요하지 않다. ADR-066의 공백 포함 요청 거절도 스키마·migration 변경이 필요하지 않다. 이번 ADR-064의 Study 복합 UNIQUE는 별도 새 제약 변경이며 migration은 아직 작성하지 않았다.
 
-후속 검증 기준: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성18개 생성 거절·종료 후 생성 성공, 생성일 순 조회, 공백 제거 후 같은 비밀번호의 생성·검증 일치. 이번에는 실제 명령·API·DB 검증을 실행하지 않았다.
+후속 검증 기준: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성 18개 생성 거절·종료 후 생성 성공, 생성일 순 조회, 생성·진입 확인·삭제·보호 요청에서 비밀번호 또는 확인값의 앞뒤·중간 공백·탭·줄바꿈을 400으로 거절하고, 공백 없는 유효한 비밀번호의 생성·검증이 일치하는지 확인. 이번에는 실제 명령·API·DB 검증을 실행하지 않았다.
 
-남은 결정: 중복 스터디 정책, 배경 임시 키·자산의 공유와 최종 변경, 응원 이모지 동일성, 주간 색상표, 후속 사용자 정렬 저장 방식. 목록 기본값·검색 규칙·주간 날짜 보정/행 순서/조회 기간·다건10개 상한은 ADR-059·060·063으로 확정했다. 안내 문구는 최종 확정 전 임시 구현을 허용한다.
+확정: 같은 nickname/name 조합 중복 금지·409 STUDY_CONFLICT, 모든 이모지 허용·피부색 변형의 기본 이모지 통합, 목록최대6·최근 3개·생성일 1일째, 목록순18색 순환 배정이다(ADR-064·065). 남은 자료: 배경색·이미지,18개 색상값, 반응형·습관 편집 캡처다. 후속 사용자 정렬 저장 방식은 별도 검토한다. 목록 기본값·검색 규칙·주간 날짜 보정/행 순서/조회 기간·다건 10개 상한은 ADR-059·060·063으로 확정했다. 안내 문구는 최종 확정 전 임시 구현을 허용한다.
+
+
+
+## 9. 새 정책의 후속 적용 — ADR-064·065
+
+- Study 복합 UNIQUE 적용 전에 기존 nickname/name 조합 중복을 조사하고 데이터가 있다면 정리 방안을 별도로 확인한다. 기존 행을 임의 삭제·덮어쓰지 않는다.
+- 기존 Reaction에 피부색별 행이 있으면 기본 이모지로 변환할 때 PK 충돌·집계 차이가 생길 수 있다. 새 저장 규칙 적용과 기존 데이터 전환을 구분하고 승인된 전환 계획 전에는 기존 데이터를 자동 변경하지 않는다.
+- 최근 조회 3개는 LocalStorage·표시 규칙, 진행 일수 1일째와 목록순18색은 파생·프론트 규칙이다. 이를 위해 DB 컬럼·테이블을 추가하지 않는다.
 
