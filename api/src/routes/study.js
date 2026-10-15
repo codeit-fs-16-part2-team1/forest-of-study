@@ -103,13 +103,13 @@ const studyListQuerySchema = z.object({
     "points_desc",
     "points_asc",
   ]).default("latest"),
-});
+}).strict();
 
 // 상한은 중복 제거 전 입력 개수에 적용합니다. UUID는 대소문자를 통일합니다.
 const studyBatchQuerySchema = z.object({
   ids: z.string()
     .transform((value) => value.split(",")) //쉼표로 구분된 문자열을 배열로 변환
-    .pipe(z.array(uuidSchema).min(1).max(100)) //변환된 배열이 1~100개인지, uuid 형식인지 검사
+    .pipe(z.array(uuidSchema).min(1).max(10)) //변환된 배열이 1~10개인지, uuid 형식인지 검사
     .transform((ids) => [...new Set(ids.map((id) => id.toLowerCase()))]), //중복제거 후 uuid의 영문자를 소문자로 통일
 }).strict(); //ids 이외의 쿼리필드 거절 
 
