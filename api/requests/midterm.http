@@ -1,0 +1,186 @@
+# 공부의 숲 — 중간 발표 시연 (httpyac)
+# 요청은 위에서 아래로 개별 실행한다. 전체 일괄 실행은 하지 않는다.
+# 홈·상세·습관은 01-1에서 생성한 스터디, 체크는 05에서 생성한 습관을 사용한다.
+# 응답 후 스크립트로 ID·서버 한국 날짜를 저장하고 := 지연 변수로 후속 요청에 연결한다.
+# 09~13 집중 구간은 2분 시연을 위해 미리 준비한 별도 스터디를 사용한다.
+# 발표 12~15분 전에 파일 하단 준비 A → 준비 B를 한 번씩 실행하고 같은 httpyac 세션을 유지한다.
+# 실제 10분이 경과한 뒤 10에서 remainingSeconds=0을 확인하고 11에서 최초 완료한다.
+# 11 완료·12 상세는 200·4P 증가, 13 시작은 201·새 RUNNING 행이 기대값이다.
+# 재시연은 새 nickname/name 조합으로 준비 A·B부터 다시 진행한다.
+# 01-1·05 생성은 201, 나머지 조회·비밀번호 확인·체크는 200이 기대값이다.
+# 준비 A·B와 발표의 생성 요청은 실제 DB에 저장된다. 아래 비밀번호는 발표용 가상 값이다.
+
+@baseUrl = https://forest-of-study-l4zs.onrender.com/api
+@studyPassword = Forest123!
+@studyNickname = 발표1016
+@studyName = 중간발표스터디
+@routineName = 알고리즘 한 문제 풀기
+@focusNickname = 집중1016
+@focusStudyName = 집중발표스터디
+@studyId := {{$global.midtermStudyId}}
+@routineId := {{$global.midtermRoutineId}}
+@todayDate := {{$global.midtermTodayDate}}
+@focusStudyId := {{$global.midtermFocusStudyId}}
+@challengeId := {{$global.midtermChallengeId}}
+
+
+### 01. 홈 페이지 — 스터디 목록 조회
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
+Accept: application/json
+
+
+### 01-1. 스터디 생성
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "{{studyNickname}}",
+  "name": "{{studyName}}",
+  "introduction": "매일의 습관과 집중을 기록합니다.",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+{{
+  $global.midtermStudyId = response.parsedBody.data.id;
+}}
+
+
+### 01-2. 스터디 목록 재조회
+GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
+Accept: application/json
+
+
+### 02. 생성한 스터디 상세 조회
+GET {{baseUrl}}/studies/{{studyId}}
+Accept: application/json
+
+
+### 03. 오늘의 습관 진입 — 비밀번호 확인
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "{{studyPassword}}"
+}
+
+
+### 04. 오늘의 습관 목록 조회
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+
+### 05. 새 습관 추가
+POST {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "name": "{{routineName}}"
+}
+
+{{
+  $global.midtermRoutineId = response.parsedBody.data.id;
+}}
+
+
+### 06. 습관 목록 재조회
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+{{
+  $global.midtermTodayDate = response.parsedBody.data.recordDate;
+}}
+
+
+### 07. 완료 체크
+PUT {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}/check
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "recordDate": "{{todayDate}}",
+  "completed": true
+}
+
+
+### 08. 상세 페이지 복귀 — 주간 기록 조회
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}
+Accept: application/json
+
+
+### 09. 준비한 집중 스터디 진입 — 비밀번호 확인
+POST {{baseUrl}}/studies/{{focusStudyId}}/password-verifications
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "{{studyPassword}}"
+}
+
+
+### 10. 진행 중인 집중 조회
+GET {{baseUrl}}/studies/{{focusStudyId}}/challenges/current
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+{{
+  $global.midtermChallengeId = response.parsedBody.data.challenge.id;
+}}
+
+
+### 11. 집중 완료 — 포인트 지급
+POST {{baseUrl}}/studies/{{focusStudyId}}/challenges/{{challengeId}}/complete
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+
+### 12. 집중 스터디 상세 재조회 — 증가한 포인트 확인
+GET {{baseUrl}}/studies/{{focusStudyId}}
+Accept: application/json
+
+
+### 13. 다음 집중 시작
+POST {{baseUrl}}/studies/{{focusStudyId}}/challenges
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "goalMinutes": 10
+}
+
+
+### 준비 A. 집중 시연용 스터디 생성
+POST {{baseUrl}}/studies
+Accept: application/json
+Content-Type: application/json
+
+{
+  "nickname": "{{focusNickname}}",
+  "name": "{{focusStudyName}}",
+  "introduction": "10분 집중 완료와 포인트를 시연합니다.",
+  "password": "{{studyPassword}}",
+  "passwordConfirm": "{{studyPassword}}"
+}
+
+{{
+  $global.midtermFocusStudyId = response.parsedBody.data.id;
+}}
+
+
+### 준비 B. 10분 집중 시작
+POST {{baseUrl}}/studies/{{focusStudyId}}/challenges
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "goalMinutes": 10
+}
