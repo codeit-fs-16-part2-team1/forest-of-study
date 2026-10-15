@@ -1,8 +1,8 @@
 import { prisma } from "../lib/prisma.js";
-import { checkChallengeCompletion } from "../utils/challenge-completion.js";
-import { calculateChallengePoints } from "../utils/challenge-points.js";
-import { calculateElapsedMilliseconds } from "../utils/challenge-time.js";
-import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { checkChallengeCompletion } from "../utils/challengeCompletion.js";
+import { calculateChallengePoints } from "../utils/challengePoints.js";
+import { calculateElapsedMilliseconds } from "../utils/challengeTime.js";
+import { buildChallengeResponse } from "../utils/challengeResponse.js";
 import { createApiError } from "../utils/apiError.js";
 
 export const createCompleteChallengeService = () => {

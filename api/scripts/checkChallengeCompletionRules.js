@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { checkChallengeCompletion } from "../src/utils/challenge-completion.js";
+import { checkChallengeCompletion } from "../src/utils/challengeCompletion.js";
 import {
   calculateElapsedMilliseconds,
   calculateChallengeTime,
-} from "../src/utils/challenge-time.js";
-import { calculateChallengePoints } from "../src/utils/challenge-points.js";
+} from "../src/utils/challengeTime.js";
+import { calculateChallengePoints } from "../src/utils/challengePoints.js";
 
 // 고정 시각으로 계산 규칙만 검사한다. 환경변수·DB·서버를 사용하지 않는다.
 // 실제 API의 중복 지급 방지·트랜잭션 롤백은 checkChallengeCompleteApi.js에서 검증한다.
