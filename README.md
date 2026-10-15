@@ -337,7 +337,7 @@ DB 모델·관계, bcrypt 해시 저장, 시간·날짜, 응답·실패 형식�
 - [API.md](docs/API.md): 비밀번호 헤더, 20개 API, DTO·실패·재요청 계약. API-AU-02·API-FC-07은 폐기하며 ID를 재사용하지 않는다.
 - [DB.md](docs/DB.md): 5개 테이블, 4개 Cascade FK, ERD·관계차수·선택성·정규화 및 총점 중복 저장 근거.
 - [schema.prisma](api/prisma/schema.prisma): Challenge 8개 컬럼·완료 지급량, Study의 닉네임·이름·소개와 Routine.name은 TEXT. migration 파일은 작성돼 있으며 실제 DB 적용·검증 여부는 별도로 확인한다.
-- [issues.md](docs/issues.md): 기존 ISS-001~030을 유지하고 순서 변경 후속 작업 ISS-031을 추가한다. ISS-020은 제외로 남기며 F-FC-009의 복원은 ISS-019로 연결한다.
+- [issues.md](docs/issues.md): 기존 ISS-001~031의 명세 번호를 유지한다. ISS-032는 로컬 시드 준비, ISS-033~044는 분리한 프론트 작업이다. 실제 작업 범위에 따라 FE·BE·FS를 표시하고 명확히 구분하기 어려운 이슈는 `-`로 표시한다. ISS-020은 제외 기록으로 보존하고 F-FC-009는 백엔드 ISS-019·프론트 ISS-044로 연결한다.
 
 아래 항목은 아직 결정되지 않았다. 세부 내용은 API.md 10절을 참고한다.
 
