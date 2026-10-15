@@ -1,6 +1,7 @@
 # httpyac: 요청을 개별 실행한다. 필요한 준비 요청은 최초 참조 시 자동 실행된다.
 # 스터디를 다시 만들면 날짜 조회·습관 생성도 다시 실행한다. 자정 이후에는 날짜 조회를 갱신한다.
 # 시드 요청도 비밀번호 0000인 데이터를 기준으로 한다.
+# ADR-060의 축소 주간 응답을 사용한다. ADR-062의 공백 정리 추가 요청은 후속 코드 변경 후 검증한다.
 @baseUrl = http://localhost:3000/api
 @password = 0000
 @studyId:={{routineStudy.data.id}}
@@ -100,7 +101,7 @@ GET {{baseUrl}}/studies/{{studyId}}/routines
 X-Study-Password: {{password}}
 
 ### 13 API-ST-06 체크 후 주간표 — 200
-# 월요일로 보정, 날짜 7개. 오늘 true·기간 밖 null.
+# 월요일 보정·각 cells에 날짜7개. data={weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}. 오늘true·기간 밖null, dates/exists/행별기간필드 없음.
 # @ref routineCreate
 GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{todayDate}}
 
@@ -231,3 +232,17 @@ GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart=2028-02-2
 # 반복 체크·해제 후 같은 날짜 1행, 주간 GET 전후 변경 없음.
 # SELECT * FROM "RoutineHistory" WHERE "routineId"='<routineId>'::uuid ORDER BY "recordDate";
 # SELECT COUNT(*) FILTER (WHERE "endsOn" IS NULL) FROM "Routine" WHERE "studyId"='<studyId>'::uuid;
+
+### 34 API-AU-01 비밀번호 공백 제거 후 확인 — 200
+# 명세 기대값. 생성 스터디의 password가 기본0000인 상태에서 실행. 정리 후0000, data.verified=true.
+# @ref routineStudy
+POST {{baseUrl}}/studies/{{studyId}}/password-verifications
+Content-Type: application/json
+
+{"password":" 0 0 0 0 "}
+
+### 35 API-HB-01 보호 헤더 비밀번호 공백 제거 — 200
+# 명세 기대값. 기본 비밀번호0000 기준이며 현재 공백 거절 코드의 후속 수정 후 실행한다.
+# @ref routineStudy
+GET {{baseUrl}}/studies/{{studyId}}/routines
+X-Study-Password: 0 0 0 0

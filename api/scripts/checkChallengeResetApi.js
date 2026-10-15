@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
-import { assertLocalSeedDatabase } from "../seed-data.js";
+import { assertLocalSeedDatabase } from "../seedData.js";
 
 // 실제 초기화·시작·정지·조회 라우터를 임시 서버에서 검사한다. app.js 연결은 별도 확인한다.
 // --preflight는 DB 연결 없이 주소 제한만 확인한다. 이번 실행에서 만든 스터디만 정리한다.
@@ -36,8 +36,8 @@ try {
       import("../src/routes/challenge.js"),
       import("../src/routes/challengePauseResume.js"),
       import("../src/routes/challengeReset.js"),
-      import("../src/routes/challenge-complete.js"),
-      import("../src/services/challenge-complete.js"),
+      import("../src/routes/challengeComplete.js"),
+      import("../src/services/challengeComplete.js"),
       import("../src/middlewares/verifyStudyPassword.js"),
       import("../src/middlewares/errorHandler.js"),
     ]);
@@ -147,7 +147,8 @@ try {
     step = "인증·UUID·소속·본문 오류와 DB 불변";
     expectError(await reset(challengeId, { header: null }), 401, "VERIFICATION_REQUIRED");
     expectError(await reset(challengeId, { header: wrongPassword }), 401, "PASSWORD_MISMATCH");
-    expectError(await reset(challengeId, { header: "bad password" }), 400, "VALIDATION_ERROR");
+    expectError(await reset(challengeId, { header: "bad?password" }), 400, "VALIDATION_ERROR");
+    expectError(await reset(challengeId, { path: `/${challengeId}/reset?extra=1` }), 400, "VALIDATION_ERROR");
     expectError(await reset(challengeId, { id: "invalid-id" }), 400, "VALIDATION_ERROR");
     expectError(await reset("invalid-id"), 400, "VALIDATION_ERROR");
     expectError(await reset(challengeId, { id: randomUUID() }), 404, "STUDY_NOT_FOUND");

@@ -1,3 +1,4 @@
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 import express from "express";
 import { validateChallengeReset } from "../schemas/challengeReset.js";
 import { resetChallenge } from "../services/challengeReset.js";
@@ -14,6 +15,7 @@ export const createChallengeResetRouter = ({ verifyStudyPassword }) => {
     res.set("Cache-Control", "no-store");
     next();
   });
+  router.use(rejectQuery);
 
   router.post(
     "/:challengeId/reset",

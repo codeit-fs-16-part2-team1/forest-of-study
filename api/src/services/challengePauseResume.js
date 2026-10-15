@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
-import { calculateElapsedMilliseconds } from "../utils/challenge-time.js";
-import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { calculateElapsedMilliseconds } from "../utils/challengeTime.js";
+import { buildChallengeResponse } from "../utils/challengeResponse.js";
 
 const buildChangeResponse = (challenge, points, serverTime) => ({
   challenge: buildChallengeResponse(challenge, serverTime),

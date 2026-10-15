@@ -1,4 +1,4 @@
-import { calculateChallengeTime } from "./challenge-time.js";
+import { calculateChallengeTime } from "./challengeTime.js";
 
 export const buildChallengeResponse = (challenge, serverTime = new Date()) => {
   if (challenge === null) {

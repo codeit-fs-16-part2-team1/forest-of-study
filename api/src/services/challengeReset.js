@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
-import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { buildChallengeResponse } from "../utils/challengeResponse.js";
 
 const buildResetResponse = (challenge, points, serverTime) => ({
   challenge: buildChallengeResponse(challenge, serverTime),

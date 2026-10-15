@@ -1,10 +1,9 @@
 import express from "express";
-import { z } from "zod";
-import bcrypt from "bcrypt";
-import { prisma } from "../lib/prisma.js";
-import { uuidSchema } from "../utils/uuid.js";
+import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../schemas/study.js";
+import { createStudy, getStudies, getStudy } from "../services/study.js";
 import { createApiError } from "../utils/apiError.js";
-import { Prisma } from "@prisma/client";
+import { sendSuccess, sendPaginatedSuccess } from "../utils/apiResponse.js";
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 
 const studyRouter = express.Router();
 
@@ -121,146 +120,26 @@ const studyIdParamsSchema = z.object({
 
 //스터디목록 조회 요청 -> 쿼리검사 단계 
 studyRouter.get("/", async (req, res) => {
-  
-  const result = studyListQuerySchema.safeParse(req.query);
-  
- //검사 실패 시 400 응답. 검사 성공 시 result.data에 offset, limit, sort, keyword를 담음.
- if (!result.success) {
-    throw createApiError("VALIDATION_ERROR");
-  }
-
-  const { offset, limit, sort, keyword } = result.data;
-
-  //최근순, 오래된순, 포인트 높은순, 포인트 낮은순 정렬 조건을 orderByMap에 정의.
-  //생성시각, 포인트 같을 시 id 오름차순으로 정렬.
-  const orderByMap = {
-    latest: Prisma.sql`"createdAt" DESC, "id" ASC`,
-    oldest: Prisma.sql`"createdAt" ASC, "id" ASC`,
-    points_desc: Prisma.sql`"points" DESC, "id" ASC`,
-    points_asc: Prisma.sql`"points" ASC, "id" ASC`,
-  };
-
-
-// 검색어가 빈 문자열인지 확인, 빈 문자열이면 검색조건 넣지 않고 전체목록 조회, 있으면 조건에 따라. 
-  // strpos를 사용해 %와 _도 일반 글자로 검색합니다.
-  const where = keyword === ""
-    ? Prisma.empty
-    : Prisma.sql`
-        WHERE
-          strpos(
-            lower(normalize("name", NFC)),
-            lower(normalize(${keyword}::text, NFC))
-          ) > 0
-          OR strpos(
-            lower(normalize("nickname", NFC)),
-            lower(normalize(${keyword}::text, NFC))
-          ) > 0
-          OR strpos(
-            lower(normalize("introduction", NFC)),
-            lower(normalize(${keyword}::text, NFC))
-          ) > 0
-      `;  // 검색어 시작 위치가 0보다 크면 검색어가 포함된 것으로 판단합니다.
-
-  const [studies, counts] = await prisma.$transaction([
-    prisma.$queryRaw`
-      SELECT
-        "id",
-        "nickname",
-        "name",
-        "introduction",
-        "backgroundKey",
-        "points",
-        "createdAt",
-        "updatedAt"
-      FROM "Study"
-      ${where}
-      ORDER BY ${orderByMap[sort]}
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `,
-    prisma.$queryRaw`
-      SELECT COUNT(*)::integer AS "total"
-      FROM "Study"
-      ${where}
-    `,
-  ], {
-    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-  }); //두 쿼리를 하나의 트랜잭션으로 묶어 일관된 결과를 보장합니다. isolationLevel: RepeatableRead로 설정하여 트랜잭션 내에서 동일한 쿼리 결과를 보장합니다.
-
-  const total = counts[0].total;
-
-  return res.status(200).json({
-    data: studies,
-    pagination: {
-      offset,
-      limit,
-      total,
-      hasMore: offset + studies.length < total,
-    },
-  });
+  const result = validateStudyListQuery(req.query);
+  if (!result.success) throw createApiError("VALIDATION_ERROR");
+  const { studies, pagination } = await getStudies(result.data);
+  return sendPaginatedSuccess(res, studies, pagination);
 });
- 
 
-
-
-studyRouter.post("/", async (req, res) => {
-  const result = createStudySchema.safeParse(req.body);
-
+studyRouter.post("/", rejectQuery, async (req, res) => {
+  const result = validateCreateStudy(req.body);
   if (!result.success) {
     const issues = result.error.issues;
-
     let code = "VALIDATION_ERROR";
-
-    if (
-      issues.every(
-        (issue) =>
-          issue.code === "custom" &&
-          issue.path[0] === "passwordConfirm"
-      )
-    ) {
+    if (issues.every((issue) => issue.code === "custom" && issue.path[0] === "passwordConfirm")) {
       code = "PASSWORD_CONFIRM_MISMATCH";
-    } else if (
-      issues.every(
-        (issue) =>
-          issue.code === "invalid_value" &&
-          issue.path[0] === "backgroundKey"
-      )
-    ) {
+    } else if (issues.every((issue) => issue.code === "invalid_value" && issue.path[0] === "backgroundKey")) {
       code = "INVALID_BACKGROUND";
     }
-
     throw createApiError(code);
   }
-  //유효성검증 코드 - .refine()검사 실패 시 code:"custom" path:["passwordConfirm"]로 issues에 담김.
-
-  const {
-    nickname,
-    name,
-    introduction,
-    backgroundKey,
-    password,
-  } = result.data;
-
-  
-  const passwordHash = await bcrypt.hash(password, 10);
-  //10:해시 계산비용을 정하는 값. passwordHarsh:DB에 저장할 해시값. 10이면 2^10번의 연산을 수행하여 해시를 생성.
-  const study = await prisma.study.create({
-    
-    //data:DB에 저장할 데이터. 원문 비밀번호 확인값은 저장 x
-    data: {
-      nickname,
-      name,
-      introduction,
-      backgroundKey,
-      passwordHash,
-    },
-    //select:DB에서 가져올 데이터. passwordHash는 가져오지 않음.
-    select:studySelect,
-  });
-
-  return res.status(201).json({
-    data: study,
-  });
+  const study = await createStudy(result.data);
+  return sendSuccess(res, study, 201);
 });
 
 
@@ -366,11 +245,5 @@ studyRouter.get("/:studyId", async (req, res) => {
     },
   });
 });
-
-
-
-
-
-
 
 export default studyRouter;

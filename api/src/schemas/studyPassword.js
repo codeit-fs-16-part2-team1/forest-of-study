@@ -1,11 +1,10 @@
 import { z } from "zod";
 
-// 비밀번호는 원문으로 검사한다. trim·공백 제거·타입 변환을 적용하지 않는다.
+// ADR-062: 문자열의 모든 공백을 제거한 뒤 검사한다. 타입은 자동 변환하지 않는다.
 export const studyPasswordSchema = z
   .string()
-  .min(4)
-  .max(20)
-  .regex(/^[A-Za-z0-9!@#$%^&*]+$/);
+  .transform((value) => value.replace(/\s/gu, ""))
+  .pipe(z.string().min(4).max(20).regex(/^[A-Za-z0-9!@#$%^&*]+$/));
 
 const passwordVerificationBodySchema = z.strictObject({
   // 누락은 서비스에서 VERIFICATION_REQUIRED로 구분한다.

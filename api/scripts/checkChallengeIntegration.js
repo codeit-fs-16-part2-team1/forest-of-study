@@ -2,33 +2,45 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import bcrypt from "bcrypt";
-import { prisma } from "../src/lib/prisma.js";
+import { assertLocalDatabase } from "./localDatabase.js";
 import { uuidSchema } from "../src/utils/uuid.js";
 
 // 별도 터미널에서 실행한 app.js와 같은 로컬 DB를 사용한다.
-// 스터디는 생성 API로 만들고, 이번 실행에서 만든 데이터만 마지막에 삭제한다.
+// DB 일치 확인용 임시 스터디 외에는 생성 API로 만들고, 이번 실행의 데이터만 삭제한다.
+// --preflight는 주소 검사만 수행하며 서버·DB에 연결하지 않는다.
 // --complete를 붙이면 실제 10분 후 완료·상세 총점·재요청·목표 복원도 확인한다.
+let prisma;
+let probeStudyId;
 let studyId;
 let createdStudyId;
 let step = "로컬 서버 포트 확인";
 const marker = `집중 통합 검증 ${randomUUID()}`;
 
-try {
+const runChecks = async () => {
   const args = process.argv.slice(2);
   const completeMode = args.includes("--complete");
   assert.equal(args.filter((arg) => arg === "--complete").length <= 1, true);
-  const portArgs = args.filter((arg) => arg !== "--complete");
+  assert.equal(args.filter((arg) => arg === "--preflight").length <= 1, true);
+  const portArgs = args.filter((arg) => arg !== "--complete" && arg !== "--preflight");
   assert.equal(portArgs.length <= 1, true);
   const portInput = portArgs[0] ?? "3000";
   assert.match(portInput, /^\d+$/);
   const port = Number(portInput);
   assert.equal(Number.isInteger(port) && port >= 1 && port <= 65535, true);
+  step = "로컬 DB 주소 확인";
+  await assertLocalDatabase();
+  if (args.includes("--preflight")) {
+    console.log("통합 검증 사전 확인 성공: DB·서버 연결과 데이터 변경 없음");
+    return;
+  }
+  ({ prisma } = await import("../src/lib/prisma.js"));
   const goalMinutes = completeMode ? 10 : 25;
   const goalMilliseconds = goalMinutes * 60000;
   const baseUrl = `http://127.0.0.1:${port}/api/studies`;
   const password = randomBytes(8).toString("hex");
   const wrongPassword = (password[0] === "a" ? "b" : "a") + password.slice(1);
-  const secrets = [password, wrongPassword];
+  const spacedPassword = password.slice(0, 4) + " \t\n" + password.slice(4);
+  const secrets = [password, wrongPassword, spacedPassword];
 
   const request = async ({ path = "", method = "GET", body, header, protectedRequest = false }) => {
     const headers = { Accept: "application/json" };
@@ -84,6 +96,22 @@ try {
     assert.equal(Number.isFinite(Date.parse(challenge.createdAt)), true);
   };
 
+  step = "변경 요청 전 서버와 로컬 DB 일치 확인";
+  const probeHash = await bcrypt.hash(password, 12);
+  secrets.push(probeHash);
+  const probeStudy = await prisma.study.create({
+    data: { nickname: "DB확인", name: "통합 검증 DB 확인", introduction: marker, passwordHash: probeHash },
+    select: { id: true },
+  });
+  probeStudyId = probeStudy.id;
+  // 로컬 DB에 만든 임시 대상을 서버의 공개 GET으로 읽는다. 일치 전에는 POST하지 않는다.
+  const probeResponse = await request({ path: "/" + probeStudyId });
+  assert.equal(probeResponse.status, 200);
+  assert.equal(probeResponse.body.data.id, probeStudyId);
+  assert.equal(probeResponse.body.data.introduction, marker);
+  await prisma.study.delete({ where: { id: probeStudyId } });
+  probeStudyId = undefined;
+
   step = "API-ST-02 실제 스터디 생성 201";
   const created = await request({
     method: "POST",
@@ -91,7 +119,7 @@ try {
       nickname: "집중검증",
       name: "집중 통합 검증",
       introduction: marker,
-      password,
+      password: spacedPassword,
       passwordConfirm: password,
     },
   });
@@ -122,6 +150,20 @@ try {
   assert.equal(detail.body.data.points, 0);
   assert.deepEqual(detail.body.data.reactions, []);
 
+  step = "목록 기본값·검색·지원하지 않는 쿼리";
+  const listed = await request({ path: "?keyword=" + encodeURIComponent(marker) });
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.data.some((study) => study.id === studyId), true);
+  assert.equal(listed.body.pagination.offset, 0);
+  assert.equal(listed.body.pagination.limit, 6);
+  expectError(await request({ path: "?limti=10" }), 400, "VALIDATION_ERROR");
+  expectError(await request({ path: "/" + studyId + "?extra=1" }), 400, "VALIDATION_ERROR");
+  expectError(await request({ path: "?extra=1", method: "POST", body: {} }), 400, "VALIDATION_ERROR");
+  expectError(await request({
+    path: "/" + studyId + "/password-verifications?extra=1", method: "POST",
+    body: { password }, protectedRequest: true,
+  }), 400, "VALIDATION_ERROR");
+
   step = "API-AU-01 진입 인증 200·보호 요청의 헤더 재검증";
   const verified = await request({
     path: `/${studyId}/password-verifications`, method: "POST",
@@ -133,10 +175,50 @@ try {
   for (const options of [{ path: "/current" }, { method: "POST", body: {} }]) {
     expectError(await focusRequest({ ...options, header: null }), 401, "VERIFICATION_REQUIRED");
     expectError(await focusRequest({ ...options, header: wrongPassword }), 401, "PASSWORD_MISMATCH");
-    expectError(await focusRequest({ ...options, header: "bad password" }), 400, "VALIDATION_ERROR");
+    expectError(await focusRequest({ ...options, header: "bad?password" }), 400, "VALIDATION_ERROR");
     expectError(await focusRequest({ ...options, id: "invalid-id" }), 400, "VALIDATION_ERROR");
     expectError(await focusRequest({ ...options, id: randomUUID() }), 404, "STUDY_NOT_FOUND");
   }
+
+  step = "집중 API의 미등록 쿼리 거절";
+  expectError(await focusRequest({ path: "/current?extra=1" }), 400, "VALIDATION_ERROR");
+  expectError(await focusRequest({ path: "?extra=1", method: "POST", body: {} }), 400, "VALIDATION_ERROR");
+  for (const action of ["pause", "resume", "reset", "complete"]) {
+    expectError(await focusRequest({
+      path: "/" + randomUUID() + "/" + action + "?extra=1", method: "POST",
+    }), 400, "VALIDATION_ERROR");
+  }
+
+  step = "습관 생성·오늘 목록·체크·주간 기록 연결";
+  const routinePath = "/" + studyId + "/routines";
+  const createdRoutine = await request({
+    path: routinePath, method: "POST", body: { name: " 독서 " },
+    header: password, protectedRequest: true,
+  });
+  assert.equal(createdRoutine.status, 201);
+  assert.equal(createdRoutine.body.data.name, "독서");
+  const routineId = createdRoutine.body.data.id;
+  const today = await request({ path: routinePath, header: password, protectedRequest: true });
+  assert.equal(today.status, 200);
+  assert.equal(today.body.data.routines.some((routine) => routine.id === routineId), true);
+  const recordDate = today.body.data.recordDate;
+  const checked = await request({
+    path: routinePath + "/" + routineId + "/check", method: "PUT",
+    body: { recordDate, completed: true }, header: password, protectedRequest: true,
+  });
+  assert.equal(checked.status, 200);
+  assert.deepEqual(checked.body.data, { routineId, recordDate, completed: true });
+  const weekly = await request({ path: "/" + studyId + "/routine-histories?weekStart=" + recordDate });
+  assert.equal(weekly.status, 200);
+  const weeklyRoutine = weekly.body.data.routines.find((routine) => routine.id === routineId);
+  assert.notEqual(weeklyRoutine, undefined);
+  assert.equal(weeklyRoutine.cells.find((cell) => cell.recordDate === recordDate).completed, true);
+  expectError(await request({
+    path: routinePath, method: "POST", body: { name: "   " }, header: password, protectedRequest: true,
+  }), 400, "VALIDATION_ERROR");
+  expectError(await request({
+    path: routinePath + "?extra=1", header: password, protectedRequest: true,
+  }), 400, "VALIDATION_ERROR");
 
   step = "API-FC-02 잘못된 목표·추가 필드 거절 400";
   for (const body of [
@@ -198,7 +280,7 @@ try {
   assert.equal(finalDetail.body.data.points, 0);
   const finalStudy = await prisma.study.findUniqueOrThrow({ where: { id: studyId }, select: { points: true } });
   assert.equal(finalStudy.points, 0);
-  console.log("집중 시작·조회 통합 검증 성공: 실제 서버·인증·동시 시작201/409·조회200·DB 불변·무지급");
+  console.log("스터디·습관·집중 통합 검증 성공: 생성·목록·상세·공백 정리·쿼리 거절·체크·주간 기록·동시 시작·DB 불변");
 
   if (completeMode) {
     const challengeId = before.id;
@@ -311,28 +393,43 @@ try {
     assert.deepEqual(await prisma.challenge.findUniqueOrThrow({ where: { id: challengeId } }), completedRow);
     console.log("실제 서버 완료 통합 검증 성공: 실제 10분·완료4P·상세4P·동시/반복 지급 방지·목표 복원·새 시작");
   }
+};
+
+try {
+  await runChecks();
 } catch {
   console.error(`집중 통합 검증 실패: ${step}`);
   if (studyId === undefined && createdStudyId !== undefined) {
     console.error(`생성된 스터디의 DB 일치를 확인하지 못했습니다. 정리 필요 여부를 확인해주세요. ID: ${createdStudyId}`);
   }
+  if (step === "로컬 DB 주소 확인") console.error("로컬 DB 전용 검증입니다. Neon은 허용하지 않습니다.");
   process.exitCode = 1;
 } finally {
+  if (probeStudyId !== undefined) {
+    try {
+      await prisma.study.delete({ where: { id: probeStudyId } });
+    } catch {
+      console.error(`DB 확인용 임시 스터디 정리 실패. ID: ${probeStudyId}`);
+      process.exitCode = 1;
+    }
+  }
   if (studyId !== undefined) {
     try {
       const deleted = await prisma.study.deleteMany({ where: { id: studyId, introduction: marker } });
       assert.equal(deleted.count, 1);
       assert.equal(await prisma.challenge.count({ where: { studyId } }), 0);
-      console.log("이번 실행의 임시 스터디·집중 정리 완료");
+      console.log("이번 실행의 임시 스터디·습관·집중 정리 완료");
     } catch {
       console.error(`임시 데이터 정리 실패. 스터디 ID: ${studyId}`);
       process.exitCode = 1;
     }
   }
-  try {
-    await prisma.$disconnect();
-  } catch {
-    console.error("검증 스크립트의 DB 연결 종료 실패");
-    process.exitCode = 1;
+  if (prisma !== undefined) {
+    try {
+      await prisma.$disconnect();
+    } catch {
+      console.error("검증 스크립트의 DB 연결 종료 실패");
+      process.exitCode = 1;
+    }
   }
 }
