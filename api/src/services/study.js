@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
+import { getTopReactions } from "./reaction.js";
 
 const studySelect = {
   id: true,
@@ -125,21 +126,7 @@ export const getStudy = async (studyId) => {
     throw createApiError("STUDY_NOT_FOUND");
   }
 
-  // 개수 내림차순 → 최초 반응 시각 → 이모지 값 순으로 상위 3종.
-  // studyId는 바인딩된 매개변수로 전달됩니다.
-  const reactions = await prisma.$queryRaw`
-    SELECT
-      "emoji",
-      COUNT(*)::integer AS "count"
-    FROM "Reaction"
-    WHERE "studyId" = ${studyId}::uuid
-    GROUP BY "emoji"
-    ORDER BY
-      COUNT(*) DESC,
-      MIN("createdAt") ASC,
-      "emoji" COLLATE "C" ASC
-    LIMIT 3
-  `;
+  const reactions = await getTopReactions(studyId);
 
   return { ...study, reactions };
 };
