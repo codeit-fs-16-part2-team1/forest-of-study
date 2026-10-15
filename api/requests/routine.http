@@ -1,7 +1,7 @@
 # httpyac: 요청을 개별 실행한다. 필요한 준비 요청은 최초 참조 시 자동 실행된다.
 # 스터디를 다시 만들면 날짜 조회·습관 생성도 다시 실행한다. 자정 이후에는 날짜 조회를 갱신한다.
 # 시드 요청도 비밀번호 0000인 데이터를 기준으로 한다.
-# ADR-060의 축소 주간 응답을 사용한다. ADR-062의 공백 정리 추가 요청은 후속 코드 변경 후 검증한다.
+# ADR-060의 축소 주간 응답을 사용한다. 비밀번호 공백 포함 요청은 ADR-066에 따라 400으로 거절한다. 아래 주석은 실행 결과가 아닌 계약 기대값이다.
 @baseUrl = http://localhost:3000/api
 @password = 0000
 @studyId:={{routineStudy.data.id}}
@@ -233,16 +233,16 @@ GET {{baseUrl}}/studies/{{historyStudyId}}/routine-histories?weekStart=2028-02-2
 # SELECT * FROM "RoutineHistory" WHERE "routineId"='<routineId>'::uuid ORDER BY "recordDate";
 # SELECT COUNT(*) FILTER (WHERE "endsOn" IS NULL) FROM "Routine" WHERE "studyId"='<studyId>'::uuid;
 
-### 34 API-AU-01 비밀번호 공백 제거 후 확인 — 200
-# 명세 기대값. 생성 스터디의 password가 기본0000인 상태에서 실행. 정리 후0000, data.verified=true.
+### 34 API-AU-01 비밀번호 공백 포함 거절 — 400 VALIDATION_ERROR
+# 명세 기대값. 원문에 공백이 있으므로 거절하며 0000으로 보정해 검증하지 않는다.
 # @ref routineStudy
 POST {{baseUrl}}/studies/{{studyId}}/password-verifications
 Content-Type: application/json
 
 {"password":" 0 0 0 0 "}
 
-### 35 API-HB-01 보호 헤더 비밀번호 공백 제거 — 200
-# 명세 기대값. 기본 비밀번호0000 기준이며 현재 공백 거절 코드의 후속 수정 후 실행한다.
+### 35 API-HB-01 보호 헤더 비밀번호 공백 포함 거절 — 400 VALIDATION_ERROR
+# 명세 기대값. 중간 공백을 제거하지 않으며 인증 실패 시 조회 서비스를 실행하지 않는다.
 # @ref routineStudy
 GET {{baseUrl}}/studies/{{studyId}}/routines
 X-Study-Password: 0 0 0 0

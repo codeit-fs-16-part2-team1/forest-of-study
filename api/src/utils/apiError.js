@@ -10,6 +10,7 @@ const errorDefinitions = Object.freeze({
   PASSWORD_MISMATCH: { statusCode: 401, message: "비밀번호가 일치하지 않습니다." },
   VERIFICATION_REQUIRED: { statusCode: 401, message: "비밀번호를 입력해주세요." },
   STUDY_NOT_FOUND: { statusCode: 404, message: "스터디를 찾을 수 없습니다." },
+  STUDY_CONFLICT: { statusCode: 409, message: "같은 닉네임과 이름의 스터디가 이미 있습니다." },
   ROUTINE_NOT_FOUND: { statusCode: 404, message: "습관을 찾을 수 없습니다." },
   CHALLENGE_NOT_FOUND: { statusCode: 404, message: "집중 기록을 찾을 수 없습니다." },
   CHALLENGE_CONFLICT: { statusCode: 409, message: "진행 중이거나 일시정지된 집중이 있습니다." },

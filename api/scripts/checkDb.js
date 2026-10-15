@@ -94,6 +94,14 @@ try {
     throw new Error('Active challenge index mismatch');
   }
 
+  step = '스터디 nickname/name 복합 UNIQUE';
+  const studyUnique = indexes.find((index) => index.name === 'Study_nickname_name_key');
+  if (!studyUnique || studyUnique.table_name !== 'Study'
+      || !studyUnique.is_unique || !studyUnique.is_valid || studyUnique.predicate !== null
+      || !studyUnique.definition.replaceAll('"', '').includes('(nickname, name)')) {
+    throw new Error('Study combination index mismatch');
+  }
+
   step = 'Prisma Client의 5개 모델 조회';
   const counts = await Promise.all([
     prisma.study.count(), prisma.routine.count(), prisma.routineHistory.count(),

@@ -8,6 +8,7 @@ import { assertLocalSeedDatabase } from "../seedData.js";
 // 실제 초기화·시작·정지·조회 라우터를 임시 서버에서 검사한다. app.js 연결은 별도 확인한다.
 // --preflight는 DB 연결 없이 주소 제한만 확인한다. 이번 실행에서 만든 스터디만 정리한다.
 // 과거 완료와 13·17분 PAUSED는 저장 이력 검사용 데이터다. 실제 완료·시간 경과 검증을 대신하지 않는다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let server;
 let step = "인자·로컬 DB 주소 확인";
@@ -49,7 +50,7 @@ try {
     for (let index = 0; index < 2; index += 1) {
       const study = await prisma.study.create({
         data: {
-          nickname: "초기화검증", name: `초기화 검증 ${index + 1}`,
+          nickname: "초기화검증", name: `검증${fixtureKey}${index + 1}`,
           introduction: "검증 종료 시 삭제하는 임시 스터디입니다.", passwordHash,
           createdAt: new Date(Date.now() - 2 * 86400000),
         },

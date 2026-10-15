@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 
 // 로컬 DB 검증용이다. app.js를 실행하거나 운영 라우트를 추가하지 않는다.
 // 비밀번호는 실행 중 생성하고 출력하지 않는다. 기존 스터디는 수정하지 않는다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let studyId;
 let server;
@@ -34,7 +35,7 @@ const runChecks = async () => {
   const study = await prisma.study.create({
     data: {
       nickname: "인증검증",
-      name: "비밀번호 검증",
+      name: "검증" + fixtureKey,
       introduction: "검증 종료 시 삭제하는 임시 스터디입니다.",
       passwordHash,
     },
@@ -98,8 +99,8 @@ const runChecks = async () => {
   await postPassword(studyId, {}, 401, "VERIFICATION_REQUIRED");
   await request(`/${studyId}/password-verifications`, { method: "POST" }, 401, "VERIFICATION_REQUIRED");
 
-  step = "본문 형식·정리 후 빈 값·길이·추가 필드 거절";
-  for (const invalid of ["abc", "a".repeat(21), " \t\n", "a b c", "abcd?", 1234, null]) {
+  step = "본문 형식·공백 포함·길이·추가 필드 거절";
+  for (const invalid of ["abc", "a".repeat(21), " \t\n", "a b c", "a b c d", ` ${password}`, `${password} `, "abcd?", 1234, null]) {
     await postPassword(studyId, { password: invalid }, 400, "VALIDATION_ERROR");
   }
   await postPassword(studyId, { password, extra: true }, 400, "VALIDATION_ERROR");
@@ -114,12 +115,13 @@ const runChecks = async () => {
   await protectedRequest(password, 200);
   assert.equal(protectedCalls, 1);
 
-  step = "본문·헤더 공백 제거 후 같은 비밀번호로 검증";
+  step = "본문·헤더의 공백 요청 거절·보호 서비스 미실행";
   const spacedBodyPassword = password.slice(0, 4) + " \t\n" + password.slice(4);
   const spacedHeaderPassword = password.slice(0, 4) + " " + password.slice(4);
   secretValues.push(spacedBodyPassword, spacedHeaderPassword);
-  await postPassword(studyId, { password: spacedBodyPassword }, 200);
-  await protectedRequest(spacedHeaderPassword, 200);
+  await postPassword(studyId, { password: spacedBodyPassword }, 400, "VALIDATION_ERROR");
+  await protectedRequest(spacedHeaderPassword, 400, "VALIDATION_ERROR");
+  assert.equal(protectedCalls, 1);
   const successfulCalls = protectedCalls;
   await request('/' + studyId + '/password-verifications?extra=1', {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }),
