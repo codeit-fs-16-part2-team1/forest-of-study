@@ -5,6 +5,7 @@ import routineRouter from "./routes/routine.js";
 import routineHistoryRouter from "./routes/routineHistory.js";
 import { createChallengeRouter } from "./routes/challenge.js";
 import { createChallengePauseResumeRouter } from "./routes/challengePauseResume.js";
+import { createChallengeResetRouter } from "./routes/challengeReset.js";
 import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
 import { createCompleteChallengeService } from "./services/challenge-complete.js";
 import studyPasswordRouter from "./routes/studyPassword.js";
@@ -14,7 +15,7 @@ import cors from "cors";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({origin: process.env.CORS_ORIGIN}));
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -35,6 +36,9 @@ app.use("/api/studies/:studyId/challenges", challengeRouter);
 
 const challengePauseResumeRouter = createChallengePauseResumeRouter({ verifyStudyPassword });
 app.use("/api/studies/:studyId/challenges", challengePauseResumeRouter);
+
+const challengeResetRouter = createChallengeResetRouter({ verifyStudyPassword });
+app.use("/api/studies/:studyId/challenges", challengeResetRouter);
 
 const completeChallenge = createCompleteChallengeService();
 const completeChallengeRouter = createCompleteChallengeRouter({

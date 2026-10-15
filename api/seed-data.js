@@ -69,6 +69,52 @@ export const assertLocalSeedDatabase = (databaseUrl) => {
   return url.toString();
 };
 
+// Neon 전용 명령만 외부 DB를 허용한다. 로컬 검사를 완화하거나 DATABASE_URL로 대체하지 않는다.
+export const assertNeonSeedDatabase = (databaseUrl) => {
+  const message = "Neon 시드는 NEON_DATABASE_URL의 Neon 주소와 sslmode=require 또는 검증용 SSL 설정이 필요합니다.";
+  let url;
+  try { url = new URL(databaseUrl); } catch { throw new Error(message); }
+  const params = [...url.searchParams];
+  const allowed = {
+    schema: (value) => value === "public",
+    sslmode: (value) => ["require", "verify-ca", "verify-full"].includes(value),
+    channel_binding: (value) => ["require", "prefer"].includes(value),
+    connect_timeout: (value) => /^[1-9]\d*$/.test(value),
+  };
+  if (!["postgres:", "postgresql:"].includes(url.protocol)
+      || !url.hostname.endsWith(".neon.tech")
+      || (url.port !== "" && url.port !== "5432")
+      || !/^\/[^/]+$/.test(url.pathname) || url.hash
+      || !allowed.sslmode(url.searchParams.get("sslmode"))
+      || new Set(params.map(([key]) => key)).size !== params.length
+      || params.some(([key, value]) => !Object.hasOwn(allowed, key) || !allowed[key](value))) {
+    throw new Error(message);
+  }
+  // SSL·channel binding을 유지하고 Prisma의 public 지정만 드라이버에서 제외한다.
+  url.searchParams.delete("schema");
+  return url.toString();
+};
+
+export const getSeedTarget = (args, environment, { allowPreflight = false } = {}) => {
+  const targetArgs = args.filter((arg) => arg.startsWith("--target="));
+  const name = targetArgs.length === 0 ? "local" : targetArgs[0].slice("--target=".length);
+  if (targetArgs.length > 1 || !["local", "neon"].includes(name)
+      || args.filter((arg) => arg === "--preflight").length > 1
+      || args.some((arg) => arg !== `--target=${name}` && !(allowPreflight && arg === "--preflight"))) {
+    throw new Error("시드 인자는 --target=local 또는 --target=neon과 확인용 --preflight만 허용합니다.");
+  }
+  const envName = name === "local" ? "LOCAL_DATABASE_URL" : "NEON_DATABASE_URL";
+  if (typeof environment[envName] !== "string" || environment[envName].length === 0) {
+    throw new Error(`${envName} 설정이 필요합니다.`);
+  }
+  return {
+    name, label: name === "local" ? "로컬" : "Neon", envName,
+    connectionString: name === "local" ? assertLocalSeedDatabase(environment[envName])
+      : assertNeonSeedDatabase(environment[envName]),
+    preflight: args.includes("--preflight"),
+  };
+};
+
 export const buildSeedData = (anchorTime = new Date()) => {
   const now = new Date(anchorTime);
   if (!Number.isFinite(now.getTime())) throw new Error("시드 기준 시각이 유효하지 않습니다.");
