@@ -147,7 +147,8 @@ try {
     step = "인증·UUID·소속·본문 오류와 DB 불변";
     expectError(await reset(challengeId, { header: null }), 401, "VERIFICATION_REQUIRED");
     expectError(await reset(challengeId, { header: wrongPassword }), 401, "PASSWORD_MISMATCH");
-    expectError(await reset(challengeId, { header: "bad password" }), 400, "VALIDATION_ERROR");
+    expectError(await reset(challengeId, { header: "bad?password" }), 400, "VALIDATION_ERROR");
+    expectError(await reset(challengeId, { path: `/${challengeId}/reset?extra=1` }), 400, "VALIDATION_ERROR");
     expectError(await reset(challengeId, { id: "invalid-id" }), 400, "VALIDATION_ERROR");
     expectError(await reset("invalid-id"), 400, "VALIDATION_ERROR");
     expectError(await reset(challengeId, { id: randomUUID() }), 404, "STUDY_NOT_FOUND");

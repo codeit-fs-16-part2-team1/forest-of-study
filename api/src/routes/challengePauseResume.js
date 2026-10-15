@@ -1,3 +1,4 @@
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 import express from "express";
 import { validateChallengePauseResume } from "../schemas/challengePauseResume.js";
 import { pauseChallenge, resumeChallenge } from "../services/challengePauseResume.js";
@@ -14,6 +15,7 @@ export const createChallengePauseResumeRouter = ({ verifyStudyPassword }) => {
     res.set("Cache-Control", "no-store");
     next();
   });
+  router.use(rejectQuery);
 
   const validateRequest = (req, res, next) => {
     const result = validateChallengePauseResume({

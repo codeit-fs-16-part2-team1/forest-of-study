@@ -1,3 +1,4 @@
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 import express from "express";
 import { validateCompleteChallenge } from "../schemas/challengeComplete.js";
 import { createApiError } from "../utils/apiError.js";
@@ -22,6 +23,7 @@ export const createCompleteChallengeRouter = ({
     res.set("Cache-Control", "no-store");
     next();
   });
+  router.use(rejectQuery);
 
   router.post(
     "/:challengeId/complete",

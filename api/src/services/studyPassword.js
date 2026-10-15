@@ -14,7 +14,8 @@ export const checkStudyPassword = async (studyId, password) => {
     throw createApiError("VERIFICATION_REQUIRED");
   }
 
-  if (!validateStudyPassword(password).success) {
+  const passwordResult = validateStudyPassword(password);
+  if (!passwordResult.success) {
     throw createApiError("VALIDATION_ERROR");
   }
 
@@ -27,7 +28,7 @@ export const checkStudyPassword = async (studyId, password) => {
     throw createApiError("STUDY_NOT_FOUND");
   }
 
-  const matches = await bcrypt.compare(password, study.passwordHash);
+  const matches = await bcrypt.compare(passwordResult.data, study.passwordHash);
   if (!matches) {
     throw createApiError("PASSWORD_MISMATCH");
   }

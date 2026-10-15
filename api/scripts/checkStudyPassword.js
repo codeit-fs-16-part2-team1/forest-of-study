@@ -1,20 +1,32 @@
+import { assertLocalDatabase } from "./localDatabase.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import express from "express";
 import bcrypt from "bcrypt";
-import { prisma } from "../src/lib/prisma.js";
-import studyPasswordRouter from "../src/routes/studyPassword.js";
-import { verifyStudyPassword } from "../src/middlewares/verifyStudyPassword.js";
-import { errorHandler } from "../src/middlewares/errorHandler.js";
-import { sendSuccess } from "../src/utils/apiResponse.js";
 
 // 로컬 DB 검증용이다. app.js를 실행하거나 운영 라우트를 추가하지 않는다.
 // 비밀번호는 실행 중 생성하고 출력하지 않는다. 기존 스터디는 수정하지 않는다.
+let prisma;
 let studyId;
 let server;
-let step = "임시 스터디 생성";
+let step = "검증 인자 확인";
 
-try {
+const runChecks = async () => {
+  const args = process.argv.slice(2);
+  assert.equal(args.length <= 1 && args.every((arg) => arg === "--preflight"), true);
+  step = "로컬 DB 주소 확인";
+  await assertLocalDatabase();
+  if (args.includes("--preflight")) {
+    console.log("로컬 DB 주소 사전 확인 성공: DB 연결·변경 없음");
+    return;
+  }
+  step = "검증 모듈 준비";
+  ({ prisma } = await import("../src/lib/prisma.js"));
+  const { default: studyPasswordRouter } = await import("../src/routes/studyPassword.js");
+  const { verifyStudyPassword } = await import("../src/middlewares/verifyStudyPassword.js");
+  const { errorHandler } = await import("../src/middlewares/errorHandler.js");
+  const { sendSuccess } = await import("../src/utils/apiResponse.js");
+  step = "임시 스터디 생성";
   const password = randomBytes(8).toString("hex");
   const wrongPassword = (password[0] === "a" ? "b" : "a") + password.slice(1);
   const passwordHash = await bcrypt.hash(password, 12);
@@ -50,7 +62,7 @@ try {
   const request = async (path, options, statusCode, errorCode) => {
     const response = await fetch(baseUrl + path, {
       ...options,
-      signal: AbortSignal.timeout(5000),
+      redirect: "error", signal: AbortSignal.timeout(5000),
     });
     const text = await response.text();
     assert.equal(response.status, statusCode);
@@ -86,8 +98,8 @@ try {
   await postPassword(studyId, {}, 401, "VERIFICATION_REQUIRED");
   await request(`/${studyId}/password-verifications`, { method: "POST" }, 401, "VERIFICATION_REQUIRED");
 
-  step = "본문 형식·공백·길이·추가 필드 거절";
-  for (const invalid of ["abc", "a".repeat(21), ` ${password}`, `${password} `, "abcd efgh", 1234, null]) {
+  step = "본문 형식·정리 후 빈 값·길이·추가 필드 거절";
+  for (const invalid of ["abc", "a".repeat(21), " \t\n", "a b c", "abcd?", 1234, null]) {
     await postPassword(studyId, { password: invalid }, 400, "VALIDATION_ERROR");
   }
   await postPassword(studyId, { password, extra: true }, 400, "VALIDATION_ERROR");
@@ -97,10 +109,21 @@ try {
   step = "진입 확인 이후에도 헤더 누락·오답 거절";
   await protectedRequest(undefined, 401, "VERIFICATION_REQUIRED");
   await protectedRequest(wrongPassword, 401, "PASSWORD_MISMATCH");
-  await protectedRequest("abcd efgh", 400, "VALIDATION_ERROR");
+  await protectedRequest("bad?password", 400, "VALIDATION_ERROR");
   assert.equal(protectedCalls, 0);
   await protectedRequest(password, 200);
   assert.equal(protectedCalls, 1);
+
+  step = "본문·헤더 공백 제거 후 같은 비밀번호로 검증";
+  const spacedBodyPassword = password.slice(0, 4) + " \t\n" + password.slice(4);
+  const spacedHeaderPassword = password.slice(0, 4) + " " + password.slice(4);
+  secretValues.push(spacedBodyPassword, spacedHeaderPassword);
+  await postPassword(studyId, { password: spacedBodyPassword }, 200);
+  await protectedRequest(spacedHeaderPassword, 200);
+  const successfulCalls = protectedCalls;
+  await request('/' + studyId + '/password-verifications?extra=1', {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }),
+  }, 400, "VALIDATION_ERROR");
 
   step = "보호 요청마다 DB 해시 재검증";
   // 임시 스터디의 해시만 바꿔 캐시 없이 재검증되는지 확인한다. 비밀번호 변경 API가 아니다.
@@ -112,13 +135,18 @@ try {
     data: { passwordHash: replacementHash },
   });
   await protectedRequest(password, 401, "PASSWORD_MISMATCH");
-  assert.equal(protectedCalls, 1);
+  assert.equal(protectedCalls, successfulCalls);
   await protectedRequest(replacementPassword, 200);
-  assert.equal(protectedCalls, 2);
+  assert.equal(protectedCalls, successfulCalls + 1);
 
   console.log("비밀번호 검증 성공: 진입 확인·입력 거절·404·헤더 보호·매 요청 재검증·응답 비밀값 제외");
+};
+
+try {
+  await runChecks();
 } catch {
   console.error(`비밀번호 검증 실패: ${step}`);
+  if (step === "로컬 DB 주소 확인") console.error("로컬 DB 전용 검증입니다. 주소·포트·DB 이름을 확인해주세요. Neon은 허용하지 않습니다.");
   process.exitCode = 1;
 } finally {
   if (server !== undefined) {
@@ -142,5 +170,12 @@ try {
       process.exitCode = 1;
     }
   }
-  await prisma.$disconnect();
+  if (prisma !== undefined) {
+    try {
+      await prisma.$disconnect();
+    } catch {
+      console.error("검증 DB 연결 종료 실패");
+      process.exitCode = 1;
+    }
+  }
 }

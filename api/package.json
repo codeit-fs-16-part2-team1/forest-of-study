@@ -13,7 +13,7 @@
     "db:check": "node scripts/checkDb.js",
     "seed": "node --env-file=.env seed.js --target=local",
     "seed:neon": "node --env-file=.env seed.js --target=neon",
-    "test": "vitest run"
+    "test": "node scripts/checkApiValidation.js && node scripts/checkChallengeFunctions.js && node scripts/checkChallengeCompletionRules.js"
   },
   "keywords": [],
   "author": "",

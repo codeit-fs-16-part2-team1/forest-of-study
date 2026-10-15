@@ -1,15 +1,27 @@
+import { assertLocalDatabase } from "./localDatabase.js";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcrypt";
-import { prisma } from "../src/lib/prisma.js";
-import { getCurrentChallenge, startChallenge } from "../src/services/challenge.js";
 
 // 로컬 DB의 서비스 검증용이다. HTTP·비밀번호 미들웨어 검증을 대신하지 않는다.
 // 비밀번호는 실행 중 생성해 해시만 저장하고 출력하지 않는다.
+let prisma;
 let studyId;
-let step = "테스트 스터디 준비";
+let step = "검증 인자 확인";
 
-try {
+const runChecks = async () => {
+  const args = process.argv.slice(2);
+  assert.equal(args.length <= 1 && args.every((arg) => arg === "--preflight"), true);
+  step = "로컬 DB 주소 확인";
+  await assertLocalDatabase();
+  if (args.includes("--preflight")) {
+    console.log("로컬 DB 주소 사전 확인 성공: DB 연결·변경 없음");
+    return;
+  }
+  step = "검증 모듈 준비";
+  ({ prisma } = await import("../src/lib/prisma.js"));
+  const { getCurrentChallenge, startChallenge } = await import("../src/services/challenge.js");
+  step = "임시 스터디 생성";
   const passwordHash = await bcrypt.hash(randomBytes(12).toString("base64url"), 12);
   const study = await prisma.study.create({
     data: {
@@ -61,9 +73,14 @@ try {
   assert.equal(stored.awardedPoints, 0);
 
   console.log("집중 서비스 검사 성공: 초기 조회·단일 시작·충돌 거절·현재 조회·무지급");
+};
+
+try {
+  await runChecks();
 } catch {
   // DB 오류·접속 정보·스택을 출력하지 않는다.
   console.error(`집중 서비스 검사 실패: ${step}`);
+  if (step === "로컬 DB 주소 확인") console.error("로컬 DB 전용 검증입니다. 주소·포트·DB 이름을 확인해주세요. Neon은 허용하지 않습니다.");
   process.exitCode = 1;
 } finally {
   if (studyId !== undefined) {
@@ -76,5 +93,12 @@ try {
       process.exitCode = 1;
     }
   }
-  await prisma.$disconnect();
+  if (prisma !== undefined) {
+    try {
+      await prisma.$disconnect();
+    } catch {
+      console.error("검증 DB 연결 종료 실패");
+      process.exitCode = 1;
+    }
+  }
 }

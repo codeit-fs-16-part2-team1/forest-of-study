@@ -1,3 +1,4 @@
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 import express from "express";
 import {
   validateChallengeStudyId,
@@ -22,6 +23,7 @@ export const createChallengeRouter = ({ verifyStudyPassword }) => {
     res.set("Cache-Control", "no-store");
     next();
   });
+  challengeRouter.use(rejectQuery);
 
   const validateStudyId = (req, res, next) => {
     const result = validateChallengeStudyId(req.params.studyId);

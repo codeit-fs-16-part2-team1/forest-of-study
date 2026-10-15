@@ -125,7 +125,8 @@ try {
     for (const action of ["pause", "resume"]) {
       expectError(await change(action, { header: null }), 401, "VERIFICATION_REQUIRED");
       expectError(await change(action, { header: wrongPassword }), 401, "PASSWORD_MISMATCH");
-      expectError(await change(action, { header: "bad password" }), 400, "VALIDATION_ERROR");
+      expectError(await change(action, { header: "bad?password" }), 400, "VALIDATION_ERROR");
+      expectError(await change(action, { path: `/${challengeId}/${action}?extra=1` }), 400, "VALIDATION_ERROR");
       expectError(await change(action, { id: "invalid-id" }), 400, "VALIDATION_ERROR");
       expectError(await request({ path: `/invalid-id/${action}` }), 400, "VALIDATION_ERROR");
       expectError(await change(action, { id: randomUUID() }), 404, "STUDY_NOT_FOUND");

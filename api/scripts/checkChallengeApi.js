@@ -1,19 +1,31 @@
+import { assertLocalDatabase } from "./localDatabase.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import express from "express";
 import bcrypt from "bcrypt";
-import { prisma } from "../src/lib/prisma.js";
-import { createChallengeRouter } from "../src/routes/challenge.js";
-import { verifyStudyPassword } from "../src/middlewares/verifyStudyPassword.js";
-import { errorHandler } from "../src/middlewares/errorHandler.js";
 
 // 실제 집중 라우터·인증을 임시 서버에서 검사한다. app.js 배포 연결 검증은 별도다.
 // 로컬 DB에 이 실행에서 만든 스터디만 사용하며 마지막에 정리한다.
+let prisma;
 let studyId;
 let server;
-let step = "임시 스터디 생성";
+let step = "검증 인자 확인";
 
-try {
+const runChecks = async () => {
+  const args = process.argv.slice(2);
+  assert.equal(args.length <= 1 && args.every((arg) => arg === "--preflight"), true);
+  step = "로컬 DB 주소 확인";
+  await assertLocalDatabase();
+  if (args.includes("--preflight")) {
+    console.log("로컬 DB 주소 사전 확인 성공: DB 연결·변경 없음");
+    return;
+  }
+  step = "검증 모듈 준비";
+  ({ prisma } = await import("../src/lib/prisma.js"));
+  const { createChallengeRouter } = await import("../src/routes/challenge.js");
+  const { verifyStudyPassword } = await import("../src/middlewares/verifyStudyPassword.js");
+  const { errorHandler } = await import("../src/middlewares/errorHandler.js");
+  step = "임시 스터디 생성";
   const password = randomBytes(8).toString("hex");
   const wrongPassword = (password[0] === "a" ? "b" : "a") + password.slice(1);
   const passwordHash = await bcrypt.hash(password, 12);
@@ -47,7 +59,7 @@ try {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(5000),
+      redirect: "error", signal: AbortSignal.timeout(5000),
     });
     const text = await response.text();
     assert.equal(response.headers.get("cache-control"), "no-store");
@@ -73,6 +85,11 @@ try {
   expectError(await request({ method: "POST", body: { goalMinutes: 9 } }), 400, "VALIDATION_ERROR");
   expectError(await request({ method: "POST", body: { goalMinutes: 10, points: 100 } }), 400, "VALIDATION_ERROR");
   assert.equal(await prisma.challenge.count({ where: { studyId } }), 0);
+
+  step = "쿼리 입력 거절과 공백 정리 후 헤더 인증";
+  expectError(await request({ path: "/current?extra=1" }), 400, "VALIDATION_ERROR");
+  expectError(await request({ path: "?extra=1", method: "POST", body: {} }), 400, "VALIDATION_ERROR");
+  assert.equal((await request({ path: "/current", header: password.slice(0, 4) + " " + password.slice(4) })).status, 200);
 
   step = "API-FC-01 이력 없는 초기 조회";
   const initial = await request({ path: "/current" });
@@ -131,8 +148,13 @@ try {
   assert.equal(storedStudy.points, 0);
 
   console.log("집중 API 검증 성공: 인증·입력·시작201·조회200·활성충돌409·목표복원·새행생성");
+};
+
+try {
+  await runChecks();
 } catch {
   console.error(`집중 API 검증 실패: ${step}`);
+  if (step === "로컬 DB 주소 확인") console.error("로컬 DB 전용 검증입니다. 주소·포트·DB 이름을 확인해주세요. Neon은 허용하지 않습니다.");
   process.exitCode = 1;
 } finally {
   if (server !== undefined) {
@@ -156,5 +178,12 @@ try {
       process.exitCode = 1;
     }
   }
-  await prisma.$disconnect();
+  if (prisma !== undefined) {
+    try {
+      await prisma.$disconnect();
+    } catch {
+      console.error("검증 DB 연결 종료 실패");
+      process.exitCode = 1;
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import { rejectQuery } from "../middlewares/rejectQuery.js";
 import express from "express";
 import { validatePasswordVerificationBody } from "../schemas/studyPassword.js";
 import { checkStudyPassword } from "../services/studyPassword.js";
@@ -11,6 +12,7 @@ studyPasswordRouter.use((req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
+studyPasswordRouter.use(rejectQuery);
 
 // API-AU-01은 본문 비밀번호를 확인한다. 보호 요청의 헤더 미들웨어는 사용하지 않는다.
 studyPasswordRouter.post("/", async (req, res) => {

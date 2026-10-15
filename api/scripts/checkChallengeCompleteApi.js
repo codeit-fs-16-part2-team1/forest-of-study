@@ -131,6 +131,7 @@ const runChecks = async () => {
   step = "완료 인증·UUID·소속·본문·조기 요청 거절";
   expectError(await complete({ header: null }), 401, "VERIFICATION_REQUIRED");
   expectError(await complete({ header: wrongPassword }), 401, "PASSWORD_MISMATCH");
+  expectError(await complete({ path: `/${challengeId}/complete?extra=1` }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "/invalid-id/complete", method: "POST" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: `/${randomUUID()}/complete`, method: "POST" }), 404, "CHALLENGE_NOT_FOUND");
   expectError(await complete({ id: otherStudyId }), 404, "CHALLENGE_NOT_FOUND");
