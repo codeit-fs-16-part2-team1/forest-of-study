@@ -10,7 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "db:check": "node scripts/check-db.js",
+    "db:check": "node scripts/checkDb.js",
     "seed": "node --env-file=.env seed.js --target=local",
     "seed:neon": "node --env-file=.env seed.js --target=neon",
     "test": "vitest run"

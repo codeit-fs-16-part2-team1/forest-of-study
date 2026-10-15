@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { loadEnvFile } from "node:process";
 import { assertLocalSeedDatabase, assertNeonSeedDatabase, challengeId, dateString, EXPECTED_COUNTS, getSeedTarget,
   getKoreanDate, koreanInstant, routineId, SEED_BACKGROUND_KEYS, shiftDate, STUDY_CASES, studyId,
-  validateSeedRows } from "../seed-data.js";
+  validateSeedRows } from "../seedData.js";
 
 let prisma;
 let target;

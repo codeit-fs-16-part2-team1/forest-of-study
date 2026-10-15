@@ -3,8 +3,8 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
-import { calculateChallengePoints } from "../src/utils/challenge-points.js";
-import { assertLocalSeedDatabase } from "../seed-data.js";
+import { calculateChallengePoints } from "../src/utils/challengePoints.js";
+import { assertLocalSeedDatabase } from "../seedData.js";
 
 // 로컬 DB·실제 라우터·인증을 검증한다. app.js 서버와 스터디 상세 API 검증은 별도다.
 // 기본 10분을 실제로 기다린다. 인자로 20·25·180분을 선택할 수 있다.
@@ -48,8 +48,8 @@ const runChecks = async () => {
   ({ prisma } = await import("../src/lib/prisma.js"));
   const [startModule, completeModule, serviceModule, passwordModule, errorModule] = await Promise.all([
     import("../src/routes/challenge.js"),
-    import("../src/routes/challenge-complete.js"),
-    import("../src/services/challenge-complete.js"),
+    import("../src/routes/challengeComplete.js"),
+    import("../src/services/challengeComplete.js"),
     import("../src/middlewares/verifyStudyPassword.js"),
     import("../src/middlewares/errorHandler.js"),
   ]);

@@ -1,5 +1,5 @@
 import express from "express";
-import { validateCompleteChallenge } from "../schemas/challenge-complete.js";
+import { validateCompleteChallenge } from "../schemas/challengeComplete.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 
