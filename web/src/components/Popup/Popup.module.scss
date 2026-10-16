@@ -1,0 +1,118 @@
+// 모바일
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 1rem; // 16px
+  background: rgb(0 0 0 / 60%);
+}
+
+.popup {
+  position: relative;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 4.25rem 1rem 1.5rem; // 68px 16px 24px
+  width: 100%;
+  max-width: 21.5rem; // 344px
+  max-height: calc(100dvh - 2rem); // 화면 위아래 16px 확보
+  border-radius: 1.25rem; // 20px
+  background: var(--color-white);
+  color: var(--color-black);
+}
+
+.message {
+  font-size: 1rem; // 16px
+  font-weight: 500;
+  line-height: 1.8125rem; // 29px
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem; // 16px
+  margin: 2.75rem auto 0; // 44px auto 0
+  padding-bottom: 0.1875rem; // 버튼 그림자 3px 포함
+
+  > button {
+    flex: 1;
+  }
+}
+
+.alertActions {
+  max-width: 18rem; // 288px
+}
+
+.confirmActions {
+  margin-right: 0.5rem; // 8px
+  margin-left: 0.5rem; // 8px: 버튼 140px 두 개와 간격 16px
+}
+
+.actionButton {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.625rem; // 10px
+  width: 100%;
+  min-width: 0;
+  min-height: 3.4375rem; // 55px (그림자 3px 포함 시 58px)
+  border-radius: 1rem; // 16px
+  background: var(--color-brand);
+  box-shadow: 0 3px 0 var(--color-green-text);
+  color: var(--color-white);
+  font-family: var(--font-family-display);
+  font-size: 1.125rem; // 18px
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  text-shadow: 0 -2px 0 var(--color-green-text);
+  overflow-wrap: anywhere;
+
+  &:active:enabled {
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.cancelButton {
+  background: var(--color-gray-light);
+  box-shadow: 0 3px 0 var(--color-gray);
+  text-shadow: 0 -2px 0 var(--color-gray);
+}
+
+// 태블릿, 데스크톱
+@media (min-width: 768px) {
+  .popup {
+    padding: 4.75rem 1.5rem 2.5rem; // 76px 24px 40px
+    max-width: 40.5rem; // 648px
+  }
+
+  .message {
+    font-size: 1.125rem; // 18px
+  }
+
+  .actions {
+    gap: 1.5rem; // 24px
+    margin-top: 3.25rem; // 52px
+  }
+
+  .alertActions {
+    max-width: none;
+  }
+
+  .confirmActions {
+    margin-right: 0;
+    margin-left: 0;
+  }
+}
