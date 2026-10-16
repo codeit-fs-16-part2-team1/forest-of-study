@@ -61,7 +61,6 @@ Content-Type: application/json
 }
 
 
-
 ### 삭제 - 204, data: 없음
 DELETE {{baseUrl}}/studies/d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
 Accept: application/json
@@ -117,7 +116,6 @@ Accept: application/json
 # 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
 Accept: application/json
-
 
 ### API-ST-01 6개 더보기
 # 기대 상태 200.

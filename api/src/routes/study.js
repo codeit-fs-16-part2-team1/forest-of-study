@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../schemas/study.js";
+import { validateCreateStudy, validateStudyListQuery, validateStudyBatchQuery, validateStudyIdParams } from "../schemas/study.js";
 import { createStudy, getStudies, getStudy, deleteStudy } from "../services/study.js";
 import { validatePasswordVerificationBody } from "../schemas/studyPassword.js";
 import { createApiError } from "../utils/apiError.js";
@@ -25,100 +25,6 @@ const studySelect = {
 };
 
 
-
-// 이모지도 그래핌 하나당 한 글자로 셉니다.
-const segmenter = new Intl.Segmenter("ko", {
-  granularity: "grapheme",
-});
-
-const countGraphemes = (value) =>
-  [...segmenter.segment(value)].length;
-
-// 앞뒤 공백 제거 후 빈 값과 최대 길이를 검사합니다.
-const createTextSchema = (maxLength) =>
-  z.string()
-    .trim()
-    .refine((value) => countGraphemes(value) >= 1)
-    .refine((value) => countGraphemes(value) <= maxLength);
-
-//비밀번호는 4~20자, 영문 대소문자, 숫자, 특수문자만 허용.
-// 비밀번호 원문을 검사하며 공백을 제거하지 않습니다.
-const passwordSchema = z.string()
-  .min(4)
-  .max(20)
-  .regex(/^[A-Za-z0-9!@#$%^&*]+$/);
-
-
- const backgroundSchema = z.enum([
-  "green",
-  "yellow",
-  "blue",
-  "pink",
-  "image1",
-  "image2",
-  "image3",
-  "image4",
-]).default("green"); 
-
-const createStudySchema = z.object({
-  nickname: createTextSchema(10),
-  name: createTextSchema(15),
-  introduction: createTextSchema(100),
-  backgroundKey: backgroundSchema,
-  password: passwordSchema,
-  passwordConfirm: passwordSchema,
-})
-  .strict()
-  .refine(
-    (data) => data.password === data.passwordConfirm,
-    { path: ["passwordConfirm"], message: "" }
-  );
-
-
-//스터디목록 조회 
-const studyListQuerySchema = z.object({
-
-  //검색 시 앞뒤공백 제거, NFC정규화, 기본값은 빈 문자열. 
-  keyword: z.string()
-  .trim()
-  .normalize("NFC")
-  .default(""),
-
-  //건너뛰는 스터디목록 개수.   
-  //offset을 문자열로 받지만, 숫자로 변환 후, 0 이상의 정수인지 검사합니다. 기본값은 0입니다.  
-  offset: z.string()
-    .regex(/^\d+$/)
-    .default("0")
-    .transform(Number)
-    .pipe(z.number().int().min(0)),
-
-  //한번에 보여줄 스터디 수.    
-  //limit을 문자열로 받지만, 숫자로 변환 후, 1 이상의 정수인지 검사합니다. 기본값은 6입니다.  
-  limit: z.string()
-    .regex(/^\d+$/)
-    .default("6")
-    .transform(Number)
-    .pipe(z.number().int().min(1)),
-
-  //정렬 기준.    
-  sort: z.enum([
-    "latest",
-    "oldest",
-    "points_desc",
-    "points_asc",
-  ]).default("latest"),
-}).strict();
-
-// UUID 검사 → 소문자 통일·중복 제거 → 서로 다른 ID 최대 10개 검사
-const studyBatchQuerySchema = z.object({
-  ids: z.string()
-    .transform((value) => value.split(","))
-    .pipe(z.array(uuidSchema).min(1))
-    .transform((ids) => [
-      ...new Set(ids.map((id) => id.toLowerCase())),
-    ])
-    .pipe(z.array(uuidSchema).max(10)),
-}).strict();
 
 //object()객체 안의 필드가 uuid 형식인지 검사 
 const studyIdParamsSchema = z.object({
@@ -153,7 +59,7 @@ studyRouter.post("/", rejectQuery, async (req, res) => {
 
 // /batch가 스터디 ID로 해석되지 않도록 상세 라우트보다 먼저 등록합니다.
 studyRouter.get("/batch", async (req, res) => {
-  const result = studyBatchQuerySchema.safeParse(req.query);
+  const result = validateStudyBatchQuery(req.query);
 
   if (!result.success) {
     throw createApiError("VALIDATION_ERROR");
