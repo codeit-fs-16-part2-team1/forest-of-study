@@ -1,0 +1,105 @@
+// 별도 HTML 엔트리에서만 가져온다. 공통 레이아웃·스타일을 대신하지 않는다.
+.challengePreviewDocument {
+  margin: 0;
+  color: #414141;
+  background: #f6f4ef;
+  font-family: Pretendard, sans-serif;
+}
+
+.challengePreview {
+  padding: 24px 16px 48px;
+
+  &__tools {
+    box-sizing: border-box;
+    max-width: 1248px;
+    margin: 0 auto 32px;
+    padding: 20px;
+    background: #fff;
+    border: 1px dashed #818181;
+    border-radius: 12px;
+  }
+
+  &__description {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.6;
+
+    strong {
+      font-size: 18px;
+    }
+  }
+
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    select {
+      min-height: 40px;
+      padding: 6px 10px;
+      color: inherit;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font: inherit;
+    }
+
+    .challengePreview__checkbox {
+      flex-direction: row;
+      align-items: center;
+      min-height: 40px;
+    }
+  }
+
+  &__help,
+  &__notice {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  &__notice {
+    min-height: 23px;
+  }
+
+  &__frame {
+    max-width: 100%;
+    margin-inline: auto;
+
+    &--desktop {
+      width: 1248px;
+    }
+
+    &--tablet {
+      width: 696px;
+    }
+
+    &--mobile {
+      width: 344px;
+    }
+
+    &--fluid {
+      width: 100%;
+    }
+  }
+
+  &__destination {
+    max-width: 600px;
+    margin: 48px auto;
+    padding: 24px;
+    background: #fff;
+    border-radius: 12px;
+    line-height: 1.6;
+  }
+}
