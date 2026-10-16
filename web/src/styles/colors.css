@@ -1,0 +1,43 @@
+/* Figma 색상 리소스(1:38409)의 색상값을 기준으로 정의한다. */
+:root {
+  /* Black · White · Gray */
+  --color-black: #414141;
+  --color-black-dark: #14151a;
+  --color-white: #ffffff;
+  --color-gray: #818181;
+  --color-gray-light: #dddddd;
+  --color-gray-lighter: #eeeeee;
+
+  /* Background · Brand */
+  --color-bg: #f6f4ef;
+  --color-brand: #99c08e;
+
+  /* Red */
+  --color-red-error: #c41013;
+  --color-red-error-bg: #ffa3a5;
+  --color-red: #f50e0e;
+
+  /* Green */
+  --color-green: #e1edde;
+  --color-green-text: #578246;
+
+  /* Yellow */
+  --color-yellow: #fff1cc;
+  --color-yellow-text: #c18e1b;
+
+  /* Blue */
+  --color-blue: #e0f1f5;
+  --color-blue-text: #418099;
+
+  /* Pink */
+  --color-pink: #fde0e9;
+  --color-pink-text: #bc3c6a;
+
+  /* 용도별 공통 색상 */
+  --color-background: var(--color-bg);
+  --color-surface: var(--color-white);
+  --color-text: var(--color-black);
+  --color-text-muted: var(--color-gray);
+  --color-primary: var(--color-brand);
+  --color-error: var(--color-red-error);
+}
