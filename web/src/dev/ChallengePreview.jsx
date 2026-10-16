@@ -2,6 +2,7 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Link, MemoryRouter, Route, Routes } from "react-router";
 import ChallengePage from "../pages/ChallengePage.jsx";
+import "../styles/index.scss";
 import "./challengePreview.scss";
 
 const previewStudy = {
@@ -19,30 +20,51 @@ const stateOptions = [
   ["LOADING", "로딩"],
 ];
 
-// UI 확인용 예시다. 비밀번호·API·저장소·실제 타이머를 연결하지 않는다.
+// API 응답 형태의 예시와 수신 시각을 함께 저장한다. 실제 서버에는 요청하지 않는다.
+const createPreviewState = (state, goalMinutes, remainingMilliseconds) => {
+  const receivedAt = performance.now();
+  const serverMilliseconds = Date.now();
+  const remaining = state === "COMPLETED" ? 0 : Math.max(0, remainingMilliseconds);
+  const hasChallenge = ["RUNNING", "PAUSED", "COMPLETED"].includes(state);
+
+  return {
+    state,
+    receivedAt,
+    remainingMilliseconds: remaining,
+    challenge: hasChallenge ? {
+      id: "22222222-2222-4222-8222-222222222222",
+      status: state,
+      goalMinutes,
+      remainingSeconds: Math.ceil(remaining / 1000),
+      serverTime: new Date(serverMilliseconds).toISOString(),
+      endsAt: state === "RUNNING"
+        ? new Date(serverMilliseconds + remaining).toISOString()
+        : null,
+    } : null,
+  };
+};
+
+// UI 확인용 예시다. 비밀번호·API·저장소·포인트 정산을 연결하지 않는다.
 const ChallengePreview = () => {
-  const [preview, setPreview] = useState({ state: "READY", remainingSeconds: 600 });
+  const [preview, setPreview] = useState(() => createPreviewState("READY", 10, 600000));
   const [goalMinutes, setGoalMinutes] = useState(10);
   const [width, setWidth] = useState("desktop");
   const [isPending, setIsPending] = useState(false);
   const [notice, setNotice] = useState("");
   const isLoading = preview.state === "LOADING";
-  const challenge = ["RUNNING", "PAUSED", "COMPLETED"].includes(preview.state)
-    ? { status: preview.state, goalMinutes, remainingSeconds: preview.remainingSeconds }
-    : null;
-
   const selectState = (state) => {
-    setPreview({
-      state,
-      remainingSeconds: state === "COMPLETED" ? 0
-        : state === "READY" ? goalMinutes * 60 : goalMinutes * 60 - 78,
-    });
+    const remaining = state === "READY" ? goalMinutes * 60000
+      : (goalMinutes * 60 - 78) * 1000;
+    setPreview(createPreviewState(state, goalMinutes, remaining));
     setNotice("");
   };
 
-  const showAction = (state, label, remainingSeconds = preview.remainingSeconds) => {
-    setPreview({ state, remainingSeconds });
-    setNotice(`${label} 클릭을 확인했습니다. 예시 상태만 변경했으며 API 요청은 보내지 않았습니다.`);
+  const showAction = (state, label, remainingMilliseconds) => {
+    const currentRemaining = preview.state === "RUNNING"
+      ? Math.max(0, preview.remainingMilliseconds - (performance.now() - preview.receivedAt))
+      : preview.remainingMilliseconds;
+    setPreview(createPreviewState(state, goalMinutes, remainingMilliseconds ?? currentRemaining));
+    setNotice(`${label} 예시 응답을 적용했습니다. API 요청은 보내지 않았습니다.`);
   };
 
   return (
@@ -50,7 +72,7 @@ const ChallengePreview = () => {
       <aside className="challengePreview__tools" aria-label="개발용 미리보기 설정">
         <p className="challengePreview__description">
           <strong>집중 화면 미리보기</strong>
-          예시 스터디·고정 시간으로 표시합니다. 인증·서버 저장·카운트다운·포인트 지급은 연결 전입니다.
+          예시 응답으로 카운트다운을 확인합니다. 인증·서버 저장·완료 정산은 연결 전입니다.
         </p>
         <div className="challengePreview__fields">
           <label>
@@ -73,7 +95,7 @@ const ChallengePreview = () => {
             <select value={goalMinutes} onChange={(event) => {
               const minutes = Number(event.target.value);
               setGoalMinutes(minutes);
-              setPreview({ state: "READY", remainingSeconds: minutes * 60 });
+              setPreview(createPreviewState("READY", minutes, minutes * 60000));
               setNotice("");
             }}>
               <option value={10}>10분</option>
@@ -85,9 +107,16 @@ const ChallengePreview = () => {
             <input type="checkbox" checked={isPending} onChange={(event) => setIsPending(event.target.checked)} />
             요청 처리 중 표시
           </label>
+          <button type="button" onClick={() => {
+            setPreview(createPreviewState("RUNNING", goalMinutes, 3000));
+            setNotice("남은 3초인 예시 응답입니다. 0초가 되어도 완료 상태나 포인트는 변경하지 않습니다.");
+          }}>
+            남은 3초 예시
+          </button>
         </div>
         <p className="challengePreview__help">
           창이 선택한 너비보다 좁으면 창에 맞춥니다. 시작 전 숫자를 누르면 시간 설정 모달 틀이 열립니다.
+          0초 표시는 서버 완료·포인트 지급을 의미하지 않습니다.
         </p>
         <p className="challengePreview__notice" role="status">{notice}</p>
       </aside>
@@ -95,16 +124,16 @@ const ChallengePreview = () => {
       <div className={`challengePreview__frame challengePreview__frame--${width}`}>
         <ChallengePage
           study={isLoading ? undefined : previewStudy}
-          challenge={challenge}
+          challenge={preview.challenge}
           goalMinutes={goalMinutes}
-          remainingSeconds={preview.remainingSeconds}
+          receivedAt={preview.receivedAt}
           isLoading={isLoading}
           isPending={isPending}
-          onStart={() => showAction("RUNNING", "Start", goalMinutes * 60)}
+          onStart={() => showAction("RUNNING", "Start", goalMinutes * 60000)}
           onPause={() => showAction("PAUSED", "일시정지")}
           onResume={() => showAction("RUNNING", "재개")}
-          onReset={() => showAction("READY", "초기화", goalMinutes * 60)}
-          onDismissCompletion={() => showAction("READY", "완료 화면 닫기", goalMinutes * 60)}
+          onReset={() => showAction("READY", "초기화", goalMinutes * 60000)}
+          onDismissCompletion={() => showAction("READY", "완료 화면 닫기", goalMinutes * 60000)}
         />
       </div>
     </main>
@@ -114,7 +143,7 @@ const ChallengePreview = () => {
 const PreviewDestination = ({ name }) => (
   <main className="challengePreview__destination">
     <h1>{name} 이동 확인</h1>
-    <p>미리보기 안의 이동입니다. 실제 화면과 URL 연결은 공통 라우팅이 준비되면 확인합니다.</p>
+    <p>이동 확인용 미리보기입니다. 실제 홈·습관 화면은 표시하지 않습니다.</p>
     <Link to={previewLocation}>집중 화면 미리보기로 돌아가기</Link>
   </main>
 );

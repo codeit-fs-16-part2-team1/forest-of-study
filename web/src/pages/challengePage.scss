@@ -4,33 +4,13 @@
   max-width: 1248px;
   min-width: 0;
   margin-inline: auto;
-  color: #414141;
-  font-family: Pretendard, sans-serif;
-
-  &,
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  button,
-  a {
-    font-family: inherit;
-  }
-
-  button:focus-visible,
-  a:focus-visible {
-    outline: 3px solid #578246;
-    outline-offset: 4px;
-  }
 
   &__body {
     display: flex;
     flex-direction: column;
     gap: 24px;
     padding: 40px;
-    background: #fff;
+    background: var(--color-surface);
     border-radius: 20px;
   }
 
@@ -71,9 +51,9 @@
     gap: 4px;
     min-height: 48px;
     padding: 0 24px;
-    color: #818181;
-    background: #fff;
-    border: 1px solid #ddd;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-gray-light);
     border-radius: 15px;
     font-size: 16px;
     font-weight: 500;
@@ -96,7 +76,7 @@
 
   &__pointsLabel {
     margin: 0;
-    color: #818181;
+    color: var(--color-text-muted);
     font-size: 18px;
     line-height: 1.2;
   }
@@ -127,7 +107,7 @@
 
   &__skeleton {
     display: block;
-    background: #eee;
+    background: var(--color-gray-lighter);
     border-radius: 8px;
 
     &--heading {

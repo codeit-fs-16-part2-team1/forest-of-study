@@ -5,8 +5,8 @@
   min-width: 0;
   height: 546px;
   padding: 40px 24px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-light);
   border-radius: 20px;
 
   &__heading {
@@ -51,7 +51,7 @@
 
   &__time {
     padding: 0;
-    color: #414141;
+    color: var(--color-text);
     font-size: 150px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
@@ -67,17 +67,17 @@
   }
 
   &[data-status="PAUSED"] &__time {
-    color: #f50e0e;
+    color: var(--color-red);
   }
 
   &[data-status="COMPLETED"] &__time {
-    color: #818181;
+    color: var(--color-text-muted);
   }
 
   &__skeleton {
     width: min(100%, 400px);
     height: 150px;
-    background: #eee;
+    background: var(--color-gray-lighter);
     border-radius: 12px;
   }
 }

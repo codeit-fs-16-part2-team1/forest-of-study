@@ -23,8 +23,8 @@
     gap: 16px;
     width: 333px;
     height: 60px;
-    color: #fff;
-    background: #99c08e;
+    color: var(--color-white);
+    background: var(--color-primary);
     border-radius: 50px;
     font-size: 28px;
     font-weight: 800;
@@ -32,7 +32,7 @@
     white-space: nowrap;
 
     &:disabled {
-      background: #818181;
+      background: var(--color-gray);
     }
   }
 
