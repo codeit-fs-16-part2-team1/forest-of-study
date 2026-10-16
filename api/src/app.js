@@ -62,9 +62,11 @@ try {
     console.log(`서버가 ${port}번 포트에서 기다리고 있어요.`);
   });
 
-  server.on("error", async () => {
+  server.on("error", async (error) => {
     console.error(
       "서버를 시작하지 못했습니다. PORT와 포트 사용 여부를 확인해주세요.",
+      error?.code ?? "",
+      error?.stack ?? error?.message,
     );
     await prisma.$disconnect();
     process.exitCode = 1;
@@ -81,9 +83,15 @@ try {
 
   process.once("SIGINT", shutdown);
   process.once("SIGTERM", shutdown);
-} catch {
+} catch (error) {
+  // DB 오류 메시지에 접속 URL이나 해시가 포함되어도 로그에는 남기지 않는다.
+  const errorLog = String(error?.stack ?? error?.message ?? "알 수 없는 오류")
+    .replace(/postgres(?:ql)?:\/\/[^\s<>]+/gi, "[DB URL 숨김]")
+    .replace(/\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}/g, "[비밀번호 해시 숨김]");
   console.error(
     "서버를 시작하지 못했습니다. PORT와 DB 연결 설정을 확인해주세요.",
+    error?.code ?? error?.errorCode ?? "",
+    errorLog,
   );
   await prisma.$disconnect();
   process.exitCode = 1;
