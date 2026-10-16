@@ -1,24 +1,48 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
 import { normalizeEmoji } from "../utils/emoji.js";
 
-// 등록·상세의 공통 집계. 기존 행도 기본 이모지·브라우저 단위로 묶어 센다.
-export const getTopReactions = (studyId, db = prisma) => db.$queryRaw`
-  WITH normalized AS (
-    SELECT "browserId", regexp_replace("emoji", '[🏻🏼🏽🏾🏿]', '', 'g') AS "emoji", "createdAt"
-    FROM "Reaction"
-    WHERE "studyId" = ${studyId}::uuid
-  ), browser_reactions AS (
-    SELECT "browserId", "emoji", MIN("createdAt") AS "firstAt"
-    FROM normalized
-    GROUP BY "browserId", "emoji"
-  )
-  SELECT "emoji", COUNT(*)::integer AS "count"
-  FROM browser_reactions
-  GROUP BY "emoji"
-  ORDER BY COUNT(*) DESC, MIN("firstAt") ASC, "emoji" COLLATE "C" ASC
-  LIMIT 3
-`;
+// 등록·상세·다건 조회가 같은 기준을 사용한다. 기존 피부색 행도 브라우저별로 한 번만 센다.
+// $transaction([...])에서도 사용할 수 있도록 PrismaPromise를 그대로 반환한다.
+export const getTopReactionsForStudies = (studyIds, db = prisma) => {
+  const where = studyIds.length === 0
+    ? Prisma.sql`FALSE`
+    : Prisma.sql`"studyId" IN (${Prisma.join(studyIds.map((id) => Prisma.sql`${id}::uuid`))})`;
+
+  return db.$queryRaw`
+    WITH normalized AS (
+      SELECT
+        "studyId", "browserId",
+        regexp_replace("emoji", '[🏻🏼🏽🏾🏿]', '', 'g') AS "emoji", "createdAt"
+      FROM "Reaction"
+      WHERE ${where}
+    ), browser_reactions AS (
+      SELECT "studyId", "browserId", "emoji", MIN("createdAt") AS "firstAt"
+      FROM normalized
+      GROUP BY "studyId", "browserId", "emoji"
+    ), ranked AS (
+      SELECT
+        "studyId", "emoji", COUNT(*)::integer AS "count",
+        ROW_NUMBER() OVER (
+          PARTITION BY "studyId"
+          ORDER BY COUNT(*) DESC, MIN("firstAt") ASC, "emoji" COLLATE "C" ASC
+        ) AS "rank"
+      FROM browser_reactions
+      GROUP BY "studyId", "emoji"
+    )
+    SELECT "studyId", "emoji", "count"
+    FROM ranked
+    WHERE "rank" <= 3
+    ORDER BY "studyId", "rank"
+  `;
+};
+
+export const getTopReactions = async (studyId, db = prisma) => {
+  const reactions = await getTopReactionsForStudies([studyId], db);
+  // 단건 공개 응답에는 내부 분류용 studyId를 포함하지 않는다.
+  return reactions.map(({ emoji, count }) => ({ emoji, count }));
+};
 
 export const createReaction = async ({ studyId, browserId, emoji }) => {
   const normalizedEmoji = normalizeEmoji(emoji);

@@ -1,6 +1,7 @@
 import express from "express";
-import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../schemas/study.js";
-import { createStudy, getStudies, getStudy } from "../services/study.js";
+import { validateCreateStudy, validateStudyListQuery, validateStudyBatchQuery, validateStudyIdParams } from "../schemas/study.js";
+import { createStudy, getStudies, getStudiesByIds, getStudy, deleteStudy } from "../services/study.js";
+import { validatePasswordVerificationBody } from "../schemas/studyPassword.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess, sendPaginatedSuccess } from "../utils/apiResponse.js";
 import { rejectQuery } from "../middlewares/rejectQuery.js";
@@ -9,6 +10,7 @@ import { createReaction } from "../services/reaction.js";
 
 const studyRouter = express.Router();
 
+//스터디목록 조회 요청 -> 쿼리검사 단계 
 studyRouter.get("/", async (req, res) => {
   const result = validateStudyListQuery(req.query);
   if (!result.success) throw createApiError("VALIDATION_ERROR");
@@ -32,11 +34,47 @@ studyRouter.post("/", rejectQuery, async (req, res) => {
   return sendSuccess(res, study, 201);
 });
 
+
+// /batch가 스터디 ID로 해석되지 않도록 상세 라우트보다 먼저 등록합니다.
+studyRouter.get("/batch", async (req, res) => {
+  const result = validateStudyBatchQuery(req.query);
+
+  if (!result.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  const studies = await getStudiesByIds(result.data.ids);
+  return sendSuccess(res, studies);
+});
+
+//상세조회 요청에서 스터디 ID 검사 
 studyRouter.get("/:studyId", rejectQuery, async (req, res) => {
   const result = validateStudyIdParams(req.params);
-  if (!result.success) throw createApiError("VALIDATION_ERROR");
+  if (!result.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
   const study = await getStudy(result.data.studyId);
   return sendSuccess(res, study);
+});
+
+// 삭제는 보호 요청 헤더 대신 삭제 모달의 본문 비밀번호를 검증한다.
+studyRouter.delete("/:studyId", rejectQuery, async (req, res) => {
+  const paramsResult = validateStudyIdParams(req.params);
+  if (!paramsResult.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  if (req.body === undefined) {
+    throw createApiError("VERIFICATION_REQUIRED");
+  }
+
+  const bodyResult = validatePasswordVerificationBody(req.body);
+  if (!bodyResult.success) {
+    throw createApiError("VALIDATION_ERROR");
+  }
+
+  await deleteStudy(paramsResult.data.studyId, bodyResult.data.password);
+  return res.status(204).end();
 });
 
 // API-ST-07은 공개 API다. browserId는 비밀번호 인증 증명이 아니다.
