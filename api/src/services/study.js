@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
+import { getTopReactions, getTopReactionsForStudies } from "./reaction.js";
 import { checkStudyPassword } from "./studyPassword.js";
 
 const studySelect = {
@@ -84,6 +85,37 @@ export const getStudies = async (query) => {
   };
 };
 
+// ids는 라우트 스키마에서 UUID 검사·소문자 통일·중복 제거·최대 10개 검사를 마친 값이다.
+export const getStudiesByIds = async (ids) => {
+  // 스터디와 상위 응원을 각각 한 번씩, 같은 DB 스냅샷에서 조회한다.
+  const [studies, reactions] = await prisma.$transaction([
+    prisma.study.findMany({
+      where: { id: { in: ids } },
+      select: studySelect,
+    }),
+    getTopReactionsForStudies(ids),
+  ], {
+    isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+  });
+
+  const reactionsByStudy = new Map();
+  for (const { studyId, emoji, count } of reactions) {
+    if (!reactionsByStudy.has(studyId)) {
+      reactionsByStudy.set(studyId, []);
+    }
+    reactionsByStudy.get(studyId).push({ emoji, count });
+  }
+
+  const studiesById = new Map(studies.map((study) => [study.id, study]));
+  // DB의 IN 조회 순서에 의존하지 않고, 없는 ID를 제외한 입력 순서로 구성한다.
+  return ids
+    .filter((id) => studiesById.has(id))
+    .map((id) => ({
+      ...studiesById.get(id),
+      reactions: reactionsByStudy.get(id) ?? [],
+    }));
+};
+
 export const createStudy = async (data) => {
   const {
     nickname,
@@ -141,21 +173,7 @@ export const getStudy = async (studyId) => {
     throw createApiError("STUDY_NOT_FOUND");
   }
 
-  // 개수 내림차순 → 최초 반응 시각 → 이모지 값 순으로 상위 3종.
-  // studyId는 바인딩된 매개변수로 전달됩니다.
-  const reactions = await prisma.$queryRaw`
-    SELECT
-      "emoji",
-      COUNT(*)::integer AS "count"
-    FROM "Reaction"
-    WHERE "studyId" = ${studyId}::uuid
-    GROUP BY "emoji"
-    ORDER BY
-      COUNT(*) DESC,
-      MIN("createdAt") ASC,
-      "emoji" COLLATE "C" ASC
-    LIMIT 3
-  `;
+  const reactions = await getTopReactions(studyId);
 
   return { ...study, reactions };
 };
