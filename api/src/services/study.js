@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
+import { checkStudyPassword } from "./studyPassword.js";
 
 const studySelect = {
   id: true,
@@ -110,6 +111,21 @@ export const createStudy = async (data) => {
     if (error?.code === "P2002") {
       const conflict = await prisma.study.findFirst({ where, select: { id: true } });
       if (conflict !== null) throw createApiError("STUDY_CONFLICT");
+    }
+    throw error;
+  }
+};
+
+export const deleteStudy = async (studyId, password) => {
+  await checkStudyPassword(studyId, password);
+
+  try {
+    // DB의 Cascade FK가 습관·습관 기록·집중·응원을 함께 삭제한다.
+    await prisma.study.delete({ where: { id: studyId } });
+  } catch (error) {
+    // 비밀번호 확인 직후 다른 요청이 삭제한 경우에도 계약상 404를 반환한다.
+    if (error?.code === "P2025") {
+      throw createApiError("STUDY_NOT_FOUND");
     }
     throw error;
   }

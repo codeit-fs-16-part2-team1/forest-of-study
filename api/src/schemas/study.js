@@ -31,8 +31,20 @@ const studyListQuerySchema = z.strictObject({
   sort: z.enum(["latest", "oldest", "points_desc", "points_asc"]).default("latest"),
 });
 
+// UUID 검사 → 소문자 통일·중복 제거 → 서로 다른 ID 최대 10개 검사
+const studyBatchQuerySchema = z.object({
+  ids: z.string()
+    .transform((value) => value.split(","))
+    .pipe(z.array(uuidSchema).min(1))
+    .transform((ids) => [
+      ...new Set(ids.map((id) => id.toLowerCase())),
+    ])
+    .pipe(z.array(uuidSchema).max(10)),
+}).strict();
+
 const studyIdParamsSchema = z.strictObject({ studyId: uuidSchema });
 
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);
 export const validateStudyListQuery = (query) => studyListQuerySchema.safeParse(query);
+export const validateStudyBatchQuery = (query) => studyBatchQuerySchema.safeParse(query);
 export const validateStudyIdParams = (params) => studyIdParamsSchema.safeParse(params);

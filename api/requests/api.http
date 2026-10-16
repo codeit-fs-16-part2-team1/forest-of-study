@@ -61,11 +61,61 @@ Content-Type: application/json
 }
 
 
+### 삭제 - 204, data: 없음
+DELETE {{baseUrl}}/studies/d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "{{studyPassword}}"
+}
+
+### 삭제한 ID 조회 — 200, data: []
+GET {{baseUrl}}/studies/batch?ids=d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+Accept: application/json
+
+### 기존 ID와 혼합 — 200, 기존 스터디만 반환
+GET {{baseUrl}}/studies/batch?ids=10000000-0000-4000-8000-000000000001,d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+Accept: application/json
+
+### 3. 중복 제거 — 200, B → A 순서로 각 1개
+GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9
+Accept: application/json
+
+### 4. 총 11개, 서로 다른 ID 2개 — 200
+GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9
+Accept: application/json
+
+
+### 5. 서로 다른 ID 11개 — 400 VALIDATION_ERROR
+GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008,10000000-0000-4000-8000-000000000009
+Accept: application/json
+
+### 6. 존재하는 ID 사이에 없는 ID 포함 — 200
+GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,005da982-a241-409a-88dd-dd0ac6e768c9
+Accept: application/json
+
+### 6-1. 없는 ID 제외 확인
+GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,df59dbb3-e02b-457d-a704-19c822f681b6,005da982-a241-409a-88dd-dd0ac6e768c9
+Accept: application/json
+
+### 7. 잘못된 UUID — 400 VALIDATION_ERROR
+GET {{baseUrl}}/studies/batch?ids=not-a-uuid
+Accept: application/json
+
+### 8. ids 이외 쿼리 — 400
+GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9&page=1
+Accept: application/json
+
+### 9. 서로 다른 ID 10개 — 200
+GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008
+Accept: application/json
+
+
 ### API-ST-01 목록
 # 기대 상태 200.
 GET {{baseUrl}}/studies?offset=0&limit=6&sort=latest
 Accept: application/json
-
 
 ### API-ST-01 6개 더보기
 # 기대 상태 200.
