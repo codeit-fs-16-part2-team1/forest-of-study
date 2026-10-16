@@ -1,0 +1,93 @@
+// 모바일
+.stack {
+  position: fixed;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); // 24px + 안전 영역
+  left: 50%;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem; // 8px
+  width: calc(100% - 2rem); // 좌우 16px 확보
+  max-height: calc(100dvh - 3rem - env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none; // 스크롤 동작을 유지하고 스크롤바만 숨긴다.
+  transform: translateX(-50%);
+  pointer-events: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.toast {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.25rem; // 4px
+  padding: 0.875rem 1.125rem; // 14px 18px
+  width: max-content;
+  max-width: 100%;
+  border-radius: 0.75rem; // 12px
+  font-size: 0.875rem; // 14px
+  font-weight: 500;
+  line-height: 1.0625rem; // 17px: 전체 높이 45px
+  animation: appear 160ms ease-out;
+  transition: opacity 250ms ease-out; // useToast의 제거 대기 시간과 맞춘다.
+}
+
+.leaving {
+  opacity: 0;
+}
+
+.point {
+  background: var(--color-green);
+  color: var(--color-green-text);
+}
+
+.warning {
+  padding-right: 1.75rem; // 28px
+  padding-left: 1.75rem; // 28px
+  background: var(--color-pink);
+  color: var(--color-red);
+}
+
+.message {
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem); // 8px
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 태블릿, 데스크톱
+@media (min-width: 768px) {
+  .stack {
+    bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)); // 40px + 안전 영역
+    max-height: calc(100dvh - 5rem - env(safe-area-inset-bottom, 0px));
+  }
+
+  .toast {
+    font-size: 1rem; // 16px
+    line-height: 1.1875rem; // 19px: 전체 높이 47px
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+    transition: none;
+  }
+}
