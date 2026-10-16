@@ -1,0 +1,108 @@
+// 전역 스타일 적용 후 삭제 예정
+@font-face {
+  font-family: "JejuStoneWall";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2210-EF@1.0/EF_jejudoldam.woff2")
+    format("woff2");
+  font-weight: normal;
+  font-display: swap;
+}
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  height: 200dvh;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+$green_text_578246: #578246;
+$brand_99C08E: #99c08e;
+$bg_F6F4EF: #f6f4ef;
+
+// 모바일
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-width: 20rem; // 320px
+  height: 6.25rem; // 100px
+  background: $bg_F6F4EF;
+}
+.inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem; // 0 16px
+  width: 100%;
+  height: 100%;
+}
+.logo a {
+  display: block;
+  overflow: hidden;
+  width: 6.625rem; // 106px
+  height: 2.188rem; // 35px
+  background-image: url(../../../public/logo.svg);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+  text-indent: -999rem;
+}
+.createStudyBtn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 6.625rem; // 106px
+  height: 2.25rem; // 36px (box-shadow 미적용 시 38px)
+  border-radius: 0.5rem; // 8px
+  background: $brand_99C08E;
+  box-shadow: 0 2px 0 $green_text_578246;
+  color: #fff;
+  font-family: "JejuStoneWall";
+  font-size: 0.75rem; // 12px
+  text-align: center;
+  text-shadow: 0 -2px 0 $green_text_578246;
+
+  &:active {
+    box-shadow: none;
+    transform: translateY(2px);
+  }
+}
+
+// 태블릿
+@media (min-width: 768px) {
+  .inner {
+    padding: 0 1.5rem; // 0 24px
+  }
+  .logo a {
+    width: 11.375rem; // 182px
+    height: 3.75rem; // 60px
+  }
+  .createStudyBtn {
+    width: 10rem; // 160px
+    height: 3.438rem; // 55px (box-shadow 미적용 시 58px)
+    border-radius: 0.875rem; // 14px
+    box-shadow: 0 3px 0 $green_text_578246;
+    font-size: 1.125rem; // 18px
+
+    &:active {
+      transform: translateY(3px);
+    }
+  }
+}
+
+// 데스크톱
+@media (min-width: 1024px) {
+  .inner {
+    margin: 0 auto;
+    padding: 0 13.75rem; // 0 220px
+    max-width: 120rem; // 1920px
+  }
+  .createStudyBtn {
+    width: 15.75rem; // 252px
+    border-radius: 1rem; // 16px
+  }
+}
