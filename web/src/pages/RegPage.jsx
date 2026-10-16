@@ -1,7 +1,8 @@
 const RegPage = () => {
   return (
-    <>
-    </>
+    <main>
+      
+    </main>
   )
 };
 
