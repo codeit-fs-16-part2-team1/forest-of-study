@@ -29,7 +29,7 @@ export const errorHandler = (error, req, res, next) => {
   } else {
     // 에러 객체·요청 전체를 출력하지 않고, 메시지에 섞인 민감값도 가린다.
     let errorLog = String(error?.stack ?? error?.message ?? "알 수 없는 오류")
-      .replace(/postgres(?:ql)?:\/\/[^\s"'`<>]+/gi, "[DB URL 숨김]")
+      .replace(/postgres(?:ql)?:\/\/[^\s<>]+/gi, "[DB URL 숨김]")
       .replace(/\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}/g, "[비밀번호 해시 숨김]");
     for (const value of [
       req.get("X-Study-Password"), req.body?.password, req.body?.passwordConfirm,
