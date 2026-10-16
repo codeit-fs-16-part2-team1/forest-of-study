@@ -1,0 +1,45 @@
+// 외곽과 내용 슬롯만 준비한다. 입력·저장 버튼 디자인은 시안 수신 후 적용한다.
+.goalTimeModal {
+  box-sizing: border-box;
+  width: min(648px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 24px;
+  overflow: auto;
+  color: #414141;
+  background: #fff;
+  border: 0;
+  border-radius: 20px;
+  font-family: Pretendard, sans-serif;
+
+  &::backdrop {
+    background: rgb(0 0 0 / 50%);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    button {
+      padding: 8px 12px;
+      color: inherit;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font: inherit;
+      cursor: pointer;
+    }
+  }
+
+  &__content {
+    min-height: 160px;
+    padding-top: 24px;
+  }
+}
