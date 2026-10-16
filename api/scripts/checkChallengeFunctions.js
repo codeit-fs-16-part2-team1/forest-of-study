@@ -64,4 +64,57 @@ assert.equal(response.elapsedSeconds, 1);
 assert.equal(challenge.elapsedMilliseconds, 0);
 assert.equal(buildChallengeResponse(null), null);
 
-console.log("집중 입력·시간 경계·정지 시간·응답 필드 검사 성공");
+// 한국 자정은 집중의 경과나 상태를 초기화하지 않는다. 실제 대기 없는 계산 검사다.
+const beforeMidnight = new Date("2026-10-15T23:59:59.500+09:00");
+const afterMidnight = new Date("2026-10-16T00:00:00.500+09:00");
+const acrossMidnight = {
+  ...challenge,
+  elapsedMilliseconds: 60000,
+  lastStartedAt: beforeMidnight,
+};
+const originalAcrossMidnight = structuredClone(acrossMidnight);
+const beforeDateChange = buildChallengeResponse(acrossMidnight, beforeMidnight);
+const afterDateChange = buildChallengeResponse(acrossMidnight, afterMidnight);
+assert.equal(beforeDateChange.elapsedSeconds, 60);
+assert.equal(afterDateChange.elapsedSeconds, 61);
+assert.equal(afterDateChange.remainingSeconds, 539);
+assert.equal(afterDateChange.id, beforeDateChange.id);
+assert.equal(afterDateChange.status, "RUNNING");
+assert.equal(afterDateChange.endsAt, "2026-10-15T15:08:59.500Z");
+assert.equal(afterDateChange.endsAt, beforeDateChange.endsAt);
+assert.deepEqual(buildChallengeResponse(acrossMidnight, afterMidnight), afterDateChange);
+assert.deepEqual(acrossMidnight, originalAcrossMidnight);
+
+// 여러 번 조회한 결과를 저장 경과에 다시 가산하면 안 된다.
+const afterRequestGap = buildChallengeResponse(
+  acrossMidnight, new Date("2026-10-16T00:03:00.500+09:00"),
+);
+assert.equal(afterRequestGap.elapsedSeconds, 241);
+assert.equal(afterRequestGap.remainingSeconds, 359);
+assert.equal(afterRequestGap.endsAt, beforeDateChange.endsAt);
+assert.deepEqual(acrossMidnight, originalAcrossMidnight);
+const afterLongGap = buildChallengeResponse(
+  acrossMidnight, new Date("2026-10-17T00:00:00.000+09:00"),
+);
+assert.equal(afterLongGap.elapsedSeconds, 600);
+assert.equal(afterLongGap.remainingSeconds, 0);
+assert.equal(afterLongGap.status, "RUNNING");
+assert.equal(afterLongGap.awardedPoints, 0);
+assert.deepEqual(acrossMidnight, originalAcrossMidnight);
+
+const pausedAcrossMidnight = {
+  ...acrossMidnight, status: "PAUSED", elapsedMilliseconds: 90000, lastStartedAt: null,
+};
+const originalPausedAcrossMidnight = structuredClone(pausedAcrossMidnight);
+for (const time of [beforeMidnight, afterMidnight, new Date("2026-10-17T12:00:00+09:00")]) {
+  const restored = buildChallengeResponse(pausedAcrossMidnight, time);
+  assert.equal(restored.id, pausedAcrossMidnight.id);
+  assert.equal(restored.status, "PAUSED");
+  assert.equal(restored.elapsedSeconds, 90);
+  assert.equal(restored.remainingSeconds, 510);
+  assert.equal(restored.endsAt, null);
+  assert.equal(restored.awardedPoints, 0);
+}
+assert.deepEqual(pausedAcrossMidnight, originalPausedAcrossMidnight);
+
+console.log("집중 입력·시간 경계·정지 시간·자정/요청 공백 복원·원본 불변·응답 필드 검사 성공");
