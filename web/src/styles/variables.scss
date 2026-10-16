@@ -1,0 +1,16 @@
+:root {
+  --color-background: #f6f4ef;
+  --color-surface: #fff;
+  --color-text: #414141;
+  --color-text-muted: #818181;
+  --color-primary: #99c08e;
+  --color-error: #f50e0e;
+
+  // font.css에서 로드한 Pretendard를 공통 글꼴로 사용한다.
+  // 폰트가 로드되지 않은 환경에서는 아래 시스템 글꼴을 사용한다.
+  --font-family-base: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  // 공통 너비·여백·breakpoint는 시안 확인 후 정의한다.
+  // AppLayout에서 사용할 이름: --layout-content-max-width, --layout-page-gutter
+}

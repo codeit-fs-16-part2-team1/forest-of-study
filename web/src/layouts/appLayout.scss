@@ -1,0 +1,20 @@
+.appLayout {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+
+  &__header {
+    flex-shrink: 0;
+    min-inline-size: 0;
+  }
+
+  &__main {
+    flex: 1;
+    inline-size: 100%;
+    min-inline-size: 0;
+    max-inline-size: var(--layout-content-max-width, none);
+    margin-inline: auto;
+    padding-inline: var(--layout-page-gutter, 0);
+  }
+}

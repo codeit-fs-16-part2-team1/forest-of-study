@@ -1,0 +1,25 @@
+html {
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+body {
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+}
+
+#root {
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+}
+
+button:enabled,
+select:enabled {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
