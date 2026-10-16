@@ -1,4 +1,5 @@
-import { Route, Routes, useLocation, useMatch } from "react-router";
+import { Route, Routes, useMatch, useSearchParams } from "react-router";
+import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
 import RootLayout from "./layouts/RootLayout.jsx";
 import MainPage from "./pages/MainPage.jsx";
 import RegPage from "./pages/RegPage.jsx";
@@ -8,30 +9,48 @@ import ChallengePage from "./pages/ChallengePage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 
 const App = () => {
-  const url = useLocation();
   const dashboardMatch = useMatch("/dashboard/:id");
-  const path = dashboardMatch ? "dashboard" : url.pathname.slice(1);
+  const routinesMatch = useMatch("/routines");
+  const challengeMatch = useMatch("/challenge");
+  const regMatch = useMatch("/reg");
+  const [searchParams] = useSearchParams();
+  let studyId = null;
 
-  const pageTitle = {
-    reg: "스터디 등록 | 공부의 숲",
-    dashboard: "스터디 상세 | 공부의 숲",
-    routines: "오늘의 습관 | 공부의 숲",
-    challenge: "오늘의 집중 | 공부의 숲",
-  };
+  if (dashboardMatch) {
+    studyId = dashboardMatch.params.id;
+  } else if (routinesMatch || challengeMatch) {
+    studyId = searchParams.get("id");
+  }
 
-  document.title = pageTitle[path] ?? "공부의 숲";
+  const { study } = useStudyTitleData(studyId);
+  const studyName = study?.name;
+
+  let pageTitle = "공부의 숲";
+
+  if (dashboardMatch) {
+    pageTitle = studyName ? `${studyName} | 공부의 숲` : "스터디 상세 | 공부의 숲";
+  } else if (routinesMatch) {
+    pageTitle = `오늘의 루틴 | ${studyName || "공부의 숲"}`;
+  } else if (challengeMatch) {
+    pageTitle = `오늘의 도전 | ${studyName || "공부의 숲"}`;
+  } else if (regMatch) {
+    pageTitle = "스터디 등록 | 공부의 숲";
+  }
 
   return (
-    <Routes>
-      <Route path="/" element={<RootLayout />}>
-        <Route index element={<MainPage />} />
-        <Route path="reg" element={<RegPage />} />
-        <Route path="dashboard/:id" element={<DashboardPage />} />
-        <Route path="routines" element={<RoutinesPage />} />
-        <Route path="challenge" element={<ChallengePage />} />
-      </Route>
-      <Route path='*' element={<NotFoundPage />} />
-    </Routes>
+    <>
+      <title>{pageTitle}</title>
+      <Routes>
+        <Route path="/" element={<RootLayout />}>
+          <Route index element={<MainPage />} />
+          <Route path="reg" element={<RegPage />} />
+          <Route path="dashboard/:id" element={<DashboardPage />} />
+          <Route path="routines" element={<RoutinesPage />} />
+          <Route path="challenge" element={<ChallengePage />} />
+        </Route>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </>
   );
 };
 
