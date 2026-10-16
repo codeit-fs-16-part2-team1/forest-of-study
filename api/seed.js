@@ -2,7 +2,7 @@
 // 해당 DB를 사용하는 API를 중지한다. migration은 이 스크립트에서 실행하지 않는다.
 import { loadEnvFile } from "node:process";
 import { buildSeedData, EXPECTED_COUNTS, getSeedTarget,
-  STUDY_CASES, studyId, validateSeedRows } from "./seed-data.js";
+  STUDY_CASES, studyId, validateSeedRows } from "./seedData.js";
 
 // 승인된 로컬 개발용 공통 비밀번호의 bcrypt(cost 10) 해시다.
 // 원문은 저장하지 않고 실행 시 비밀번호 입력·환경변수 설정·해시 생성을 생략한다.
@@ -82,7 +82,7 @@ try {
     status: row.status, goalMinutes: row.goalMinutes, awardedPoints: row.awardedPoints,
   })));
   console.log("모든 스터디에 공통 개발용 비밀번호의 고정 bcrypt 해시를 적용했습니다. 비밀번호 입력은 필요하지 않습니다.");
-  console.log(`RUNNING은 계속 진행합니다. 시드 직후, API 조작 전에 node scripts/check-seed.js --target=${target.name}로 확인하세요.`);
+  console.log(`RUNNING은 계속 진행합니다. 시드 직후, API 조작 전에 node scripts/checkSeed.js --target=${target.name}로 확인하세요.`);
 } catch {
   // DB 오류 원문·URL·비밀번호·해시를 출력하지 않는다.
   console.error(`시드 실패: ${target?.label ?? "대상 설정"} / ${step}. 선택한 LOCAL_DATABASE_URL 또는 NEON_DATABASE_URL, 의존성 및 migration을 확인해주세요.`);

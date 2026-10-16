@@ -1,4 +1,4 @@
-// 공부의 숲 DB 설계 v0.9 — docs/DB.md / ADR-051~058
+// 공부의 숲 DB 설계 v0.11 — docs/DB.md / ADR-051~065
 // 문서용 스키마 초안. 연결·생성·migration 실행 없음.
 // 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
 // docs/DB.md의 CHECK·RUNNING/PAUSED 부분 UNIQUE는 후속 migration에서 적용한다.
@@ -33,6 +33,9 @@ model Study {
   challenges Challenge[]
   reactions  Reaction[]
 
+  // trim 후 저장한 닉네임·스터디 이름 조합의 중복을 막는다. 단일 필드는 중복 허용.
+  // 새 UNIQUE migration과 기존 중복 데이터 검토는 후속 작업이며 아직 적용하지 않았다.
+  @@unique([nickname, name])
   @@index([createdAt, id])
   @@index([points, id])
 }
@@ -90,6 +93,7 @@ model Reaction {
   studyId   String   @db.Uuid
   // 응원용 식별자. 타이머 조작권이나 인증 증명으로 사용하지 않는다.
   browserId String   @db.Uuid
+  // 피부색 수정자를 제거한 기본 이모지. 같은 키로 중복 검사·집계한다.
   emoji     String   @db.Text
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 

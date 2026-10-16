@@ -3,11 +3,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
-import { assertLocalSeedDatabase } from "../seed-data.js";
+import { assertLocalSeedDatabase } from "../seedData.js";
 
 // 로컬 DB와 실제 라우터를 임시 서버에서 검사한다. app.js 연결은 api.http로 확인한다.
 // --preflight: DB 연결 없이 주소 검사. --wait-goal: 실제 10분 목표 경계도 검사.
 // 이번 실행에서 만든 스터디만 정리하고 seed는 유지한다.
+const fixtureKey = randomBytes(6).toString("hex");
 let prisma;
 let server;
 let step = "인자·로컬 DB 주소 확인";
@@ -35,8 +36,8 @@ try {
     const [startModule, changeModule, completeModule, completeServiceModule, passwordModule, errorModule] = await Promise.all([
       import("../src/routes/challenge.js"),
       import("../src/routes/challengePauseResume.js"),
-      import("../src/routes/challenge-complete.js"),
-      import("../src/services/challenge-complete.js"),
+      import("../src/routes/challengeComplete.js"),
+      import("../src/services/challengeComplete.js"),
       import("../src/middlewares/verifyStudyPassword.js"),
       import("../src/middlewares/errorHandler.js"),
     ]);
@@ -48,7 +49,7 @@ try {
     for (let index = 0; index < 2; index += 1) {
       const study = await prisma.study.create({
         data: {
-          nickname: "정지검증", name: `정지 재개 검증 ${index + 1}`,
+          nickname: "정지검증", name: `검증${fixtureKey}${index + 1}`,
           introduction: "검증 종료 시 삭제하는 임시 스터디입니다.", passwordHash,
         },
         select: { id: true },
@@ -125,7 +126,8 @@ try {
     for (const action of ["pause", "resume"]) {
       expectError(await change(action, { header: null }), 401, "VERIFICATION_REQUIRED");
       expectError(await change(action, { header: wrongPassword }), 401, "PASSWORD_MISMATCH");
-      expectError(await change(action, { header: "bad password" }), 400, "VALIDATION_ERROR");
+      expectError(await change(action, { header: "bad?password" }), 400, "VALIDATION_ERROR");
+      expectError(await change(action, { path: `/${challengeId}/${action}?extra=1` }), 400, "VALIDATION_ERROR");
       expectError(await change(action, { id: "invalid-id" }), 400, "VALIDATION_ERROR");
       expectError(await request({ path: `/invalid-id/${action}` }), 400, "VALIDATION_ERROR");
       expectError(await change(action, { id: randomUUID() }), 404, "STUDY_NOT_FOUND");

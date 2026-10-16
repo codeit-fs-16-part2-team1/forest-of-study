@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { validateStartChallenge, validateChallengeStudyId } from "../src/schemas/challenge.js";
-import { calculateChallengeTime } from "../src/utils/challenge-time.js";
-import { buildChallengeResponse } from "../src/utils/challenge-response.js";
+import { calculateChallengeTime } from "../src/utils/challengeTime.js";
+import { buildChallengeResponse } from "../src/utils/challengeResponse.js";
 
 const inputs = [
   [{}, true, 10],

@@ -5,8 +5,9 @@ import routineRouter from "./routes/routine.js";
 import routineHistoryRouter from "./routes/routineHistory.js";
 import { createChallengeRouter } from "./routes/challenge.js";
 import { createChallengePauseResumeRouter } from "./routes/challengePauseResume.js";
-import { createCompleteChallengeRouter } from "./routes/challenge-complete.js";
-import { createCompleteChallengeService } from "./services/challenge-complete.js";
+import { createChallengeResetRouter } from "./routes/challengeReset.js";
+import { createCompleteChallengeRouter } from "./routes/challengeComplete.js";
+import { createCompleteChallengeService } from "./services/challengeComplete.js";
 import studyPasswordRouter from "./routes/studyPassword.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { verifyStudyPassword } from "./middlewares/verifyStudyPassword.js";
@@ -35,6 +36,9 @@ app.use("/api/studies/:studyId/challenges", challengeRouter);
 
 const challengePauseResumeRouter = createChallengePauseResumeRouter({ verifyStudyPassword });
 app.use("/api/studies/:studyId/challenges", challengePauseResumeRouter);
+
+const challengeResetRouter = createChallengeResetRouter({ verifyStudyPassword });
+app.use("/api/studies/:studyId/challenges", challengeResetRouter);
 
 const completeChallenge = createCompleteChallengeService();
 const completeChallengeRouter = createCompleteChallengeRouter({

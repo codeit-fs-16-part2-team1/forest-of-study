@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma.js";
-import { buildChallengeResponse } from "../utils/challenge-response.js";
+import { buildChallengeResponse } from "../utils/challengeResponse.js";
 import { createApiError } from "../utils/apiError.js";
 
 const activeStatuses = ["RUNNING", "PAUSED"];
