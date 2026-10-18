@@ -50,6 +50,7 @@ const ChallengePreview = () => {
   const [goalMinutes, setGoalMinutes] = useState(10);
   const [width, setWidth] = useState("desktop");
   const [isPending, setIsPending] = useState(false);
+  const [showError, setShowError] = useState(false);
   const [notice, setNotice] = useState("");
   const isLoading = preview.state === "LOADING";
   const selectState = (state) => {
@@ -68,7 +69,7 @@ const ChallengePreview = () => {
   };
 
   return (
-    <main className="challengePreview">
+    <div className="challengePreview">
       <aside className="challengePreview__tools" aria-label="개발용 미리보기 설정">
         <p className="challengePreview__description">
           <strong>집중 화면 미리보기</strong>
@@ -107,6 +108,10 @@ const ChallengePreview = () => {
             <input type="checkbox" checked={isPending} onChange={(event) => setIsPending(event.target.checked)} />
             요청 처리 중 표시
           </label>
+          <label className="challengePreview__checkbox">
+            <input type="checkbox" checked={showError} onChange={(event) => setShowError(event.target.checked)} />
+            요청 실패 표시 예시
+          </label>
           <button type="button" onClick={() => {
             setPreview(createPreviewState("RUNNING", goalMinutes, 3000));
             setNotice("남은 3초인 예시 응답입니다. 0초가 되어도 완료 상태나 포인트는 변경하지 않습니다.");
@@ -129,6 +134,11 @@ const ChallengePreview = () => {
           receivedAt={preview.receivedAt}
           isLoading={isLoading}
           isPending={isPending}
+          error={showError ? { message: "요청 실패 표시 예시입니다. 실제 API 요청은 보내지 않았습니다." } : null}
+          onRetry={() => {
+            setShowError(false);
+            setNotice("다시 조회 버튼의 표시만 확인했습니다. 실제 API 요청은 보내지 않았습니다.");
+          }}
           onStart={() => showAction("RUNNING", "Start", goalMinutes * 60000)}
           onPause={() => showAction("PAUSED", "일시정지")}
           onResume={() => showAction("RUNNING", "재개")}
@@ -136,7 +146,7 @@ const ChallengePreview = () => {
           onDismissCompletion={() => showAction("READY", "완료 화면 닫기", goalMinutes * 60000)}
         />
       </div>
-    </main>
+    </div>
   );
 };
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import ChallengeTimer from "../components/challenge/ChallengeTimer.jsx";
 import GoalTimeModal from "../components/challenge/GoalTimeModal.jsx";
@@ -17,15 +17,19 @@ const ChallengePage = ({
   points,
   isLoading = false,
   isPending = false,
+  error = null,
+  onRetry,
   onStart,
   onPause,
   onResume,
   onReset,
+  onComplete,
   onDismissCompletion,
   goalTimeContent,
 }) => {
   const headingId = useId();
   const [isGoalTimeOpen, setIsGoalTimeOpen] = useState(false);
+  const completionAttemptRef = useRef(null);
   const countdownSeconds = useChallengeCountdown(challenge, receivedAt);
   const status = challenge?.status ?? null;
   const isActive = status === "RUNNING" || status === "PAUSED";
@@ -47,6 +51,23 @@ const ChallengePage = ({
       setIsGoalTimeOpen(false);
     }
   }, [canEditGoal]);
+
+  useEffect(() => {
+    if (!isActive || countdownSeconds > 0) {
+      completionAttemptRef.current = null;
+      return;
+    }
+
+    if (countdownSeconds !== 0 || loading || isPending || !onComplete
+      || !challenge?.id || completionAttemptRef.current === challenge.id) {
+      return;
+    }
+
+    // 표시가 0이어도 완료·포인트는 서버 응답으로 확정한다.
+    // 실패 후 재렌더링만으로 같은 완료 요청을 반복하지 않는다.
+    completionAttemptRef.current = challenge.id;
+    void onComplete();
+  }, [challenge?.id, countdownSeconds, isActive, isPending, loading, onComplete]);
 
   return (
     <main>
@@ -104,6 +125,32 @@ const ChallengePage = ({
               )}
             </div>
           </div>
+
+          {error && (
+            <div className="challengePage__feedback">
+              <p role="alert">{error.message}</p>
+              <div className="challengePage__feedbackActions">
+                {onRetry && (
+                  <button
+                    type="button"
+                    disabled={isLoading || isPending}
+                    onClick={onRetry}
+                  >
+                    다시 조회
+                  </button>
+                )}
+                {isActive && countdownSeconds === 0 && onComplete && (
+                  <button
+                    type="button"
+                    disabled={loading || isPending}
+                    onClick={onComplete}
+                  >
+                    완료 다시 확인
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <ChallengeTimer
             status={status}
