@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
 import useStudyPassword from "../hooks/useStudyPassword.js";
 import ChallengeSessionPage from "./ChallengeSessionPage.jsx";
@@ -8,9 +8,23 @@ import "./challengePage.scss";
 // 공개 스터디 정보는 App의 기존 조회 결과를 받는다.
 // 보호된 집중 컴포넌트는 진입 확인 성공 후에만 마운트한다.
 const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
+  const navigate = useNavigate();
   const currentStudy = studyId ? study : null;
   const verification = useStudyPassword(currentStudy?.id ?? null);
   const canEnter = Boolean(currentStudy?.id) && !isStudyLoading && !studyError;
+
+  const leaveVerification = () => {
+    // 이동 전에 비밀번호와 대기 중인 검증 응답을 폐기한다.
+    verification.close();
+
+    // 직접 접속한 첫 화면에서는 뒤로 가는 대신 홈으로 이동한다.
+    const historyIndex = window.history.state?.idx;
+    if (Number.isInteger(historyIndex) && historyIndex > 0) {
+      navigate(-1);
+    } else {
+      navigate("/", { replace: true });
+    }
+  };
 
   return (
     <>
@@ -52,7 +66,10 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
           </section>
         </main>
       )}
-      <StudyPasswordVerification verification={verification} />
+      <StudyPasswordVerification
+        verification={verification}
+        onClose={leaveVerification}
+      />
     </>
   );
 };

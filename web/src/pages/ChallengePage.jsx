@@ -103,10 +103,20 @@ const ChallengePage = ({
                     <img src={arrowRight} alt="" />
                   </span>
                 )}
-                <Link className="challengePage__link" to="/">
-                  홈
-                  <img src={arrowRight} alt="" />
-                </Link>
+                {study?.id ? (
+                  <Link
+                    className="challengePage__link"
+                    to={`/dashboard/${encodeURIComponent(study.id)}`}
+                  >
+                    스터디 상세
+                    <img src={arrowRight} alt="" />
+                  </Link>
+                ) : (
+                  <span className="challengePage__link" aria-disabled="true">
+                    스터디 상세
+                    <img src={arrowRight} alt="" />
+                  </span>
+                )}
               </nav>
             </div>
 
