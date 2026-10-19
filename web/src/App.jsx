@@ -7,6 +7,8 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import RoutinesPage from "./pages/RoutinesPage.jsx";
 import ChallengePage from "./pages/ChallengePage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
+import ModalPreview from "./dev/ModalPreview/ModalPreview.jsx";
+import RoutePreview from "./dev/RoutePreview/RoutePreview.jsx";
 
 const App = () => {
   const dashboardMatch = useMatch("/dashboard/:id");
@@ -48,6 +50,12 @@ const App = () => {
           <Route path="routines" element={<RoutinesPage />} />
           <Route path="challenge" element={<ChallengePage />} />
         </Route>
+        {import.meta.env.DEV && (
+          <>
+            <Route path="/dev/modal" element={<ModalPreview />} />
+            <Route path="/dev/routes" element={<RoutePreview />} />
+          </>
+        )}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
