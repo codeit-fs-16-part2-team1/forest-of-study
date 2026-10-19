@@ -1,16 +1,17 @@
-import { Route, Routes, useMatch, useSearchParams } from "react-router";
+import { Route, Routes, useLocation, useMatch, useSearchParams } from "react-router";
 import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
 import RootLayout from "./layouts/RootLayout.jsx";
 import MainPage from "./pages/MainPage.jsx";
 import RegPage from "./pages/RegPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import RoutinesPage from "./pages/RoutinesPage.jsx";
-import ChallengePage from "./pages/ChallengePage.jsx";
+import ChallengeEntryPage from "./pages/ChallengeEntryPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import ModalPreview from "./dev/ModalPreview/ModalPreview.jsx";
 import RoutePreview from "./dev/RoutePreview/RoutePreview.jsx";
 
 const App = () => {
+  const { pathname } = useLocation();
   const dashboardMatch = useMatch("/dashboard/:id");
   const routinesMatch = useMatch("/routines");
   const challengeMatch = useMatch("/challenge");
@@ -24,8 +25,12 @@ const App = () => {
     studyId = searchParams.get("id");
   }
 
-  const studyState = useStudyTitleData(studyId);
-  const { study } = studyState;
+const {
+  study,
+  isLoading: isStudyLoading,
+  error: studyError,
+} = useStudyTitleData(studyId, pathname);
+
   const studyName = study?.name;
 
   let pageTitle = "공부의 숲";
@@ -47,12 +52,23 @@ const App = () => {
         <Route path="/" element={<RootLayout />}>
           <Route index element={<MainPage />} />
           <Route path="reg" element={<RegPage />} />
-          <Route path="dashboard/:id" element={<DashboardPage />} />
-          <Route
-            path="routines"
-            element={<RoutinesPage key={studyId} studyState={studyState} />}
+          <Route path="dashboard/:id" element={<DashboardPage
+            study={study}
+            isLoading={isStudyLoading}
+            error={studyError}
+            />
+           }
           />
-          <Route path="challenge" element={<ChallengePage />} />
+          <Route path="routines" element={<RoutinesPage />} />
+          <Route path="challenge" element={
+            <ChallengeEntryPage
+              key={studyId ?? "missing"}
+              studyId={studyId}
+              study={study}
+              isStudyLoading={isStudyLoading}
+              studyError={studyError}
+            />
+          } />
         </Route>
         {import.meta.env.DEV && (
           <>
