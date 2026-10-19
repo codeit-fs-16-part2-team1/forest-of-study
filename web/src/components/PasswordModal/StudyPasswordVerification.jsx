@@ -7,6 +7,7 @@ const StudyPasswordVerification = ({
   description,
   submitLabel,
   closeLabel,
+  onClose,
 }) => (
   <PasswordModal
     key={`${verification.studyId}:${verification.formVersion}`}
@@ -19,7 +20,7 @@ const StudyPasswordVerification = ({
     disabled={!verification.studyId}
     errorMessage={verification.error?.message ?? ""}
     onSubmit={verification.verifyPassword}
-    onClose={verification.close}
+    onClose={onClose ?? verification.close}
   />
 );
 

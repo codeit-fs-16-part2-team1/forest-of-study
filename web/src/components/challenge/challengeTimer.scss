@@ -1,0 +1,120 @@
+.challengeTimer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  height: 546px;
+  padding: 40px 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 29px;
+  }
+
+  &__goal {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 5px 8px;
+    border: 1px solid rgb(0 0 0 / 10%);
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 19px;
+
+    img {
+      display: block;
+    }
+  }
+
+  &__display {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+  }
+
+  &__time {
+    padding: 0;
+    color: var(--color-text);
+    font-size: 150px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.18;
+    white-space: nowrap;
+  }
+
+  &__timeButton {
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  &[data-status="PAUSED"] &__time {
+    color: var(--color-red);
+  }
+
+  &[data-status="COMPLETED"] &__time {
+    color: var(--color-text-muted);
+  }
+
+  &__skeleton {
+    width: min(100%, 400px);
+    height: 150px;
+    background: var(--color-gray-lighter);
+    border-radius: 12px;
+  }
+}
+
+@container (max-width: 900px) {
+  .challengeTimer {
+    height: 510px;
+
+    &__time {
+      font-size: 120px;
+    }
+  }
+}
+
+@container (max-width: 640px) {
+  .challengeTimer {
+    height: 358px;
+    padding: 24px 16px 48px;
+
+    &[data-status="RUNNING"],
+    &[data-status="PAUSED"],
+    &[data-status="COMPLETED"] {
+      height: 342px;
+      padding-bottom: 24px;
+    }
+
+    &__heading {
+      gap: 16px;
+    }
+
+    &__time {
+      font-size: clamp(48px, 23cqi, 80px);
+    }
+
+    &__skeleton {
+      width: min(100%, 240px);
+      height: 80px;
+    }
+  }
+}
