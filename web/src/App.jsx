@@ -1,4 +1,4 @@
-import { Route, Routes, useMatch, useSearchParams } from "react-router";
+import { Route, Routes, useLocation, useMatch, useSearchParams } from "react-router";
 import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
 import RootLayout from "./layouts/RootLayout.jsx";
 import MainPage from "./pages/MainPage.jsx";
@@ -11,6 +11,7 @@ import ModalPreview from "./dev/ModalPreview/ModalPreview.jsx";
 import RoutePreview from "./dev/RoutePreview/RoutePreview.jsx";
 
 const App = () => {
+  const { pathname } = useLocation();
   const dashboardMatch = useMatch("/dashboard/:id");
   const routinesMatch = useMatch("/routines");
   const challengeMatch = useMatch("/challenge");
@@ -28,7 +29,7 @@ const {
   study,
   isLoading: isStudyLoading,
   error: studyError,
-} = useStudyTitleData(studyId);
+} = useStudyTitleData(studyId, pathname);
 
   const studyName = study?.name;
 
