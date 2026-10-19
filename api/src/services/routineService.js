@@ -53,8 +53,8 @@ export const createRoutine = async ({ studyId, name }) => {
   });
 };
 
-export const getTodayRoutines = async ({ studyId }) => {
-  const study = await prisma.study.findUnique({
+export const getTodayRoutines = async ({ studyId, client = prisma, now = new Date() }) => {
+  const study = await client.study.findUnique({
     where: { id: studyId },
     select: { id: true },
   });
@@ -62,10 +62,9 @@ export const getTodayRoutines = async ({ studyId }) => {
     throw createApiError("STUDY_NOT_FOUND");
   }
 
-  const now = new Date();
   const recordDate = getKoreanDate(now);
   const today = new Date(`${recordDate}T00:00:00.000Z`);
-  const routines = await prisma.routine.findMany({
+  const routines = await client.routine.findMany({
     where: { studyId, endsOn: null, startsOn: { lte: today } },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     select: {

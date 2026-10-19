@@ -4,8 +4,9 @@ import { createApiError } from "../utils/apiError.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { verifyStudyPassword } from "../middlewares/verifyStudyPassword.js";
 import { rejectQuery } from "../middlewares/rejectQuery.js";
-import { validateCreateRoutine, validateRoutineId, validateRoutineCheck } from "../schemas/routine.js";
+import { validateCreateRoutine, validateRoutineId, validateRoutineCheck, validateRoutineBatch } from "../schemas/routine.js";
 import { createRoutine, getTodayRoutines, setRoutineCheck } from "../services/routineService.js";
+import { saveRoutineBatch } from "../services/routineBatchService.js";
 
 const routineRouter = express.Router({ mergeParams: true });
 
@@ -29,6 +30,16 @@ routineRouter.post("/", async (req, res) => {
 routineRouter.get("/", async (req, res) => {
   const result = await getTodayRoutines({ studyId: req.params.studyId });
   return sendSuccess(res, result);
+});
+
+routineRouter.patch("/batch", async (req, res) => {
+  const result = validateRoutineBatch(req.body);
+  if (!result.success) throw createApiError("VALIDATION_ERROR");
+  const routines = await saveRoutineBatch({
+    studyId: req.params.studyId,
+    ...result.data,
+  });
+  return sendSuccess(res, routines);
 });
 
 routineRouter.put("/:routineId/check", async (req, res) => {

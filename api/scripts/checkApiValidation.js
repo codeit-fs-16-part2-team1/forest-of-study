@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
-import { validateCreateRoutine, validateRoutineCheck } from "../src/schemas/routine.js";
+import { validateCreateRoutine, validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
 import { validateStudyPassword, validatePasswordVerificationBody } from "../src/schemas/studyPassword.js";
 import { assertLocalSeedDatabase } from "../seedData.js";
 
@@ -74,6 +74,36 @@ try {
     { recordDate: "2026-10-15", completed: "true" },
     { recordDate: "2026-10-15", completed: true, extra: 1 },
   ]) assert.equal(validateRoutineCheck(value).success, false);
+
+  step = "습관 일괄 저장 입력·중복 대상·그래핌 경계";
+  const routineId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const anotherId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const emptyBatch = { creates: [], updates: [], endIds: [] };
+  const batch = validateRoutineBatch({
+    creates: [{ name: ` ${family.repeat(20)} ` }],
+    updates: [{ routineId: routineId.toUpperCase(), name: " 독서 " }],
+    endIds: [anotherId],
+  });
+  assert.equal(batch.success, true);
+  assert.equal(batch.data.creates[0].name, family.repeat(20));
+  assert.deepEqual(batch.data.updates[0], { routineId, name: "독서" });
+  assert.equal(validateRoutineBatch({ ...emptyBatch, endIds: [routineId] }).success, true);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서" })),
+  }).success, true);
+  for (const invalidBatch of [
+    { ...emptyBatch, creates: [{ name: family.repeat(21) }] },
+    { ...emptyBatch, creates: [{ name: " \t" }] },
+    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서" })) },
+    { ...emptyBatch, creates: [{ name: "독서", routineId }] },
+    { ...emptyBatch, updates: [{ routineId: "invalid", name: "독서" }] },
+    { ...emptyBatch, updates: [{ routineId, name: family.repeat(21) }] },
+    { ...emptyBatch, endIds: [routineId, routineId.toUpperCase()] },
+    { ...emptyBatch, updates: [{ routineId, name: "독서" }], endIds: [routineId] },
+    { ...emptyBatch, updates: [{ routineId, name: "독서" }, { routineId, name: "운동" }] },
+    { ...emptyBatch, extra: true },
+    { creates: [], updates: [] },
+  ]) assert.equal(validateRoutineBatch(invalidBatch).success, false);
 
   step = "로컬 주소 허용·외부 주소와 접속 우회 거절";
   for (const url of [

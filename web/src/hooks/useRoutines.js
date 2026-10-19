@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { routineApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 
-const useRoutines = (studyId, verifiedPassword, onCheckError) => {
+const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
   const [routineData, setRoutineData] = useState(null);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
   const [routineError, setRoutineError] = useState("");
@@ -57,6 +57,24 @@ const useRoutines = (studyId, verifiedPassword, onCheckError) => {
     setReloadCount((count) => count + 1);
   };
 
+  const saveRoutines = async (changes) => {
+    if (!studyId || verifiedPassword === null || pendingRoutineIds.length > 0) {
+      return false;
+    }
+
+    try {
+      const { data } = await routineApi.saveBatch(studyId, changes, verifiedPassword);
+      if (!isPageActiveRef.current) return false;
+
+      // 저장과 같은 트랜잭션에서 조회한 목록으로 교체한다.
+      setRoutineData(data);
+      return true;
+    } catch (error) {
+      if (isPageActiveRef.current) onRoutineError?.(getApiError(error));
+      return false;
+    }
+  };
+
   const handleToggleRoutine = async (routine) => {
     if (
       !routineData ||
@@ -100,7 +118,7 @@ const useRoutines = (studyId, verifiedPassword, onCheckError) => {
       if (!isPageActiveRef.current) return;
       const apiError = getApiError(error);
 
-      onCheckError?.(apiError);
+      onRoutineError?.(apiError);
 
       if (apiError.code === "DATE_CHANGED") {
         reloadRoutines();
@@ -120,6 +138,7 @@ const useRoutines = (studyId, verifiedPassword, onCheckError) => {
     routineError,
     pendingRoutineIds,
     reloadRoutines,
+    saveRoutines,
     handleToggleRoutine,
   };
 };
