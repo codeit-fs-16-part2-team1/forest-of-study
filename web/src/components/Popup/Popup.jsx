@@ -21,13 +21,20 @@ const Popup = ({
   const isConfirm = mode === "confirm";
   const isDisabled = disabled || isPending;
 
+  // 취소 버튼과 배경 클릭은 같은 취소 동작을 사용한다.
+  const handleCancel = () => {
+    if (!isDisabled) onCancel?.();
+  };
+
   if (!isOpen) return null;
 
   return createPortal(
     <div
       className={[styles.backdrop, className].filter(Boolean).join(" ")}
       onClick={(event) => {
-        if (!isConfirm && event.target === event.currentTarget) onClose?.();
+        if (event.target !== event.currentTarget) return;
+        if (isConfirm) handleCancel();
+        else onClose?.();
       }}
     >
       <section
@@ -53,9 +60,7 @@ const Popup = ({
             <button
               className={[styles.actionButton, styles.cancelButton].join(" ")}
               type="button"
-              onClick={() => {
-                if (!isDisabled) onCancel?.();
-              }}
+              onClick={handleCancel}
               disabled={isDisabled}
             >
               {cancelLabel}
