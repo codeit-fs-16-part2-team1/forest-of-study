@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import styles from "./DashboardPage.module.scss";
+import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
 
 const DashboardPage = ({ study, isLoading, error }) => {
   if (isLoading) {
@@ -84,6 +85,10 @@ const DashboardPage = ({ study, isLoading, error }) => {
             </dd>
           </div>
         </dl>
+         <RoutineHistoryTable
+          key={study.id}
+          studyId={study.id}
+         />
       </section>
     </main>
   );
