@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import useChallengeSession from "../hooks/useChallengeSession.js";
 import ChallengePage from "./ChallengePage.jsx";
+import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
 
 const VerifiedChallengeSession = ({
   study,
   verifiedPassword,
   onVerificationRequired,
-  renderGoalTimeContent,
 }) => {
   const session = useChallengeSession({
     studyId: study.id,
     password: verifiedPassword,
   });
   const [goalDraft, setGoalDraft] = useState(null);
-  const goalMinutes = goalDraft ?? session.snapshot?.goalMinutes ?? 10;
+  // 재조회·상태 변경 뒤에는 서버 응답의 목표를 사용한다.
+  const goalMinutes = goalDraft && goalDraft.snapshot === session.snapshot
+    ? goalDraft.minutes
+    : session.snapshot?.goalMinutes ?? 10;
 
   useEffect(() => {
     if (session.needsPassword) {
@@ -25,11 +28,11 @@ const VerifiedChallengeSession = ({
   const changeGoalMinutes = (minutes) => {
     if (!session.snapshot || session.snapshot.challenge
       || session.isLoading || session.isPending
-      || !Number.isInteger(minutes) || minutes < 10 || minutes > 180) {
+      || !isValidChallengeGoalMinutes(minutes)) {
       return false;
     }
 
-    setGoalDraft(minutes);
+    setGoalDraft({ minutes, snapshot: session.snapshot });
     return true;
   };
 
@@ -61,7 +64,7 @@ const VerifiedChallengeSession = ({
       onReset={session.resetChallenge}
       onComplete={session.completeChallenge}
       onDismissCompletion={session.dismissCompletion}
-      goalTimeContent={renderGoalTimeContent?.({ goalMinutes, onChange: changeGoalMinutes })}
+      onGoalMinutesChange={changeGoalMinutes}
     />
   );
 };

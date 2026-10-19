@@ -5,7 +5,7 @@ import MainPage from "./pages/MainPage.jsx";
 import RegPage from "./pages/RegPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import RoutinesPage from "./pages/RoutinesPage.jsx";
-import ChallengePage from "./pages/ChallengePage.jsx";
+import ChallengeEntryPage from "./pages/ChallengeEntryPage.jsx";
 import NotFoundPage from "./pages/NotFoundPage.jsx";
 import ModalPreview from "./dev/ModalPreview/ModalPreview.jsx";
 import RoutePreview from "./dev/RoutePreview/RoutePreview.jsx";
@@ -24,7 +24,7 @@ const App = () => {
     studyId = searchParams.get("id");
   }
 
-  const { study } = useStudyTitleData(studyId);
+  const { study, isLoading: isStudyLoading, error: studyError } = useStudyTitleData(studyId);
   const studyName = study?.name;
 
   let pageTitle = "공부의 숲";
@@ -48,7 +48,15 @@ const App = () => {
           <Route path="reg" element={<RegPage />} />
           <Route path="dashboard/:id" element={<DashboardPage />} />
           <Route path="routines" element={<RoutinesPage />} />
-          <Route path="challenge" element={<ChallengePage />} />
+          <Route path="challenge" element={
+            <ChallengeEntryPage
+              key={studyId ?? "missing"}
+              studyId={studyId}
+              study={study}
+              isStudyLoading={isStudyLoading}
+              studyError={studyError}
+            />
+          } />
         </Route>
         {import.meta.env.DEV && (
           <>

@@ -25,7 +25,7 @@ const ChallengePage = ({
   onReset,
   onComplete,
   onDismissCompletion,
-  goalTimeContent,
+  onGoalMinutesChange,
 }) => {
   const headingId = useId();
   const [isGoalTimeOpen, setIsGoalTimeOpen] = useState(false);
@@ -36,7 +36,8 @@ const ChallengePage = ({
   const isCompleted = status === "COMPLETED";
   const canConfirmCompletion = isActive && countdownSeconds === 0 && Boolean(onComplete);
   const loading = isLoading || !study;
-  const canEditGoal = !loading && !isPending && !isActive && !isCompleted;
+  const canEditGoal = !loading && !isPending && !isActive && !isCompleted
+    && Boolean(onGoalMinutesChange);
   const currentGoalMinutes = isActive || isCompleted
     ? challenge.goalMinutes
     : goalMinutes;
@@ -170,10 +171,11 @@ const ChallengePage = ({
 
         <GoalTimeModal
           isOpen={isGoalTimeOpen && canEditGoal}
+          goalMinutes={currentGoalMinutes}
+          onSave={onGoalMinutesChange}
           onClose={() => setIsGoalTimeOpen(false)}
-        >
-          {goalTimeContent}
-        </GoalTimeModal>
+          disabled={!canEditGoal}
+        />
       </section>
     </main>
   );

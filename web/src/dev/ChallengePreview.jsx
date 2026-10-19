@@ -2,6 +2,7 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Link, MemoryRouter, Route, Routes } from "react-router";
 import ChallengePage from "../pages/ChallengePage.jsx";
+import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
 import "../styles/index.scss";
 import "./challengePreview.scss";
 
@@ -130,6 +131,7 @@ const ChallengePreview = () => {
               setCompletionAttempts(0);
               setPoints(previewStudy.points);
             }}>
+              {![10, 25, 180].includes(goalMinutes) && <option value={goalMinutes}>{goalMinutes}분</option>}
               <option value={10}>10분</option>
               <option value={25}>25분</option>
               <option value={180}>180분</option>
@@ -169,7 +171,7 @@ const ChallengePreview = () => {
           </button>
         </div>
         <p className="challengePreview__help">
-          창이 선택한 너비보다 좁으면 창에 맞춥니다. 시작 전 숫자를 누르면 시간 설정 모달 틀이 열립니다.
+          창이 선택한 너비보다 좁으면 창에 맞춥니다. 시작 전 숫자를 누르면 10~180분을 입력·저장할 수 있습니다.
           0초 표시는 실제 서버 완료·포인트 지급을 의미하지 않습니다. 모의 완료 호출 횟수: {completionAttempts}회.
         </p>
         <p className="challengePreview__notice" role="status">{notice}</p>
@@ -182,6 +184,13 @@ const ChallengePreview = () => {
           goalMinutes={goalMinutes}
           receivedAt={preview.receivedAt}
           points={points}
+          onGoalMinutesChange={(minutes) => {
+            if (preview.state !== "READY" || isPending || !isValidChallengeGoalMinutes(minutes)) return false;
+            setGoalMinutes(minutes);
+            setPreview(createPreviewState("READY", minutes, minutes * 60000));
+            setNotice("목표 시간을 화면에 적용했습니다. API 요청은 보내지 않았습니다.");
+            return true;
+          }}
           isLoading={isLoading}
           isPending={isPending}
           error={showError ? { message: "요청 실패 표시 예시입니다. 실제 API 요청은 보내지 않았습니다." } : null}
