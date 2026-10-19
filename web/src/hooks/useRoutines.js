@@ -10,19 +10,30 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
   const [routineError, setRoutineError] = useState("");
   const [reloadCount, setReloadCount] = useState(0);
   const [pendingRoutineIds, setPendingRoutineIds] = useState([]);
-  const isPageActiveRef = useRef(true);
+  const contextRef = useRef(null);
 
   useEffect(() => {
-    isPageActiveRef.current = true;
+    const context = { studyId, verifiedPassword, active: true };
+    contextRef.current = context;
+    setPendingRoutineIds([]);
 
     return () => {
-      isPageActiveRef.current = false;
+      context.active = false;
+      context.verifiedPassword = null;
+      if (contextRef.current === context) contextRef.current = null;
     };
-  }, []);
+  }, [studyId, verifiedPassword]);
+
+  const isCurrentContext = (context) => context?.active && contextRef.current === context;
 
   useEffect(() => {
     // 비밀번호 검증 전에는 목록을 요청하지 않습니다.
-    if (!studyId || verifiedPassword === null) return;
+    if (!studyId || verifiedPassword === null) {
+      setRoutineData(null);
+      setRoutineError("");
+      setIsLoadingRoutines(true);
+      return;
+    }
 
     let ignore = false;
     let loadingTimer;
@@ -43,7 +54,9 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
         if (!ignore) {
           const apiError = getApiError(error);
           setRoutineError(apiError.message);
-          if (apiError.code === "STUDY_NOT_FOUND") onRoutineError?.(apiError);
+          if (apiError.status === 401 || apiError.code === "STUDY_NOT_FOUND") {
+            onRoutineError?.(apiError);
+          }
         }
       } finally {
         if (!ignore) {
@@ -68,25 +81,32 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
   };
 
   const saveRoutines = async (changes) => {
-    if (!studyId || verifiedPassword === null || pendingRoutineIds.length > 0) {
+    const context = contextRef.current;
+    if (!isCurrentContext(context) || context.studyId !== studyId ||
+        context.verifiedPassword !== verifiedPassword || !studyId ||
+        verifiedPassword === null || pendingRoutineIds.length > 0) {
       return false;
     }
 
     try {
       const { data } = await routineApi.saveBatch(studyId, changes, verifiedPassword);
-      if (!isPageActiveRef.current) return false;
+      if (!isCurrentContext(context)) return false;
 
       // 저장과 같은 트랜잭션에서 조회한 목록으로 교체한다.
       setRoutineData(data);
       return true;
     } catch (error) {
-      if (isPageActiveRef.current) onRoutineError?.(getApiError(error));
+      if (isCurrentContext(context)) onRoutineError?.(getApiError(error));
       return false;
     }
   };
 
   const handleToggleRoutine = async (routine) => {
+    const context = contextRef.current;
     if (
+      !isCurrentContext(context) ||
+      context.studyId !== studyId ||
+      context.verifiedPassword !== verifiedPassword ||
       !routineData ||
       verifiedPassword === null ||
       pendingRoutineIds.includes(routine.id)
@@ -107,7 +127,7 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
         verifiedPassword,
       );
 
-      if (!isPageActiveRef.current) return;
+      if (!isCurrentContext(context)) return;
 
       setRoutineData((previous) => {
         // 재조회 중이거나 목록의 날짜가 바뀌었다면 반영하지 않습니다.
@@ -125,7 +145,7 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
         };
       });
     } catch (error) {
-      if (!isPageActiveRef.current) return;
+      if (!isCurrentContext(context)) return;
       const apiError = getApiError(error);
 
       onRoutineError?.(apiError);
@@ -134,7 +154,7 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
         reloadRoutines();
       }
     } finally {
-      if (isPageActiveRef.current) {
+      if (isCurrentContext(context)) {
         setPendingRoutineIds((ids) =>
           ids.filter((id) => id !== routine.id),
         );

@@ -24,6 +24,9 @@
   font-weight: 800;
   overflow-wrap: anywhere;
 }
+.nickname {
+  color: var(--color-green-text);
+}
 .containerHeader nav {
   display: flex;
   gap: 0.5rem; // 8px

@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import CurrentTime from "../components/CurrentTime/CurrentTime.jsx";
-import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
+import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
 import Popup from "../components/Popup/Popup.jsx";
 import RoutineModal from "../components/RoutineModal/RoutineModal.jsx";
 import RoutineList from "../components/RoutineList/RoutineList.jsx";
@@ -40,14 +40,20 @@ const RoutinesPage = ({ studyState }) => {
     else showToast(error.message, "warning");
   }, [showToast]);
 
-  const {
-    isPasswordModalOpen,
-    verifiedPassword,
-    isVerifying,
-    passwordError,
-    handleVerifyPassword,
-    closePasswordModal,
-  } = useStudyPassword(studyId, handleRequestError);
+  const verification = useStudyPassword(isValidId ? studyId : null);
+  const { verifiedPassword, requireVerification } = verification;
+
+  useEffect(() => {
+    if (verification.error) handleRequestError(verification.error);
+  }, [verification.error, handleRequestError]);
+
+  const handleRoutineError = useCallback((error) => {
+    if (error.status === 401) {
+      setIsRoutineModalOpen(false);
+      requireVerification();
+    }
+    handleRequestError(error);
+  }, [requireVerification, handleRequestError]);
   const {
     routineData,
     isLoadingRoutines,
@@ -56,10 +62,10 @@ const RoutinesPage = ({ studyState }) => {
     reloadRoutines,
     saveRoutines,
     handleToggleRoutine,
-  } = useRoutines(studyId, verifiedPassword, handleRequestError);
+  } = useRoutines(studyId, verifiedPassword, handleRoutineError);
 
   const handleClosePasswordModal = () => {
-    closePasswordModal();
+    verification.close();
     goBack();
   };
 
@@ -82,10 +88,17 @@ const RoutinesPage = ({ studyState }) => {
       <main className={styles.main}>
         <div className={styles.container}>
           <div className={styles.containerHeader}>
-            <h2 className={styles.studyTitle}>{study?.name || "스터디"}</h2>
+            <h2 className={styles.studyTitle}>
+              {study ? (
+                <>
+                  <span className={styles.nickname}>{study.nickname}</span>
+                  의 {study.name}
+                </>
+              ) : "스터디"}
+            </h2>
             <nav>
-              <Link to={`/challenge?id=${studyId}`}>오늘의 집중</Link>
-              <Link to={`/dashboard/${studyId}`}>스터디 상세</Link>
+              <Link to={`/challenge?id=${studyId}`} state={{ from: currentPath }}>오늘의 집중</Link>
+              <Link to={`/dashboard/${studyId}`} state={{ from: currentPath }}>스터디 상세</Link>
             </nav>
           </div>
           <CurrentTime
@@ -122,13 +135,12 @@ const RoutinesPage = ({ studyState }) => {
           </div>
         </div>
       </main>
-      <PasswordModal
-        isOpen={isPasswordModalOpen && Boolean(study) && !isLoadingStudy && !studyError}
-        isPending={isVerifying}
-        errorMessage={passwordError}
-        onSubmit={handleVerifyPassword}
-        onClose={handleClosePasswordModal}
-      />
+      {Boolean(study) && !isLoadingStudy && !studyError && (
+        <StudyPasswordVerification
+          verification={verification}
+          onClose={handleClosePasswordModal}
+        />
+      )}
       {verifiedPassword !== null && isRoutineModalOpen && routineData && (
         <RoutineModal
           routines={routineData.routines}

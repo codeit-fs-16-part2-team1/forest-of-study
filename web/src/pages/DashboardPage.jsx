@@ -1,8 +1,11 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
 
 const DashboardPage = ({ study, isLoading, error }) => {
+  const location = useLocation();
+  const currentPath = location.pathname + location.search + location.hash;
+
   if (isLoading) {
     return (
       <main className={styles.page}>
@@ -60,7 +63,7 @@ const DashboardPage = ({ study, isLoading, error }) => {
           </h1>
 
           <nav className={styles.links} aria-label="스터디 활동">
-            <Link to={`/routines?id=${study.id}`}>
+            <Link to={`/routines?id=${study.id}`} state={{ from: currentPath }}>
               오늘의 습관 <span aria-hidden="true">›</span>
             </Link>
 
