@@ -83,17 +83,18 @@ const RegPage = () => {
     }
   };
 
-  const handlePasswordKeyDown = (event) => {
-    if (event.key === " ") {
-      event.preventDefault();
+const handlePasswordKeyDown = (event) => {
+  if (event.key === " ") {
+    event.preventDefault();
 
-      setErrors((previous) => ({
-        ...previous,
-        [event.currentTarget.name]:
-          "비밀번호에는 공백을 사용할 수 없습니다.",
-      }));
-    }
-  };
+    const { name } = event.currentTarget;
+
+    setErrors((previous) => ({
+      ...previous,
+      [name]: "비밀번호에는 공백을 사용할 수 없습니다.",
+    }));
+  }
+};
 
   const togglePassword = (name) => {
     setVisiblePasswords((previous) => ({
