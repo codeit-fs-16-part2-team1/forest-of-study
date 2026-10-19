@@ -25,11 +25,12 @@ const App = () => {
     studyId = searchParams.get("id");
   }
 
-const {
-  study,
-  isLoading: isStudyLoading,
-  error: studyError,
-} = useStudyTitleData(studyId, pathname);
+  const {
+    study,
+    isLoading: isStudyLoading,
+    error: studyError,
+    updateReactions,
+  } = useStudyTitleData(studyId, pathname);
 
   const studyName = study?.name;
 
@@ -56,6 +57,7 @@ const {
             study={study}
             isLoading={isStudyLoading}
             error={studyError}
+            onReactionsChange={updateReactions}
             />
            }
           />

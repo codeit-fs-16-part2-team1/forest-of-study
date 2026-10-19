@@ -1,8 +1,9 @@
 import { Link } from "react-router";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
+import StudyReactions from "../components/reaction/StudyReactions.jsx";
 
-const DashboardPage = ({ study, isLoading, error }) => {
+const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   if (isLoading) {
     return (
       <main className={styles.page}>
@@ -42,16 +43,13 @@ const DashboardPage = ({ study, isLoading, error }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
-        {study.reactions?.length > 0 && (
-          <ul className={styles.reactions} aria-label="상위 응원">
-            {study.reactions.map(({ emoji, count }) => (
-              <li key={emoji}>
-                <span>{emoji}</span>
-                <span>{count}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className={styles.reactions}>
+          <StudyReactions
+            studyId={study.id}
+            reactions={study.reactions ?? []}
+            onReactionsChange={onReactionsChange}
+          />
+        </div>
 
         <div className={styles.heading}>
           <h1 id="study-title" className={styles.title}>
