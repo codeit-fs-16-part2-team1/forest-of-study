@@ -1,0 +1,116 @@
+<div id="routine-load-error-preview" class="viz-dotted-background">
+  <section class="rfe-panel" aria-label="오늘의 습관 조회 실패 화면">
+    <header class="rfe-header">
+      <h2>오늘의 습관</h2>
+      <button type="button" class="rfe-edit" disabled>목록 수정</button>
+    </header>
+    <div class="rfe-state" aria-busy="false">
+      <div class="rfe-icon" aria-hidden="true"><i data-lucide="circle-alert"></i></div>
+      <div class="rfe-copy" aria-live="polite">
+        <p class="rfe-title">습관을 불러오지 못했어요</p>
+        <p class="rfe-description">잠시 후 다시 시도해주세요.</p>
+      </div>
+      <button type="button" class="rfe-retry cursor-interaction">
+        <i data-lucide="rotate-cw" aria-hidden="true"></i>
+        <span>다시 시도</span>
+      </button>
+    </div>
+  </section>
+</div>
+<style>
+  #routine-load-error-preview {
+    --rfe-surface: light-dark(#ffffff, #252925);
+    --rfe-text: light-dark(#414141, #eeeeeb);
+    --rfe-muted: light-dark(#818181, #b0b8ae);
+    --rfe-line: light-dark(#dddddd, #4c544a);
+    --rfe-soft: light-dark(#f3f3ef, #343b32);
+    --rfe-green: light-dark(#99c08e, #99c08e);
+    --rfe-green-text: light-dark(#30492a, #24371f);
+    padding: 2rem 1rem;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--rfe-text);
+  }
+  #routine-load-error-preview * { box-sizing: border-box; }
+  #routine-load-error-preview .rfe-panel {
+    max-width: 36rem; margin: 0 auto; padding: 2rem 1.5rem;
+    background: var(--rfe-surface); border: 0.0625rem solid var(--rfe-line);
+    border-radius: 1.25rem;
+  }
+  #routine-load-error-preview .rfe-header {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center; gap: 0.5rem;
+  }
+  #routine-load-error-preview h2 {
+    grid-column: 2; margin: 0; font-size: 1.5rem; line-height: 1.5; font-weight: 800;
+  }
+  #routine-load-error-preview button { font: inherit; }
+  #routine-load-error-preview .rfe-edit {
+    grid-column: 3; justify-self: end; padding: 0.25rem 0; border: 0;
+    background: transparent; color: var(--rfe-muted); font-size: 0.875rem;
+    white-space: nowrap; opacity: 0.5;
+  }
+  #routine-load-error-preview .rfe-state {
+    display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+    padding: 3.5rem 0 2rem; text-align: center;
+  }
+  #routine-load-error-preview .rfe-icon {
+    display: grid; place-items: center; width: 3rem; height: 3rem;
+    border-radius: 50%; background: var(--rfe-soft); color: var(--rfe-muted);
+  }
+  #routine-load-error-preview .rfe-icon svg { width: 1.5rem; height: 1.5rem; }
+  #routine-load-error-preview .rfe-copy p { margin: 0; }
+  #routine-load-error-preview .rfe-title { font-size: 1.125rem; line-height: 1.6; font-weight: 700; }
+  #routine-load-error-preview .rfe-description {
+    margin-top: 0.5rem !important; color: var(--rfe-muted); font-size: 0.875rem; line-height: 1.6;
+  }
+  #routine-load-error-preview .rfe-retry {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    min-width: 9rem; min-height: 3rem; margin-top: 0.25rem; padding: 0.75rem 1.25rem;
+    border: 0; border-radius: 1rem; background: var(--rfe-green); color: var(--rfe-green-text);
+    font-size: 1rem; font-weight: 700;
+  }
+  #routine-load-error-preview .rfe-retry svg { width: 1rem; height: 1rem; }
+  #routine-load-error-preview .rfe-retry:disabled { opacity: 0.6; }
+  #routine-load-error-preview [hidden] { display: none; }
+  @media (max-width: 420px) {
+    #routine-load-error-preview { padding: 1.25rem 0.5rem; }
+    #routine-load-error-preview .rfe-panel { padding: 1.5rem 1rem; }
+    #routine-load-error-preview h2 { font-size: 1.125rem; }
+    #routine-load-error-preview .rfe-edit { font-size: 0.75rem; }
+    #routine-load-error-preview .rfe-title { font-size: 1rem; }
+  }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('routine-load-error-preview');
+  const stateArea = root.querySelector('.rfe-state');
+  const retry = root.querySelector('.rfe-retry');
+  const label = retry.querySelector('span');
+  const title = root.querySelector('.rfe-title');
+  const description = root.querySelector('.rfe-description');
+  const icon = root.querySelector('.rfe-icon');
+  retry.addEventListener('click', () => {
+    if (retry.disabled) return;
+    retry.disabled = true;
+    stateArea.setAttribute('aria-busy', 'true');
+    title.textContent = '습관을 불러오는 중이에요';
+    description.style.visibility = 'hidden';
+    label.textContent = '불러오는 중…';
+    setTimeout(() => {
+      title.textContent = '습관을 불러오지 못했어요';
+      description.style.visibility = 'visible';
+      label.textContent = '다시 시도';
+      retry.disabled = false;
+      stateArea.setAttribute('aria-busy', 'false');
+    }, 700);
+  });
+  if (globalThis.Tweak) {
+    const design = { showIcon: true };
+    const tweak = new Tweak({
+      container: root.querySelector('.rfe-panel'),
+      onChange: () => { icon.hidden = !design.showIcon; },
+    });
+    tweak.addToggle(design, 'showIcon', { label: '안내 아이콘 표시' });
+  }
+})();
+</script>

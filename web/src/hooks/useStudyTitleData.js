@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
+import { isValidStudyId } from "../utils/studyNavigation.js";
 
 const emptyResult = {
   studyId: null,
@@ -11,9 +12,11 @@ const emptyResult = {
 
 export const useStudyTitleData = (studyId) => {
   const [result, setResult] = useState(emptyResult);
+  const [reloadCount, setReloadCount] = useState(0);
+  const reloadStudy = () => setReloadCount((count) => count + 1);
 
   useEffect(() => {
-    if (!studyId) {
+    if (!isValidStudyId(studyId)) {
       setResult(emptyResult);
       return;
     }
@@ -46,16 +49,17 @@ export const useStudyTitleData = (studyId) => {
     return () => {
       ignore = true;
     };
-  }, [studyId]);
+  }, [studyId, reloadCount]);
 
   // Effect가 실행되기 전에도 다른 스터디의 이름을 즉시 제외한다.
   if (result.studyId !== studyId) {
-    return { study: null, isLoading: Boolean(studyId), error: null };
+    return { study: null, isLoading: isValidStudyId(studyId), error: null, reloadStudy };
   }
 
   return {
     study: result.study,
     isLoading: result.isLoading,
     error: result.error,
+    reloadStudy,
   };
 };

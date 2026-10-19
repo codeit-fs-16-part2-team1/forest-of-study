@@ -1,21 +1,45 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import CurrentTime from "../components/CurrentTime/CurrentTime.jsx";
 import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
+import Popup from "../components/Popup/Popup.jsx";
 import RoutineModal from "../components/RoutineModal/RoutineModal.jsx";
+import RoutineList from "../components/RoutineList/RoutineList.jsx";
 import Toast from "../components/Toast/Toast.jsx";
 import useRoutines from "../hooks/useRoutines.js";
 import useStudyPassword from "../hooks/useStudyPassword.js";
 import useToast from "../hooks/useToast.js";
+import { getStudyReturnPath, isValidStudyId } from "../utils/studyNavigation.js";
 import styles from "./RoutinesPage.module.scss";
 
-const RoutinesPage = () => {
+const RoutinesPage = ({ studyState }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const studyId = searchParams.get("id");
+  const { study, isLoading: isLoadingStudy, error: studyError, reloadStudy } = studyState;
+  const isValidId = isValidStudyId(studyId);
+  const [requestEntryError, setRequestEntryError] = useState("");
+  const entryErrorMessage = !studyId
+    ? "스터디 ID가 없습니다."
+    : !isValidId || studyError?.status === 400
+      ? "스터디 ID 형식이 올바르지 않습니다."
+      : studyError?.status === 404
+        ? studyError.message
+        : requestEntryError;
+  const currentPath = location.pathname + location.search + location.hash;
+  const returnPath = getStudyReturnPath(location.state?.from, currentPath);
   const [isRoutineModalOpen, setIsRoutineModalOpen] = useState(false);
   const { toasts, showToast } = useToast();
+  const goBack = useCallback(() => {
+    navigate(returnPath, { replace: true });
+  }, [navigate, returnPath]);
+
+  const handleRequestError = useCallback((error) => {
+    if (error.code === "STUDY_NOT_FOUND") setRequestEntryError(error.message);
+    else showToast(error.message, "warning");
+  }, [showToast]);
+
   const {
     isPasswordModalOpen,
     verifiedPassword,
@@ -23,7 +47,7 @@ const RoutinesPage = () => {
     passwordError,
     handleVerifyPassword,
     closePasswordModal,
-  } = useStudyPassword(studyId);
+  } = useStudyPassword(studyId, handleRequestError);
   const {
     routineData,
     isLoadingRoutines,
@@ -32,15 +56,11 @@ const RoutinesPage = () => {
     reloadRoutines,
     saveRoutines,
     handleToggleRoutine,
-  } = useRoutines(studyId, verifiedPassword, (error) => {
-    showToast(error.message, "warning");
-  });
+  } = useRoutines(studyId, verifiedPassword, handleRequestError);
 
   const handleClosePasswordModal = () => {
-    const previousPage = location.state?.from;
-
     closePasswordModal();
-    navigate(previousPage || "/", { replace: true });
+    goBack();
   };
 
   const handleSaveRoutines = async (changes) => {
@@ -49,79 +69,61 @@ const RoutinesPage = () => {
     return saved;
   };
 
+  const isLoading = isLoadingStudy ||
+    (!studyError && (verifiedPassword === null || isLoadingRoutines));
+  const errorMessage = studyError?.message || routineError;
+
+  if (entryErrorMessage) {
+    return <Popup message={entryErrorMessage} onClose={goBack} />;
+  }
+
   return (
     <>
-      {verifiedPassword !== null && (
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <div className={styles.containerHeader}>
-              <h2 className={styles.studyTitle}>연우의 개발공장</h2>
-              <nav>
-                <Link to={`/challenge?id=${studyId}`}>오늘의 집중</Link>
-                <Link to={`/dashboard/${studyId}`}>스터디 상세</Link>
-              </nav>
-            </div>
-            <CurrentTime
-              serverTime={routineData?.serverTime}
-              className={styles.currentTime}
-            />
-            <div className={styles.routineContainer}>
-              <div className={styles.inner}>
-                <div className={styles.routineHeader}>
-                  <h3>오늘의 습관</h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsRoutineModalOpen(true)}
-                    disabled={
-                      isLoadingRoutines || Boolean(routineError) || !routineData ||
-                      pendingRoutineIds.length > 0
-                    }
-                  >
-                    목록 수정
-                  </button>
-                </div>
-                {isLoadingRoutines ? (
-                  <p role="status">습관을 불러오는 중이에요.</p>
-                ) : routineError ? (
-                  <div>
-                    <p role="alert">{routineError}</p>
-                    <button type="button" onClick={reloadRoutines}>
-                      다시 시도
-                    </button>
-                  </div>
-                ) : routineData?.routines.length === 0 ? (
-                  <p>
-                    아직 습관이 없어요
-                    <br />
-                    목록 수정을 눌러 습관을 생성해보세요
-                  </p>
-                ) : (
-                  <ul className={styles.routineList}>
-                    {routineData?.routines.map((routine) => (
-                      <li key={routine.id}>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleRoutine(routine)}
-                          disabled={pendingRoutineIds.includes(routine.id)}
-                          className={[
-                            styles.routine,
-                            routine.completed && styles.checked,
-                          ].filter(Boolean).join(" ")}
-                          aria-pressed={routine.completed}
-                        >
-                          {routine.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+      <main className={styles.main}>
+        <div className={styles.container}>
+          <div className={styles.containerHeader}>
+            <h2 className={styles.studyTitle}>{study?.name || "스터디"}</h2>
+            <nav>
+              <Link to={`/challenge?id=${studyId}`}>오늘의 집중</Link>
+              <Link to={`/dashboard/${studyId}`}>스터디 상세</Link>
+            </nav>
+          </div>
+          <CurrentTime
+            serverTime={routineData?.serverTime}
+            className={styles.currentTime}
+          />
+          <div className={styles.routineContainer}>
+            <div className={styles.inner}>
+              <div className={styles.routineHeader}>
+                <h3>오늘의 습관</h3>
+                <button
+                  type="button"
+                  onClick={() => setIsRoutineModalOpen(true)}
+                  disabled={
+                    isLoading || Boolean(errorMessage) || !routineData ||
+                    pendingRoutineIds.length > 0
+                  }
+                >
+                  목록 수정
+                </button>
               </div>
+              <RoutineList
+                routines={routineData?.routines}
+                isLoading={isLoading}
+                errorMessage={errorMessage}
+                errorTitle={studyError
+                  ? "스터디 정보를 불러오지 못했어요"
+                  : "습관을 불러오지 못했어요"}
+                pendingRoutineIds={pendingRoutineIds}
+                onRetry={studyError ? reloadStudy : reloadRoutines}
+                onToggle={handleToggleRoutine}
+              />
             </div>
           </div>
-        </main>
-      )}
+        </div>
+      </main>
       <PasswordModal
-        isOpen={isPasswordModalOpen}
+        isOpen={isPasswordModalOpen && Boolean(study) && !isLoadingStudy && !studyError}
         isPending={isVerifying}
         errorMessage={passwordError}
         onSubmit={handleVerifyPassword}

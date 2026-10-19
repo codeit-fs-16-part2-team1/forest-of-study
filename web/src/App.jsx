@@ -24,7 +24,8 @@ const App = () => {
     studyId = searchParams.get("id");
   }
 
-  const { study } = useStudyTitleData(studyId);
+  const studyState = useStudyTitleData(studyId);
+  const { study } = studyState;
   const studyName = study?.name;
 
   let pageTitle = "공부의 숲";
@@ -49,7 +50,7 @@ const App = () => {
           <Route path="dashboard/:id" element={<DashboardPage />} />
           <Route
             path="routines"
-            element={<RoutinesPage key={studyId} />}
+            element={<RoutinesPage key={studyId} studyState={studyState} />}
           />
           <Route path="challenge" element={<ChallengePage />} />
         </Route>

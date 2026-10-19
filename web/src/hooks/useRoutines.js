@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { routineApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 
+const MINIMUM_LOADING_MS = 300;
+
 const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
   const [routineData, setRoutineData] = useState(null);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
@@ -23,6 +25,8 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
     if (!studyId || verifiedPassword === null) return;
 
     let ignore = false;
+    let loadingTimer;
+    const loadingStartedAt = Date.now();
 
     const fetchRoutines = async () => {
       setIsLoadingRoutines(true);
@@ -37,11 +41,16 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
         }
       } catch (error) {
         if (!ignore) {
-          setRoutineError(getApiError(error).message);
+          const apiError = getApiError(error);
+          setRoutineError(apiError.message);
+          if (apiError.code === "STUDY_NOT_FOUND") onRoutineError?.(apiError);
         }
       } finally {
         if (!ignore) {
-          setIsLoadingRoutines(false);
+          const remaining = Math.max(0, MINIMUM_LOADING_MS - (Date.now() - loadingStartedAt));
+          loadingTimer = window.setTimeout(() => {
+            if (!ignore) setIsLoadingRoutines(false);
+          }, remaining);
         }
       }
     };
@@ -50,8 +59,9 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError) => {
 
     return () => {
       ignore = true;
+      window.clearTimeout(loadingTimer);
     };
-  }, [studyId, verifiedPassword, reloadCount]);
+  }, [studyId, verifiedPassword, reloadCount, onRoutineError]);
 
   const reloadRoutines = () => {
     setReloadCount((count) => count + 1);
