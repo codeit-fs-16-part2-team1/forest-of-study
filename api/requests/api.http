@@ -60,7 +60,6 @@ Content-Type: application/json
   "passwordConfirm": "{{studyPassword}}"
 }
 
-
 ### 삭제 - 204, data: 없음
 DELETE {{baseUrl}}/studies/d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
 Accept: application/json
@@ -244,6 +243,7 @@ Content-Type: application/json
   "browserId": "{{browserId}}",
   "emoji": "🔥"
 }
+
 
 ### API-FC-01 현재 집중 조회
 GET {{baseUrl}}/studies/{{studyId}}/challenges/current
