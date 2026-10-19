@@ -28,6 +28,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: -8px;
 
   > label {
     font-size: 16px;
@@ -62,7 +63,8 @@
 
 textarea.input {
   height: 98px;
-  resize: vertical;
+  resize: none;
+  overflow-y: auto;
 }
 
 .backgroundField {
@@ -164,11 +166,10 @@ textarea.input {
 
 .error {
   color: var(--color-error);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
-
 .submitButton {
   display: flex;
   align-items: center;

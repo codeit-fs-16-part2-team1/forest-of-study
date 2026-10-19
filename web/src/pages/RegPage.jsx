@@ -138,7 +138,7 @@ const RegPage = () => {
       if (apiError.code === "PASSWORD_CONFIRM_MISMATCH") {
         setErrors((previous) => ({
           ...previous,
-          passwordConfirm: "비밀번호 확인이 일치하지 않습니다.",
+          passwordConfirm: "*비밀번호가 일치하지 않습니다",
         }));
       } else if (apiError.code === "STUDY_CONFLICT") {
         setSubmitError("같은 닉네임과 스터디 이름으로 등록된 스터디가 있습니다.");

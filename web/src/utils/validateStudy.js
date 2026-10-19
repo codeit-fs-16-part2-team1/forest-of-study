@@ -14,12 +14,17 @@ export const validateStudy = (values) => {
   const errors = {};
 
   textRules.forEach(({ name, label, max }) => {
-    const length = [...segmenter.segment(values[name].trim())].length;
+  const length = [...segmenter.segment(values[name].trim())].length;
 
-    if (length < 1 || length > max) {
-      errors[name] = `${label}는 앞뒤 공백을 제외하고 1~${max}글자로 입력해주세요.`;
-    }
-  });
+  if (length === 0) {
+    errors[name] =
+      name === "name"
+        ? "*스터디 이름을 입력해주세요"
+        : `${label}는 앞뒤 공백을 제외하고 1~${max}글자로 입력해주세요.`;
+  } else if (length > max) {
+    errors[name] = `${label}는 앞뒤 공백을 제외하고 1~${max}글자로 입력해주세요.`;
+  }
+});
 
   ["password", "passwordConfirm"].forEach((name) => {
     if (/\s/u.test(values[name])) {
@@ -35,7 +40,7 @@ export const validateStudy = (values) => {
     !errors.passwordConfirm &&
     values.password !== values.passwordConfirm
   ) {
-    errors.passwordConfirm = "비밀번호 확인이 일치하지 않습니다.";
+    errors.passwordConfirm = "*비밀번호가 일치하지 않습니다";
   }
 
   return errors;
