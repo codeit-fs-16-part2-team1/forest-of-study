@@ -51,6 +51,9 @@ const ChallengePreview = () => {
   const [width, setWidth] = useState("desktop");
   const [isPending, setIsPending] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [completionMode, setCompletionMode] = useState("disconnected");
+  const [completionAttempts, setCompletionAttempts] = useState(0);
+  const [points, setPoints] = useState(previewStudy.points);
   const [notice, setNotice] = useState("");
   const isLoading = preview.state === "LOADING";
   const selectState = (state) => {
@@ -58,6 +61,11 @@ const ChallengePreview = () => {
       : (goalMinutes * 60 - 78) * 1000;
     setPreview(createPreviewState(state, goalMinutes, remaining));
     setNotice("");
+    setShowError(false);
+    setCompletionAttempts(0);
+    setPoints(state === "COMPLETED"
+      ? previewStudy.points + Math.floor(goalMinutes / 10) + 3
+      : previewStudy.points);
   };
 
   const showAction = (state, label, remainingMilliseconds) => {
@@ -68,12 +76,32 @@ const ChallengePreview = () => {
     setNotice(`${label} 예시 응답을 적용했습니다. API 요청은 보내지 않았습니다.`);
   };
 
+  const completePreview = () => {
+    if (!preview.challenge || !["RUNNING", "PAUSED"].includes(preview.state)) {
+      return;
+    }
+
+    setCompletionAttempts((previous) => previous + 1);
+    if (completionMode === "failOnce" && completionAttempts === 0) {
+      setShowError(true);
+      setNotice("모의 완료 첫 응답을 실패로 처리했습니다. 00:00과 총점을 유지하며 자동 재요청하지 않습니다.");
+      return;
+    }
+
+    // 화면 검사용 응답 예시다. 실제 완료·지급 판정은 서버에서만 수행한다.
+    // 누적 가산 대신 예시 응답의 총점을 넣어 재렌더링으로 중복 가산하지 않는다.
+    const responsePoints = previewStudy.points + Math.floor(goalMinutes / 10) + 3;
+    setPoints(responsePoints);
+    setShowError(false);
+    showAction("COMPLETED", "모의 완료 성공", 0);
+  };
+
   return (
     <div className="challengePreview">
       <aside className="challengePreview__tools" aria-label="개발용 미리보기 설정">
         <p className="challengePreview__description">
           <strong>집중 화면 미리보기</strong>
-          예시 응답으로 카운트다운을 확인합니다. 인증·서버 저장·완료 정산은 연결 전입니다.
+          ISS-040~044 화면 확인용입니다. 인증·서버 저장·실제 완료 정산은 연결 전이며 아래 완료 동작도 모의 응답입니다.
         </p>
         <div className="challengePreview__fields">
           <label>
@@ -98,10 +126,28 @@ const ChallengePreview = () => {
               setGoalMinutes(minutes);
               setPreview(createPreviewState("READY", minutes, minutes * 60000));
               setNotice("");
+              setShowError(false);
+              setCompletionAttempts(0);
+              setPoints(previewStudy.points);
             }}>
               <option value={10}>10분</option>
               <option value={25}>25분</option>
               <option value={180}>180분</option>
+            </select>
+          </label>
+          <label>
+            0초 이후 완료 예시 · ISS-043
+            <select value={completionMode} onChange={(event) => {
+              setCompletionMode(event.target.value);
+              setCompletionAttempts(0);
+              setShowError(false);
+              setPoints(previewStudy.points);
+              setPreview(createPreviewState("READY", goalMinutes, goalMinutes * 60000));
+              setNotice("");
+            }}>
+              <option value="disconnected">연결 없음 · 0초 유지</option>
+              <option value="success">모의 완료 성공</option>
+              <option value="failOnce">모의 첫 실패 → 수동 재확인</option>
             </select>
           </label>
           <label className="challengePreview__checkbox">
@@ -113,15 +159,18 @@ const ChallengePreview = () => {
             요청 실패 표시 예시
           </label>
           <button type="button" onClick={() => {
+            setCompletionAttempts(0);
+            setShowError(false);
+            setPoints(previewStudy.points);
             setPreview(createPreviewState("RUNNING", goalMinutes, 3000));
-            setNotice("남은 3초인 예시 응답입니다. 0초가 되어도 완료 상태나 포인트는 변경하지 않습니다.");
+            setNotice("남은 3초인 예시입니다. 선택한 완료 모드를 적용하며 실제 API 요청은 보내지 않습니다.");
           }}>
             남은 3초 예시
           </button>
         </div>
         <p className="challengePreview__help">
           창이 선택한 너비보다 좁으면 창에 맞춥니다. 시작 전 숫자를 누르면 시간 설정 모달 틀이 열립니다.
-          0초 표시는 서버 완료·포인트 지급을 의미하지 않습니다.
+          0초 표시는 실제 서버 완료·포인트 지급을 의미하지 않습니다. 모의 완료 호출 횟수: {completionAttempts}회.
         </p>
         <p className="challengePreview__notice" role="status">{notice}</p>
       </aside>
@@ -132,6 +181,7 @@ const ChallengePreview = () => {
           challenge={preview.challenge}
           goalMinutes={goalMinutes}
           receivedAt={preview.receivedAt}
+          points={points}
           isLoading={isLoading}
           isPending={isPending}
           error={showError ? { message: "요청 실패 표시 예시입니다. 실제 API 요청은 보내지 않았습니다." } : null}
@@ -139,10 +189,19 @@ const ChallengePreview = () => {
             setShowError(false);
             setNotice("다시 조회 버튼의 표시만 확인했습니다. 실제 API 요청은 보내지 않았습니다.");
           }}
-          onStart={() => showAction("RUNNING", "Start", goalMinutes * 60000)}
+          onStart={() => {
+            setCompletionAttempts(0);
+            setShowError(false);
+            showAction("RUNNING", "Start", goalMinutes * 60000);
+          }}
           onPause={() => showAction("PAUSED", "일시정지")}
           onResume={() => showAction("RUNNING", "재개")}
-          onReset={() => showAction("READY", "초기화", goalMinutes * 60000)}
+          onReset={() => {
+            setCompletionAttempts(0);
+            setShowError(false);
+            showAction("READY", "초기화", goalMinutes * 60000);
+          }}
+          onComplete={completionMode === "disconnected" ? undefined : completePreview}
           onDismissCompletion={() => showAction("READY", "완료 화면 닫기", goalMinutes * 60000)}
         />
       </div>

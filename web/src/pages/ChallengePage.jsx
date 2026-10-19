@@ -34,6 +34,7 @@ const ChallengePage = ({
   const status = challenge?.status ?? null;
   const isActive = status === "RUNNING" || status === "PAUSED";
   const isCompleted = status === "COMPLETED";
+  const canConfirmCompletion = isActive && countdownSeconds === 0 && Boolean(onComplete);
   const loading = isLoading || !study;
   const canEditGoal = !loading && !isPending && !isActive && !isCompleted;
   const currentGoalMinutes = isActive || isCompleted
@@ -126,9 +127,9 @@ const ChallengePage = ({
             </div>
           </div>
 
-          {error && (
+          {(error || canConfirmCompletion) && (
             <div className="challengePage__feedback">
-              <p role="alert">{error.message}</p>
+              {error && <p role="alert">{error.message}</p>}
               <div className="challengePage__feedbackActions">
                 {onRetry && (
                   <button
@@ -139,7 +140,7 @@ const ChallengePage = ({
                     다시 조회
                   </button>
                 )}
-                {isActive && countdownSeconds === 0 && onComplete && (
+                {canConfirmCompletion && (
                   <button
                     type="button"
                     disabled={loading || isPending}

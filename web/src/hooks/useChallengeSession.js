@@ -11,6 +11,7 @@ const emptyState = {
   isLoading: false,
   isPending: false,
   error: null,
+  requiresVerification: false,
 };
 
 // 공통 진입 검증에 성공한 페이지에서만 password를 전달한다.
@@ -84,7 +85,30 @@ const useChallengeSession = ({ studyId, password }) => {
       void loadCurrent(context);
     }
 
+    const requireVerification = () => {
+      if (contextRef.current !== context) {
+        return;
+      }
+
+      // 외부 이동은 React를 unmount하지 않고 메모리에 보관할 수 있다.
+      // 복귀해도 이전 비밀번호나 이동 전 요청의 응답을 재사용하지 않는다.
+      context.active = false;
+      context.password = null;
+      context.snapshot = null;
+      setState({ ...emptyState, studyId, requiresVerification: true });
+    };
+    const handlePageShow = (event) => {
+      if (event.persisted) {
+        requireVerification();
+      }
+    };
+
+    window.addEventListener("pagehide", requireVerification);
+    window.addEventListener("pageshow", handlePageShow);
+
     return () => {
+      window.removeEventListener("pagehide", requireVerification);
+      window.removeEventListener("pageshow", handlePageShow);
       context.active = false;
       context.password = null;
       context.snapshot = null;
@@ -198,7 +222,7 @@ const useChallengeSession = ({ studyId, password }) => {
     isLoading: visible.isLoading,
     isPending: visible.isPending,
     error: visible.error,
-    needsPassword: !password || visible.error?.status === 401,
+    needsPassword: !password || visible.requiresVerification || visible.error?.status === 401,
     refetch,
     startChallenge,
     pauseChallenge,
