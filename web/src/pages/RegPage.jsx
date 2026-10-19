@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
 import { validateStudy } from "../utils/validateStudy.js";
 import styles from "./RegPage.module.scss";
+import { useEffect, useRef, useState } from "react";
 
 const initialValues = {
   nickname: "",
@@ -51,6 +51,13 @@ const RegPage = () => {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const submittingRef = useRef(false);
+  const activeRequestRef = useRef(null);
+
+  useEffect(() => {
+  return () => {
+    activeRequestRef.current = null;
+  };
+}, []);
 
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
@@ -122,6 +129,9 @@ const handlePasswordKeyDown = (event) => {
     submittingRef.current = true;
     setIsSubmitting(true);
 
+    const requestId = Symbol("createStudy");
+    activeRequestRef.current = requestId;
+
     try {
       const { data } = await studyApi.create({
         nickname: values.nickname.trim(),
@@ -132,8 +142,12 @@ const handlePasswordKeyDown = (event) => {
         passwordConfirm: values.passwordConfirm,
       });
 
+      if (activeRequestRef.current !== requestId) return;
+
       navigate(`/dashboard/${data.id}`);
     } catch (error) {
+      if (activeRequestRef.current !== requestId) return;
+
       const apiError = getApiError(error);
 
       if (apiError.code === "PASSWORD_CONFIRM_MISMATCH") {
@@ -147,9 +161,12 @@ const handlePasswordKeyDown = (event) => {
         setSubmitError(apiError.message);
       }
     } finally {
+      if (activeRequestRef.current === requestId) {
+      activeRequestRef.current = null;
       submittingRef.current = false;
       setIsSubmitting(false);
-    }
+      }
+     }
   };
 
   return (
