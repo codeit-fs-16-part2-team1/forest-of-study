@@ -1,7 +1,8 @@
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import styles from "./RoutePreview.module.scss";
 
 const RoutePreview = () => {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const studyId =
     searchParams.get("studyId") ?? "10000000-0000-4000-8000-000000000001";
@@ -48,11 +49,14 @@ const RoutePreview = () => {
       </p>
       <nav className={styles.routeLinks} aria-label="페이지 라우트 테스트">
         {routeLinks.map(({ label, to }) => (
-          <Link
-            key={label}
-            className={[styles.link, styles.routeLink].join(" ")}
-            to={to}
-          >
+            <Link
+              key={label}
+              className={[styles.link, styles.routeLink].join(" ")}
+              to={to}
+              state={{
+                from: location.pathname + location.search + location.hash,
+              }}
+            >
             <span>{label}</span>
             <code>{to}</code>
           </Link>

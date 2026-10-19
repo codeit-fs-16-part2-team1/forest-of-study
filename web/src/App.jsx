@@ -47,7 +47,10 @@ const App = () => {
           <Route index element={<MainPage />} />
           <Route path="reg" element={<RegPage />} />
           <Route path="dashboard/:id" element={<DashboardPage />} />
-          <Route path="routines" element={<RoutinesPage />} />
+          <Route
+            path="routines"
+            element={<RoutinesPage key={studyId} />}
+          />
           <Route path="challenge" element={<ChallengePage />} />
         </Route>
         {import.meta.env.DEV && (

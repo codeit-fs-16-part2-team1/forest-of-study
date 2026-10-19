@@ -1,0 +1,182 @@
+// 모바일
+.main {
+  margin-top: 120px;
+  margin-bottom: 100px;
+}
+.container {
+  margin: 0 16px;
+  padding: 16px 16px 25px 16px;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.containerHeader {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.containerHeader h2.studyTitle {
+  width: 100%;
+  color: var(--color-black);
+  font-size: 24px;
+  font-weight: 800;
+}
+.containerHeader nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.containerHeader nav a {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 10px;
+  padding-right: 34px;
+  height: 40px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 15px;
+  background: #fff;
+  background-image: url(../assets/ic_arrow_right.svg);
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  color: var(--color-gray);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.currentTime {
+  margin-top: 16px;
+}
+.currentTime p {
+  margin-bottom: 8px;
+  color: var(--color-gray);
+  font-size: 18px;
+  line-height: 1;
+}
+.currentTime time {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 50px;
+  color: var(--color-black);
+  font-size: 16px;
+  font-weight: 500;
+  background: #fff;
+}
+
+.routineContainer {
+  margin-top: 24px;
+  padding: 24px 16px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+}
+.routineContainer .inner {
+  width: 100%;
+}
+.routineHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: 30px;
+}
+.routineHeader h3 {
+  grid-column: 2;
+  color: var(--color-black);
+  font-size: 18px;
+  font-weight: 800;
+}
+.routineHeader button {
+  grid-column: 3;
+  justify-self: end;
+  color: var(--color-gray);
+  font-size: 14px;
+  font-weight: 500;
+}
+.routineList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+.routineList li .routine {
+  overflow: hidden;
+  padding: 0 20px;
+  width: 100%;
+  height: 54px;
+  border-radius: 20px;
+  background: var(--color-gray-lighter);
+  color: var(--color-gray);
+  font-size: 16px;
+  font-weight: 700;
+  // 넘치는 글자 줄바꿈? or ...처리
+
+  &.checked {
+    color: #fff;
+    background: var(--color-brand);
+  }
+}
+
+// 태블릿
+@media (min-width: 768px) {
+  .main {
+    margin-top: 116px;
+  }
+  .container {
+    margin: 0 24px;
+    padding: 24px;
+  }
+
+  .containerHeader {
+    flex-wrap: nowrap;
+  }
+  .containerHeader h2.studyTitle {
+    align-self: center;
+    width: auto;
+    font-size: 32px;
+  }
+  .containerHeader nav {
+    gap: 16px;
+    margin-top: 0;
+  }
+  .containerHeader nav a {
+    height: 48px;
+    padding-left: 24px;
+    padding-right: 44px;
+    background-position: right 16px center;
+  }
+
+  .routineContainer {
+    margin-top: 40px;
+    padding: 40px 24px;
+  }
+  .routineContainer .inner {
+    margin: 0 auto;
+    max-width: 400px;
+  }
+  .routineHeader h3 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+  .routineList {
+    gap: 20px;
+  }
+}
+
+// 데스크톱
+@media (min-width: 1024px) {
+  .main {
+    margin-top: 140px;
+  }
+  .container {
+    max-width: 1248px;
+    margin: 0 auto;
+    padding: 40px;
+  }
+
+  .routineContainer {
+    margin-top: 24px;
+  }
+  .routineHeader h3 {
+    font-size: 24px;
+    line-height: 30px;
+  }
+}
