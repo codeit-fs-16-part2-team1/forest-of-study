@@ -1,0 +1,193 @@
+.challengePage {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 1248px;
+  min-width: 0;
+  margin-inline: auto;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 40px;
+    background: var(--color-surface);
+    border-radius: 20px;
+  }
+
+  &__summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__headingRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 48px;
+  }
+
+  &__heading {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  &__navigation {
+    display: flex;
+    flex-shrink: 0;
+    gap: 16px;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 48px;
+    padding: 0 24px;
+    color: var(--color-text-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-gray-light);
+    border-radius: 15px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+
+    img {
+      display: block;
+      flex-shrink: 0;
+    }
+  }
+
+  &__points {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  &__pointsLabel {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  &__pointsBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid rgb(0 0 0 / 10%);
+    border-radius: 50px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 19px;
+  }
+
+  &__pointIcon {
+    display: grid;
+    width: 19px;
+    height: 19px;
+    place-items: center;
+
+    img {
+      display: block;
+    }
+  }
+
+  &__skeleton {
+    display: block;
+    background: var(--color-gray-lighter);
+    border-radius: 8px;
+
+    &--heading {
+      width: 240px;
+      max-width: 100%;
+      height: 38px;
+    }
+
+    &--points {
+      width: 108px;
+      height: 33px;
+      border-radius: 50px;
+    }
+  }
+
+  &__feedback {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    color: var(--color-error);
+    border: 1px solid var(--color-gray-light);
+    border-radius: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  &__feedbackActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    button {
+      min-height: 40px;
+      padding: 8px 16px;
+      color: var(--color-text);
+      background: var(--color-surface);
+      border: 1px solid var(--color-gray-light);
+      border-radius: 8px;
+
+      &:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
+    }
+  }
+}
+
+// 페이지가 들어갈 공통 레이아웃의 폭에 맞춰 본문만 조정한다.
+@container (max-width: 900px) {
+  .challengePage__body {
+    gap: 40px;
+    padding: 24px;
+  }
+}
+
+@container (max-width: 640px) {
+  .challengePage {
+    &__body {
+      gap: 24px;
+      padding: 16px;
+    }
+
+    &__headingRow {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    &__heading {
+      font-size: 24px;
+    }
+
+    &__navigation {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    &__link {
+      min-height: 40px;
+      padding-inline: 10px;
+    }
+  }
+}

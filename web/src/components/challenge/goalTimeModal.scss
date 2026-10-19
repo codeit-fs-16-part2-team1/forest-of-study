@@ -1,0 +1,39 @@
+// 입력 기능을 위한 기본 스타일이다. 모달 외곽·버튼은 ISS-050을 재사용한다.
+.goalTimeModal {
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    label {
+      font-size: 18px;
+      font-weight: 600;
+    }
+  }
+
+  &__input {
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 16px;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-gray-light);
+    border-radius: 12px;
+
+    &[aria-invalid="true"] {
+      border-color: var(--color-error);
+    }
+  }
+
+  &__help {
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  &__error {
+    color: var(--color-error);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
