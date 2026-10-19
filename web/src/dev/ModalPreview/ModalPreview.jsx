@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import Modal from "../components/Modal/Modal.jsx";
-import Popup from "../components/Popup/Popup.jsx";
-import Toast from "../components/Toast/Toast.jsx";
-import useToast from "../hooks/useToast.js";
-import styles from "./FeedbackPreview.module.scss";
+import Modal from "../../components/Modal/Modal.jsx";
+import PasswordModal from "../../components/PasswordModal/PasswordModal.jsx";
+import Popup from "../../components/Popup/Popup.jsx";
+import Toast from "../../components/Toast/Toast.jsx";
+import useToast from "../../hooks/useToast.js";
+import styles from "./ModalPreview.module.scss";
 
 const examples = [
   { key: "password", label: "비밀번호" },
   { key: "visible", label: "비밀번호 표시" },
   { key: "error", label: "오류 표시" },
   { key: "pending", label: "처리 중" },
+  { key: "delete", label: "삭제용 비밀번호" },
+  { key: "custom", label: "공통 모달 틀" },
   { key: "alert", label: "안내 팝업" },
   { key: "confirm", label: "확인 팝업" },
   { key: "point", label: "포인트 토스트" },
@@ -18,20 +21,8 @@ const examples = [
   { key: "stack", label: "토스트 5개 쌓기" },
 ];
 
-const FeedbackPreview = () => {
+const ModalPreview = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const studyId =
-    searchParams.get("studyId") ?? "10000000-0000-4000-8000-000000000001";
-  const studyQuery = new URLSearchParams({ id: studyId }).toString();
-  const routeLinks = [
-    { label: "홈", to: "/" },
-    { label: "스터디 등록", to: "/reg" },
-    { label: "스터디 상세", to: "/dashboard/" + encodeURIComponent(studyId) },
-    { label: "오늘의 습관", to: "/routines?" + studyQuery },
-    { label: "오늘의 집중", to: "/challenge?" + studyQuery },
-    { label: "스터디 수정", to: "/reg?" + studyQuery },
-    { label: "없는 주소 (404)", to: "/dev/route-not-found" },
-  ];
   const requestedExample = searchParams.get("example");
   const example = examples.some(({ key }) => key === requestedExample)
     ? requestedExample
@@ -45,6 +36,7 @@ const FeedbackPreview = () => {
     "visible",
     "error",
     "pending",
+    "delete",
   ].includes(openedExample);
 
   useEffect(() => {
@@ -84,7 +76,7 @@ const FeedbackPreview = () => {
     });
     setResult("");
     if (
-      ["password", "visible", "error", "pending", "alert", "confirm"].includes(
+      ["password", "visible", "error", "pending", "delete", "custom", "alert", "confirm"].includes(
         key,
       )
     ) {
@@ -142,55 +134,23 @@ const FeedbackPreview = () => {
           >
             토스트 5개 쌓기
           </button>
+          <Link className={styles.link} to="/dev/routes">
+            라우트 테스트
+          </Link>
         </div>
         <p className={styles.note}>
           토스트는 0.3초 간격으로 1~5번이 쌓입니다. 5번이 맨 아래이며 각각 표시
           후 3초 뒤 사라집니다.
         </p>
-        <section className={styles.routes} aria-labelledby="route-preview-heading">
-          <h2 id="route-preview-heading" className={styles.routeHeading}>
-            링크 라우트 확인
-          </h2>
-          <label className={styles.routeLabel} htmlFor="route-study-id">
-            스터디 ID
-          </label>
-          <input
-            id="route-study-id"
-            className={styles.routeInput}
-            type="text"
-            value={studyId}
-            autoComplete="off"
-            onChange={(event) => {
-              const value = event.target.value;
-              setSearchParams((current) => {
-                const next = new URLSearchParams(current);
-                next.set("studyId", value);
-                return next;
-              }, { replace: true });
-            }}
-          />
-          <p className={styles.note}>
-            링크를 누르면 해당 페이지로 이동합니다. 브라우저 뒤로 가기로
-            돌아올 수 있습니다.
-          </p>
-          <nav className={styles.routeLinks} aria-label="페이지 라우트 테스트">
-            {routeLinks.map(({ label, to }) => (
-              <Link key={label} className={[styles.link, styles.routeLink].join(" ")} to={to}>
-                <span>{label}</span>
-                <code>{to}</code>
-              </Link>
-            ))}
-          </nav>
-        </section>
         <p className={styles.result} role="status">
           {result}
         </p>
       </main>
       {isPasswordExample && (
-        <Modal
+        <PasswordModal
           key={openedExample}
-          title="연우의 개발공장"
-          submitLabel="제출"
+          title={openedExample === "delete" ? "스터디 삭제" : "연우의 개발공장"}
+          submitLabel={openedExample === "delete" ? "삭제" : "제출"}
           defaultPasswordVisible={openedExample === "visible"}
           errorMessage={openedExample === "error" ? "오류 안내 문구 예시" : ""}
           isPending={openedExample === "pending"}
@@ -201,6 +161,27 @@ const FeedbackPreview = () => {
           }
           onClose={() => closeDialog("비밀번호 모달을 닫았습니다.")}
         />
+      )}
+      {openedExample === "custom" && (
+        <Modal
+          title="공통 모달 틀 예시"
+          description="비밀번호 입력형과 같은 틀에 다른 본문을 전달합니다."
+          submitLabel="내용 제출"
+          closeLabel="취소"
+          onSubmit={() => closeDialog("공통 본문의 제출 콜백이 호출되었습니다.")}
+          onClose={() => closeDialog("공통 모달을 닫았습니다.")}
+        >
+          <label className={styles.fieldLabel} htmlFor="custom-modal-message">
+            메모 예시
+          </label>
+          <input
+            id="custom-modal-message"
+            className={styles.fieldInput}
+            type="text"
+            placeholder="원하는 본문을 넣을 수 있습니다."
+            required
+          />
+        </Modal>
       )}
       {(openedExample === "alert" || openedExample === "confirm") && (
         <Popup
@@ -221,4 +202,4 @@ const FeedbackPreview = () => {
   );
 };
 
-export default FeedbackPreview;
+export default ModalPreview;
