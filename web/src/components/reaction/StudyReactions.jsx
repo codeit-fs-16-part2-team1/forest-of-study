@@ -1,6 +1,7 @@
 import { useId, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import useStudyReactions from "../../hooks/useStudyReactions.js";
+import smile from "../../assets/reaction/smile.svg";
 import styles from "./StudyReactions.module.scss";
 
 const StudyReactionsContent = ({
@@ -28,36 +29,37 @@ const StudyReactionsContent = ({
 
   return (
     <section className={styles.reactions} aria-labelledby={`${id}-heading`} aria-busy={isLoading || isPending}>
-      <div className={styles.heading}>
-        <h2 id={`${id}-heading`}>응원</h2>
+      <h2 id={`${id}-heading`} className={styles.srOnly}>응원</h2>
+      <div className={styles.toolbar}>
+        {isLoading ? (
+          <div className={styles.skeletons} role="status" aria-label="응원 불러오는 중">
+            {[0, 1, 2].map((index) => <span key={index} className={styles.skeleton} />)}
+          </div>
+        ) : reactions.length === 0 ? (
+          <p className={styles.empty}>아직 응원이 없습니다.</p>
+        ) : (
+          <ul className={styles.list} aria-label="상위 응원 이모지">
+            {reactions.map(({ emoji, count }) => (
+              <li key={emoji} className={styles.badge}>
+                <span className={styles.emoji} role="img" aria-label={emoji}>{emoji}</span>
+                <span aria-label={`${count}개`}>{count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         <button
           type="button"
           className={styles.toggle}
           aria-expanded={isPickerOpen}
           aria-controls={`${id}-picker`}
+          aria-label={isPickerOpen ? "응원 이모지 선택기 닫기" : "응원 이모지 추가"}
           disabled={disabled}
           onClick={() => setIsPickerOpen((open) => !open)}
         >
-          {isPickerOpen ? "선택기 닫기" : "응원하기"}
+          <img src={smile} alt="" />
+          {isPickerOpen ? "닫기" : "추가"}
         </button>
       </div>
-
-      {isLoading ? (
-        <div className={styles.skeletons} role="status" aria-label="응원 불러오는 중">
-          {[0, 1, 2].map((index) => <span key={index} className={styles.skeleton} />)}
-        </div>
-      ) : reactions.length === 0 ? (
-        <p className={styles.empty}>아직 응원이 없습니다.</p>
-      ) : (
-        <ul className={styles.list} aria-label="상위 응원 이모지">
-          {reactions.map(({ emoji, count }) => (
-            <li key={emoji} className={styles.badge}>
-              <span className={styles.emoji} role="img" aria-label={emoji}>{emoji}</span>
-              <span aria-label={`${count}개`}>{count}</span>
-            </li>
-          ))}
-        </ul>
-      )}
 
       <p className={styles.status} role="status">
         {isPending ? "응원을 보내는 중입니다." : notice}
