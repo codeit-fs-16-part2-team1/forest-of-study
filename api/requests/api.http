@@ -245,6 +245,7 @@ Content-Type: application/json
   "emoji": "🔥"
 }
 
+
 ### API-FC-01 현재 집중 조회
 GET {{baseUrl}}/studies/{{studyId}}/challenges/current
 Accept: application/json
