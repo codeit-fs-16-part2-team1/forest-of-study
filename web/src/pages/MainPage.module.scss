@@ -39,8 +39,7 @@
   border-radius: 15px;
 
   &:focus-within {
-    outline: 2px solid var(--color-text);
-    outline-offset: 3px;
+    border-color: var(--color-green-text);
   }
 
   > input {
@@ -65,25 +64,6 @@
     color: var(--color-green-text);
     font: inherit;
   }
-}
-
-.sort {
-  width: 180px;
-  height: 42px;
-  margin-left: auto;
-  padding: 8px 12px;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 15px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-}
-
-.searchHelp {
-  margin-top: 8px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .grid {
