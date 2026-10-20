@@ -1,8 +1,7 @@
+@use "../styles/breakpoints";
+
 .page {
-  width: 100%;
-  max-width: 1248px;
-  margin-inline: auto;
-  padding: 20px 16px 40px;
+  min-width: 0;
 }
 
 .section {
@@ -149,11 +148,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 744px) {
-  .page {
-    padding: 20px 24px 60px;
-  }
-
+@media (min-width: breakpoints.$tablet) {
   .section {
     padding: 24px;
   }
@@ -181,12 +176,7 @@
   }
 }
 
-@media (min-width: 1200px) {
-  .page {
-    max-width: 1280px;
-    padding: 40px 40px 80px;
-  }
-
+@media (min-width: breakpoints.$desktop) {
   .section {
     padding: 40px;
   }

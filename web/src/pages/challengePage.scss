@@ -1,7 +1,7 @@
 .challengePage {
   container-type: inline-size;
   width: 100%;
-  max-width: 1248px;
+  max-width: var(--layout-content-max-width);
   min-width: 0;
   margin-inline: auto;
 

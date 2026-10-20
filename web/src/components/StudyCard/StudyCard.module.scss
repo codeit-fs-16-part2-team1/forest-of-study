@@ -1,3 +1,5 @@
+@use "../../styles/breakpoints";
+
 .card {
   display: flex;
   flex-direction: column;
@@ -90,7 +92,7 @@
   }
 }
 
-@media (min-width: 744px) {
+@media (min-width: breakpoints.$tablet) {
   .card {
     min-height: 243px;
     padding: 24px;

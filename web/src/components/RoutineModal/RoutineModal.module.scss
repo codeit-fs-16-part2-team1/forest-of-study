@@ -1,8 +1,10 @@
+@use "../../styles/breakpoints";
+
 // 모바일
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -202,7 +204,7 @@
 }
 
 // 태블릿, 데스크톱
-@media (min-width: 48rem) { // 768px
+@media (min-width: breakpoints.$tablet) {
   .dialog {
     padding: 2.5rem 1.5rem; // 40px 24px
     max-height: calc(100dvh - 11.25rem); // 180px
