@@ -12,6 +12,7 @@ const PasswordModal = ({
   errorMessage = "",
   isPending = false,
   disabled = false,
+  submitDisabled = false,
   onSubmit,
   onClose,
   className = "",
@@ -45,7 +46,7 @@ const PasswordModal = ({
   };
 
   const handleSubmit = () => {
-    if (isDisabled || /\s/u.test(password)) return;
+    if (isDisabled || submitDisabled || /\s/u.test(password)) return;
     // 형식 검사는 input의 required/pattern을 사용하며 서버 검증은 호출 화면이 담당한다.
     onSubmit?.(password);
   };
@@ -59,6 +60,7 @@ const PasswordModal = ({
       closeLabel={closeLabel}
       isPending={isPending}
       disabled={disabled}
+      submitDisabled={submitDisabled}
       onSubmit={handleSubmit}
       onClose={handleClose}
       className={className}
