@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
 import { getReactions, getTopReactionsForStudies } from "./reaction.js";
 import { checkStudyPassword } from "./studyPassword.js";
+import { isStudyCombinationConflict } from "../utils/studyConflict.js";
 
 const studySelect = {
   id: true,
@@ -140,17 +141,12 @@ export const createStudy = async (data) => {
     });
   } catch (error) {
     // 동시 요청은 사전 조회를 함께 통과할 수 있다. 최종 보장은 DB 복합 UNIQUE다.
-    if (error?.code === "P2002") {
-      const conflict = await prisma.study.findFirst({ where, select: { id: true } });
-      if (conflict !== null) throw createApiError("STUDY_CONFLICT");
-    }
+    if (isStudyCombinationConflict(error)) throw createApiError("STUDY_CONFLICT");
     throw error;
   }
 };
 
 export const updateStudy = async (studyId, data) => {
-  let combination;
-
   try {
     return await prisma.$transaction(async (tx) => {
       // 같은 행의 부분 수정끼리 대기하게 해 최신의 미전달 필드와 조합한다.
@@ -160,7 +156,7 @@ export const updateStudy = async (studyId, data) => {
       `;
       if (!current) throw createApiError("STUDY_NOT_FOUND");
 
-      combination = {
+      const combination = {
         nickname: data.nickname ?? current.nickname,
         name: data.name ?? current.name,
       };
@@ -177,14 +173,8 @@ export const updateStudy = async (studyId, data) => {
       });
     });
   } catch (error) {
-    // 다른 행의 동시 생성·수정은 DB 복합 UNIQUE로 막고, 롤백 후 충돌을 식별한다.
-    if (error?.code === "P2002" && combination) {
-      const conflict = await prisma.study.findFirst({
-        where: { ...combination, id: { not: studyId } },
-        select: { id: true },
-      });
-      if (conflict) throw createApiError("STUDY_CONFLICT");
-    }
+    // 충돌 행이 나중에 삭제·변경돼도 오류에 기록된 해당 제약으로 판별한다.
+    if (isStudyCombinationConflict(error)) throw createApiError("STUDY_CONFLICT");
     throw error;
   }
 };

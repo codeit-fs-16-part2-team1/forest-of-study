@@ -7,49 +7,41 @@ const useToast = () => {
   const [toasts, setToasts] = useState([]);
   const prefix = useId();
   const nextId = useRef(0);
-  const timers = useRef(new Map());
 
   const dismissToast = useCallback((id) => {
-    const entry = timers.current.get(id);
-    if (!entry || entry.isLeaving) return;
-
-    window.clearTimeout(entry.timer);
-    entry.isLeaving = true;
+    const removeAt = Date.now() + TOAST_EXIT_DURATION;
     setToasts((current) =>
       current.map((toast) =>
-        toast.id === id ? { ...toast, isLeaving: true } : toast,
+        toast.id === id && !toast.isLeaving ? { ...toast, isLeaving: true, removeAt } : toast,
       ),
     );
-    // 페이드 아웃이 끝난 뒤 목록에서 제거한다.
-    entry.timer = window.setTimeout(() => {
-      timers.current.delete(id);
-      setToasts((current) => current.filter((toast) => toast.id !== id));
-    }, TOAST_EXIT_DURATION);
   }, []);
 
   const showToast = useCallback(
     (message, variant = "point") => {
       const id = prefix + "-" + nextId.current++;
+      const expiresAt = Date.now() + TOAST_DURATION;
       setToasts((current) => [
         ...current,
-        { id, message, variant, isLeaving: false },
+        { id, message, variant, isLeaving: false, expiresAt },
       ]);
-      timers.current.set(id, {
-        timer: window.setTimeout(() => dismissToast(id), TOAST_DURATION),
-        isLeaving: false,
-      });
       return id;
     },
-    [prefix, dismissToast],
+    [prefix],
   );
 
   useEffect(() => {
-    const activeTimers = timers.current;
-    return () => {
-      activeTimers.forEach((entry) => window.clearTimeout(entry.timer));
-      activeTimers.clear();
-    };
-  }, []);
+    // 종료 시각을 상태에 보관해 StrictMode의 cleanup 후 setup에서도 복원한다.
+    const timers = toasts.map((toast) => window.setTimeout(() => {
+      if (toast.isLeaving) {
+        setToasts((current) => current.filter(({ id }) => id !== toast.id));
+      } else {
+        dismissToast(toast.id);
+      }
+    }, Math.max(0, (toast.isLeaving ? toast.removeAt : toast.expiresAt) - Date.now())));
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [toasts, dismissToast]);
 
   return { toasts, showToast, dismissToast };
 };
