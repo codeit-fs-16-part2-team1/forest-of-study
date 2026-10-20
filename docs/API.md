@@ -1,7 +1,7 @@
 # 공부의 숲 API Docs
 
-- 문서 개정: 0.13 비밀번호 공백 포함 요청 거절(제품 버전 0.1.0·0.2.0·1.0.0과 별개) · 2026-10-15 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~066; 최신 후속 결정을 우선 적용한다.
+- 문서 개정: 0.14 킥오프 결정 동기화(제품 버전과 별개) · 2026-10-20 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~073; 최신 후속 결정을 우선 적용한다.
 - 요청 예시: [api.http](../api/requests/api.http). 예시는 계약 기대값이며 실제 실행·검증 결과와 구분한다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
@@ -13,13 +13,13 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 정의하지 않은 쿼리 키는 모든 API에서 무시하지 않고 400 VALIDATION_ERROR로 거절한다(ADR-059). ST-01은 offset/limit/keyword/sort, ST-06은 weekStart, ST-08은 ids만 허용한다. 그 외 API는 쿼리를 받지 않는다. 값의 타입·형식은 각 API 기준으로 검사한다.
 
-### 페이지별·요청별 비밀번호 확인
+### 앱 메모리 유지와 요청별 비밀번호 확인
 
-- 습관·집중·스터디 수정 페이지에 진입할 때마다 자체 모달에서 비밀번호를 입력하고 AU-01로 확인한다. 새로고침·페이지 이탈 후 재진입에서도 다시 입력한다.
-- 입력값은 해당 페이지 메모리에만 보관한다. 일반 보호 요청은 `X-Study-Password: <입력한 비밀번호>` 헤더를 보내며 서버가 해당 스터디의 bcrypt 해시와 **요청마다** 비교한다.
+- 앱 메모리에 해당 스터디의 비밀번호가 없으면 자체 모달에서 입력받아 AU-01로 확인한다. 성공한 비밀번호는 앱 메모리에 유지해 습관·집중·스터디 수정 페이지 사이를 이동할 때 다시 입력받지 않는다(ADR-073).
+- 입력값은 앱 메모리에만 보관한다. 일반 보호 요청은 `X-Study-Password: <입력한 비밀번호>` 헤더를 보내며 서버가 해당 스터디의 bcrypt 해시와 **요청마다** 비교한다.
 - AU-01 페이지 진입 검증과 ST-05 삭제 모달은 본문 `{password}`로 검증한다. 생성 ST-02도 기존 본문 비밀번호를 유지한다. 이 세 API는 비밀번호 헤더를 요구하지 않는다.
 - AU-01의 성공 응답은 화면 진입 안내일 뿐 이후 보호 요청을 허용하는 증표가 아니다. 헤더 없이 보호 API를 호출하면 이전 확인 여부와 관계없이 거절한다.
-- LocalStorage·쿠키·URL·응답·로그에 비밀번호를 저장/출력하지 않는다. 이탈 시 페이지 메모리에서 폐기한다. 브라우저에 비밀번호 해시를 보관해 인증으로 쓰지도 않는다.
+- LocalStorage·쿠키·URL·응답·로그에 비밀번호를 저장/출력하지 않는다. 내부 페이지 이동만으로 폐기하지 않으며 새로고침·앱 종료 후에는 다시 입력한다. 브라우저에 비밀번호 해시를 보관해 인증으로 쓰지도 않는다.
 - HTTPS, CORS의 X-Study-Password 허용, 민감 응답 Cache-Control: no-store, 비밀번호 헤더·본문 로그 제외를 적용한다. 헤더 자체는 암호화 수단이 아니다.
 - 인증 토큰·타이머 전용 키·서명·만료·VerificationToken 테이블·조작권 복구를 사용하지 않는다. 응원 browserId는 비밀번호 검증과 무관하다.
 - 비밀번호를 아는 다른 브라우저도 같은 집중을 조작할 수 있다. 브라우저별 소유권과 여러 브라우저 요청 순서 충돌 처리는 제외한다. 스터디당 활성 1개와 완료 중복 지급 방지는 유지한다.
@@ -35,23 +35,21 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 ## 2. API 계약 표
 
-모든 경로는 /api 뒤에 붙는다. /studies/batch는 동적 /studies/{studyId}보다 먼저 라우팅한다.
+모든 경로는 /api 뒤에 붙는다. 개별 습관 API-HB-02/03/04는 폐기했으며 아래 현재 계약 표에서 제외한다. /studies/batch는 동적 /studies/{studyId}보다 먼저 라우팅한다.
 
 | API ID | Method | Path | 기능 | 접근 | 성공 | 0.1.0 우선순위(기록) | 백엔드 담당 이슈 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | API-ST-01 | GET | /studies | 목록·검색·정렬·offset | 공개 | 200 | P0 기본 / P2 확장 | ISS-009, ISS-021 |
 | API-ST-02 | POST | /studies | 스터디 생성 | 공개 | 201 | P0 | ISS-008 |
-| API-ST-03 | GET | /studies/{studyId} | 상세·상위 응원 | 공개 | 200 | P0 상세 / P2 응원 | ISS-009, ISS-023 |
+| API-ST-03 | GET | /studies/{studyId} | 상세·전체 응원 집계 | 공개 | 200 | P0 상세 / P2 응원 | ISS-009, ISS-023 |
 | API-ST-04 | PATCH | /studies/{studyId} | 정보 수정 | 비밀번호 헤더 | 200 | - | ISS-010 |
 | API-ST-05 | DELETE | /studies/{studyId} | 스터디·연결 데이터 삭제 | 삭제 모달 비밀번호 | 204 | - | ISS-010 |
 | API-ST-06 | GET | /studies/{studyId}/routine-histories | 주간 기록표 | 공개 | 200 | P0 | ISS-014 |
 | API-ST-07 | POST | /studies/{studyId}/reactions | 응원 추가 | 공개 | 200 | P2 | ISS-023 |
 | API-ST-08 | GET | /studies/batch | 최근 조회용 ID 다건 조회 | 공개 | 200 | P2 | ISS-022(API) |
-| API-AU-01 | POST | /studies/{studyId}/password-verifications | 페이지 진입 비밀번호 검증 | 비밀번호 본문 | 200 | P1 | ISS-007 |
+| API-AU-01 | POST | /studies/{studyId}/password-verifications | 앱 메모리 미보관 시 비밀번호 검증 | 비밀번호 본문 | 200 | P1 | ISS-007 |
 | API-HB-01 | GET | /studies/{studyId}/routines | 오늘 목록 | 비밀번호 헤더 | 200 | P0 | ISS-011 |
-| API-HB-02 | POST | /studies/{studyId}/routines | 습관 생성 | 비밀번호 헤더 | 201 | P0 | ISS-011 |
-| API-HB-03 | PATCH | /studies/{studyId}/routines/{routineId} | 이름 수정 | 비밀번호 헤더 | 200 | - | ISS-013 |
-| API-HB-04 | DELETE | /studies/{studyId}/routines/{routineId} | 종료 | 비밀번호 헤더 | 204 | - | ISS-013 |
+| API-HB-06 | PATCH | /studies/{studyId}/routines/batch | 생성·이름 수정·종료 일괄 저장 | 비밀번호 헤더 | 200 | - | ISS-013 |
 | API-HB-05 | PUT | /studies/{studyId}/routines/{routineId}/check | 오늘 체크·해제 | 비밀번호 헤더 | 200 | P0 | ISS-012 |
 | API-FC-01 | GET | /studies/{studyId}/challenges/current | 현재 집중·마지막 목표 복원 | 비밀번호 헤더 | 200 | P0 | ISS-015 |
 | API-FC-02 | POST | /studies/{studyId}/challenges | 매번 새 행으로 시작 | 비밀번호 헤더 | 201 | P0 | ISS-015 |
@@ -62,7 +60,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 ### 0.1.0 중간점검 구현 범위와 이슈 매칭 — 기록 / ADR-055
 
-10/13~15 구현, 10/16 발표. 프론트 없이 `api/requests/api.http`로 시연한다. 아래 우선순위는 구현 범위 배정이며 경로·필드·응답·실패·보호 조건 변경이 아니다. P1이 미구현인 상태를 계약 충족으로 보고하지 않는다.
+10/13~15 구현, 10/16 발표. 프론트 없이 `api/requests/api.http`로 시연한다. 아래 표는 당시 범위의 보관 기록이다. HB-02/03/04·상위 상세 집계는 현재 계약이 아니며 현재 규칙은 4·6절을 따른다. 아래 우선순위는 구현 범위 배정이며 경로·필드·응답·실패·보호 조건 변경이 아니다. P1이 미구현인 상태를 계약 충족으로 보고하지 않는다.
 
 | 중간점검 작업 | 분류·우선순위 | API 계약 ID | 이슈 |
 | --- | --- | --- | --- |
@@ -79,7 +77,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 | 스터디 ID 다건 조회 | Could / P2 | API-ST-08 | ISS-022의 API 부분 |
 | 응원 등록·상위 반응 조회 | Could / P2 | API-ST-07, API-ST-03의 응원 집계 | ISS-023 |
 
-범위 밖 API-ST-04/05, API-HB-03/04, API-FC-03/04/05의 중간 우선순위는 `-`다. 계약은 후속 구현을 위해 보존한다. API-ST-01은 기본 목록 P0 / 검색·정렬·offset 확장 P2, API-ST-03은 상세·총점 P0 / 상위 응원 집계 P2, API-FC-06은 완료·지급 흐름 P0 / 서버 완료 검증·중복 방지 P1로 나눠 추적한다. 보호 요청의 헤더는 그대로 유지한다. 별도 포인트 조회 API는 추가하지 않으며 API-ST-03 또는 API-FC-01의 points를 사용한다.
+범위 밖 API-ST-04/05, API-HB-03/04, API-FC-03/04/05의 중간 우선순위는 `-`다. 당시 ID·범위는 추적용으로 보존한다. API-ST-01은 기본 목록 P0 / 검색·정렬·offset 확장 P2, API-ST-03은 상세·총점 P0 / 상위 응원 집계 P2, API-FC-06은 완료·지급 흐름 P0 / 서버 완료 검증·중복 방지 P1로 나눠 추적한다. 보호 요청의 헤더는 그대로 유지한다. 별도 포인트 조회 API는 추가하지 않으며 API-ST-03 또는 API-FC-01의 points를 사용한다.
 
 ### 제품 버전별 API 작업
 
@@ -91,17 +89,17 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 | 목표 | API 계약 ID | 범위·관련 이슈 |
 | --- | --- | --- |
-| 0.2.0 실제 연동 | ST-01/02/03, ST-06 | 목록·검색·정렬·더보기·생성·상세·상위 응원 조회·주간 기록. ISS-008·009·014·021 및 관련 FE |
-| 0.2.0 실제 연동 | AU-01, HB-01/02/05 | 비밀번호 확인·습관 생성·오늘 목록·체크/해제. ISS-007·011·012 및 관련 FE |
+| 0.2.0 실제 연동 | ST-01/02/03, ST-06 | 목록·검색·정렬·더보기·생성·상세·전체 응원 집계 조회·주간 기록. ISS-008·009·014·021 및 관련 FE |
+| 0.2.0 실제 연동 | AU-01, HB-01/05 | 비밀번호 확인·오늘 목록·체크/해제. 생성·편집 저장은 일괄 저장 범위에서 추적한다. ISS-007·011·012·013 및 관련 FE |
 | 0.2.0 실제 연동 | FC-01~06 | 현재 집중·시작·정지·재개·초기화·완료·포인트·복원. ISS-015~019·028 및 관련 FE |
-| 1.0.0 구현·연동 | ST-04/05, HB-03/04 | 스터디 수정·삭제·습관 이름 수정·종료. BE ISS-010·013 / FE ISS-045·046 |
+| 1.0.0 구현·연동 | ST-04/05 및 습관 일괄 저장 | 스터디 수정·삭제와 습관 일괄 생성·이름 수정·종료. BE ISS-010·013 / FE ISS-045·046 |
 | 1.0.0 구현·연동 | ST-08, ST-07 | 최근 조회용 ID 다건 조회·응원 등록. BE ISS-022·023 / FE ISS-047·048 |
 
-위 구현 범위는 2026-10-15 로컬 라우트·서비스·app.js 연결을 조회한 결과이며 API·DB를 실행한 결과가 아니다. 기존 14개 API의 코드 연결은 확인했고 나머지 6개는 아직 라우트가 없다. 상위 응원 조회(ST-03)는 이미 있어 0.2.0에서 연결하며 응원 등록(ST-07)만 1.0.0에 남긴다.
+버전 배정은 작업 계획이며 실행·배포·인수 결과가 아니다. 2026-10-20 정적 확인에서 습관 batch 라우트·서비스와 기존 개별 생성 라우트가 함께 존재한다. 개별 생성은 폐기 대상이며 batch는 확정된 API-HB-06 계약으로 연결한다. 상세·등록의 전체 집계는 계약으로 요구하며 현재 코드가 있다는 이유만으로 충족을 선언하지 않는다.
 
 0.2.0의 작업 우선순위는 [issues.md](issues.md)의 13개 PR 묶음을 따른다. 기존 API의 공통 오류·비밀번호 공백 거절·쿼리 검증은 ISS-006·007·029에서 계약 일치 여부를 확인하고 해당 연동 전에 보완한다. 완료·중복 지급은 ISS-018·028에서 확인하고 미검증 서버 동작을 프론트의 임시 성공으로 대체하지 않는다.
 
-1.0.0은 공통 계약·배포 전체 인수 P0, 스터디 수정/삭제·습관 수정/종료 P1, ID 다건·응원 등록 P2로 진행한다. P2도 최종 필수 기능이면 출시 전에 완료한다. 기존 API 연동을 통째로 1.0.0에 미루지 않는다. API 경로·필드·상태 코드·실패·인증 계약은 이번 버전 배정으로 바꾸지 않는다.
+1.0.0은 공통 계약·배포 전체 인수 P0, 스터디 수정/삭제·습관 일괄 저장 P1, ID 다건·응원 등록 P2로 진행한다. P2도 최종 필수 기능이면 출시 전에 완료한다. 기존 API 연동을 통째로 1.0.0에 미루지 않는다. API 경로·필드·상태 코드·실패·인증 계약은 이번 버전 배정으로 바꾸지 않는다.
 
 ## 3. 데이터 모양
 
@@ -119,7 +117,7 @@ Challenge에는 비밀번호·해시·토큰·키를 넣지 않는다. elapsedSe
 
 - 모델명은 PascalCase(Study, Routine, RoutineHistory, Challenge, Reaction), JSON 필드는 DB 컬럼과 같은 camelCase를 사용한다.
 - API 컬렉션 경로는 /studies, /routines, /routine-histories, /challenges, /reactions다. 현재 활성 집중 조회는 /studies/{studyId}/challenges/current다.
-- API-HB / API-FC와 F-HB / F-FC는 문서 추적 ID다. 기존 연결을 보존하며 리소스명으로 사용하지 않는다. 화면 주소도 README의 기존 6개 주소를 유지한다.
+- API-HB / API-FC와 F-HB / F-FC는 문서 추적 ID다. 기존 연결을 보존하며 리소스명으로 사용하지 않는다. 화면 주소는 ADR-009의 여섯 주소를 유지한다.
 - password·passwordConfirm은 입력 전용이며 DB에는 passwordHash만 저장한다. passwordHash는 공개하지 않는다.
 - date 형식의 DB 컬럼 recordDate·startsOn·endsOn은 YYYY-MM-DD, 타임스탬프는 UTC ISO 8601로 전달한다.
 - elapsedSeconds·remainingSeconds·serverTime·endsAt·weekStart·cells·settlement는 조회/표시용 파생값이며 새 DB 컬럼이 아니다. 주간 응답에는 dates·exists·습관별 startsOn/endsOn을 보내지 않는다(ADR-060). Routine DTO의 startsOn/endsOn은 유지한다. 시간 단위가 다른 값을 DB 컬럼과 같은 이름으로 보내지 않는다.
@@ -198,8 +196,8 @@ backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(gree
 
 ### API-ST-03 상세 / API-ST-05 삭제
 
-상세: {data:{...Study,reactions:[ReactionSummary]}}. 주간 표는 ST-06 별도 조회.
-삭제: DELETE body {password}. bcrypt 검증 후 Study와 연결 데이터를 Cascade 삭제, 204. 헤더가 아닌 삭제 모달 본문의 비밀번호를 검증한다. 성공 후 / 이동 및 에러토스트 형식의 삭제 성공 안내. 해당 스터디의 페이지 메모리·최근 조회 ID도 정리한다.
+상세: {data:{...Study,reactions:[ReactionSummary]}}. reactions는 전체 응원 집계이며 상위 3종으로 자르지 않는다(ADR-072). introduction은 생략 없이 전체 표시하고 카드만 한 줄 말줄임한다(ADR-069). 주간 표는 ST-06으로 별도 조회한다.
+삭제: DELETE body {password}. bcrypt 검증 후 Study와 연결 데이터를 Cascade 삭제, 204. 헤더가 아닌 삭제 모달 본문의 비밀번호를 검증한다. 성공 후 / 이동 및 에러토스트 형식의 삭제 성공 안내. 해당 스터디의 앱 메모리 비밀번호·최근 조회 ID도 정리한다.
 
 ### API-ST-06 기록표
 
@@ -211,11 +209,11 @@ query: weekStart=YYYY-MM-DD는 필수다. 입력한 날짜가 속한 주의 월�
 
 ### API-ST-07 응원
 
-body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 프로필 식별이며 신원 증명이 아니다. emoji-picker-react에서 제공하는 모든 이모지를 허용한다. 서버는 피부색 수정자를 제거한 기본 이모지를 Reaction.emoji에 저장하고 동일한 값으로 중복 검사·상위 집계·응답을 처리한다. 예: 👍·👍🏽·👍🏻는 모두 👍다. PK(studyId,browserId,emoji)는 기본 이모지 기준이므로 같은 브라우저가 피부색만 바꿔도 409 REACTION_POLICY_CONFLICT다. 서로 다른 브라우저는 같은 기본 이모지 집계에 각각1회씩 포함한다. 기본 피부색 표현을 사용하며 피부색 외의 이모지 종류를 임의로 합치지 않는다(ADR-064).
+body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 프로필 식별이며 신원 증명이 아니다. emoji-picker-react에서 제공하는 모든 이모지를 허용한다. 서버는 피부색 수정자를 제거한 기본 이모지를 Reaction.emoji에 저장하고 동일한 값으로 중복 검사·집계·응답을 처리한다. 예: 👍·👍🏽·👍🏻는 모두 👍다. PK(studyId,browserId,emoji)는 기본 이모지 기준이므로 같은 브라우저가 피부색만 바꿔도 409 REACTION_POLICY_CONFLICT다. 서로 다른 브라우저는 같은 기본 이모지 집계에 각각1회씩 포함한다. 기본 피부색 표현을 사용하며 피부색 외의 이모지 종류를 임의로 합치지 않는다(ADR-064).
 
 정규화는 피부색 수정자 U+1F3FB~U+1F3FF를 제거하는 공통 처리로 정의한다. 선택창은 emoji-picker-react 기본 UI를 사용하며 별도 외부 이모지 API를 도입하지 않는다. 서로 다른 기본 이모지 종류 수는 제한하지 않는 기존 정책을 유지한다. 임의 browserId 변경을 영구 개인별 제한으로 막는다고 설명하지 않는다.
 
-성공 {data:{reactions:[ReactionSummary]}}. 상위 정렬은 COUNT DESC → MIN(createdAt) ASC → emoji ASC(기술적으로 DB의 C collation 사용)이며 LIMIT3. 이모지 종류가3미만이면 있는 만큼 반환하는 기술 표시 기준이다. 선택기의 모든 이모지를 허용하며 피부색 변형은 같은 기본 이모지로 집계한다. 피부색 변경 외의 추가 표현 통합은 이번 결정에 포함하지 않는다.
+성공 {data:{reactions:[ReactionSummary]}}. 상세(ST-03)·등록(ST-07)은 COUNT DESC → MIN(createdAt) ASC → emoji ASC(C collation) 순으로 전체 집계를 반환하며 LIMIT 3을 적용하지 않는다. ID 다건(ST-08)은 같은 정렬의 상위 3종만 반환하고 3종 미만이면 있는 만큼 반환한다(ADR-072). 선택기의 모든 이모지를 허용하며 피부색 변형은 같은 기본 이모지로 집계한다. 피부색 변경 외의 추가 표현 통합은 이번 결정에 포함하지 않는다.
 
 ### API-ST-08 ID 다건 조회
 
@@ -223,26 +221,50 @@ body {browserId,emoji}. browserId는 UUID·LocalStorage의 동일 브라우저 �
 
 query ids=UUID,UUID,…; 모든 ID의 UUID 형식을 검사하고 첫 등장 순서로 중복을 제거한다. **중복 제거 후 서로 다른 ID 최대 10개**다. 같은 ID를 반복해 원래 요청 항목이 10개를 넘어도 중복 제거 후 10개 이하면 허용하며 서로 다른 ID가11개 이상이면 400 VALIDATION_ERROR다. 없는/삭제된 ID를 조회 결과에서 제외하기 전에 개수 제한을 검사한다(ADR-063).
 
-조회 결과는 첫 등장 순서를 유지하고 없는/삭제된 ID는 제외하며 {data:[카드용 Study와 reactions]}를 반환한다. 모두 없으면 data:[], UUID 오류는 400 VALIDATION_ERROR다. 삭제 항목은 최근 조회 LocalStorage에서도 정리한다. ids 외 keyword/sort/offset/limit 등은 혼합할 수 없고 400 VALIDATION_ERROR다. /studies/batch는 /studies/{studyId}보다 먼저 라우팅한다.
+조회 결과는 첫 등장 순서를 유지하고 없는/삭제된 ID는 제외하며 {data:[카드용 Study와 reactions]}를 반환한다. reactions는 정렬된 상위 3종을 유지한다(ADR-072). 모두 없으면 data:[], UUID 오류는 400 VALIDATION_ERROR다. 삭제 항목은 최근 조회 LocalStorage에서도 정리한다. ids 외 keyword/sort/offset/limit 등은 혼합할 수 없고 400 VALIDATION_ERROR다. /studies/batch는 /studies/{studyId}보다 먼저 라우팅한다.
 
 ## 5. 비밀번호 확인
 
-### API-AU-01 페이지 진입 확인
+### API-AU-01 비밀번호 최초 확인·재입력
 
 body {password}. 원문 형식 검사·Study 존재 확인·bcrypt 검증 후 200 {data:{verified:true}}. 공백 포함은 400 VALIDATION_ERROR, 유효한 형식의 오답은 401 PASSWORD_MISMATCH다. 토큰이나 확인 효력 만료 시각은 없다. 이후 수정·습관·집중 요청의 X-Study-Password도 매번 공백 제거 없이 같은 원문 검사·공백 포함 거절·bcrypt 검증을 적용한다.
 
-모달의 나가기/취소는 모달만 닫고 현재 주소를 유지한다. 검증하지 않은 상태에서는 보호 데이터를 불러오거나 조작하지 않는다. 요청 중간 취소 기능은 추가하지 않는다.
+비밀번호 모달의 나가기/취소는 이전 화면 또는 홈으로 이동한다(ADR-070). 검증하지 않은 상태에서는 보호 데이터를 불러오거나 조작하지 않는다. 요청 중간 취소 기능은 추가하지 않는다.
 
 ## 6. 습관 API
 
-HB-01: {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 오늘인 습관만 조회하고 createdAt ASC → id ASC로 반환한다. 이름 수정은 과거 표에도 반영된다. 주간 기록 행도 같은 생성일 오름차순을 사용한다(ADR-060).
-HB-02 body {name}, 201 {data:Routine}. HB-03 body {name}, 200 {data:Routine}. 이름은 trim 후 그래핌 기준 1~20개이며 조합 이모지도 각각 1글자로 센다. 빈 문자열·공백만 있는 입력은 400 VALIDATION_ERROR로 거절한다. 정리한 이름을 TEXT에 저장하고 서버에서 반드시 검사한다. 목록 수정에서 생성·수정을 함께 보여도 HTTP 작업은 개별 처리한다. 빈 입력 영역 추가는 가능하지만 빈 값을 저장하지 않는다.
-HB-04 DELETE body 없음. 처음 종료 시 endsOn=서버 오늘 한국 날짜,204. 이미 종료된 행의 재삭제는 날짜를 덮어쓰지 않고204. 물리 삭제하지 않는다.
-HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 일치하며 endsOn이 없는 습관만 체크·해제 가능. (routineId,recordDate) upsert, 해제도 completed=false 행 유지. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치 409 DATE_CHANGED는 오래된 화면의 과거 날짜 기록을 막는 기술 계약이며 프론트는 오늘 목록을 재조회한다. 날짜 변경은 이력 전체 삭제가 아니다.
+### 현재 적용 범위
 
-습관 최대 18개는 해당 스터디의 endsOn IS NULL인 행만 센다. 종료된 습관과 날짜별 기록은 제외한다. 기존 활성 18개에서 생성하면 400 VALIDATION_ERROR이며 종료로 활성17개가 되면 다시 생성할 수 있다. 스터디 잠금과 같은 트랜잭션 안에서 count → create를 처리한다.
+- HB-01 오늘 목록과 HB-05 체크·해제는 유지한다.
+- 개별 생성 HB-02·이름 수정 HB-03·종료 HB-04는 폐기한다. ID는 재사용하지 않는다. 생성·수정·종료 기능은 일괄 저장으로 제공한다(ADR-071 및 2026-10-20 사용자 후속 결정).
+- 현재 소스에 남은 POST /routines는 제거 대상이다. 폐기 경로의 404/405 등 구체 실패 응답은 새 계약으로 확정하지 않는다.
 
-드래그앤드롭 순서 변경은 후속 ISS-031에서 다룬다. 현재 요청·응답에 position/order 필드나 순서 변경 API를 추가하지 않으며 DB에도 순서 컬럼을 두지 않는다.
+### API-HB-01 오늘 목록
+
+200 {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 한국 오늘인 습관을 createdAt ASC → id ASC로 반환한다. 이름 변경은 과거 표에도 반영된다.
+
+### API-HB-05 체크·해제
+
+PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 종료되지 않은 습관만 체크·해제한다. (routineId,recordDate)를 upsert하고 해제도 completed=false 행을 보존한다. 200 {data:{routineId,recordDate,completed}}. 날짜 불일치는 409 DATE_CHANGED이며 오늘 목록을 재조회한다.
+
+### API-HB-06 일괄 저장
+
+습관 편집의 ‘수정 완료’ 버튼 한 번으로 추가·이름 변경·종료를 한 요청에 반영한다. 모두 성공하면 최신 오늘 목록을 반환하고 하나라도 실패하면 이번 변경을 전부 롤백한다(ADR-071).
+
+| 항목 | 확정 계약 |
+| --- | --- |
+| 추적 ID | API-HB-06(기존 폐기 ID 재사용 없음) |
+| Method·Path | PATCH /studies/{studyId}/routines/batch |
+| 인증 | X-Study-Password, 요청마다 bcrypt 검증 |
+| 본문 | {creates:[{name}],updates:[{routineId,name}],endIds:[UUID]} |
+| 성공 | 200, HB-01과 같은 오늘 목록 응답 |
+| 검증 | 세 배열 필수, 각 최대 18개. updates와 endIds 합계 최대 18개·ID 중복 및 수정/종료 겹침 거절. UUID는 소문자로 정규화 |
+| 빈 변경 | 세 배열이 모두 비어 있으면 변경 없이 오늘 목록 반환 |
+| 실패 | 기존 VALIDATION_ERROR·STUDY_NOT_FOUND·ROUTINE_NOT_FOUND·ROUTINE_ENDED 적용. 전체 롤백 |
+
+공통 저장 기준: 이름은 trim 후 그래핌 1~20, 빈 값·공백만 있는 이름은 거절한다. 종료일은 서버 한국 오늘이며 재종료로 최초 종료일을 덮어쓰지 않는다. 미종료 습관만 최대 18개이고 종료로 확보한 자리에 같은 저장의 생성을 반영한다. Study→Routine 순서의 잠금과 같은 트랜잭션에서 변경한다. 요청 형식·대상 소속·종료 상태·활성 개수 검사에 실패하면 일부 변경도 저장하지 않는다.
+
+드래그 정렬은 ISS-031 후속 범위이며 position/order 필드·순서 컬럼·변경 API는 추가하지 않는다.
 
 ## 7. 집중 상태·완료 지급·중복 요청
 
@@ -273,7 +295,7 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 
 - 자동 일시정지·15초 Heartbeat·90초 연결 만료·담당 탭·키 복구는 제외한다. 해당 API-AU-02·API-FC-07도 제거했다.
 - RUNNING은 브라우저·페이지 존재와 무관하게 서버 시간으로 계속 흐른다. 페이지 종료 이벤트에서 pause를 보내지 않는다. PAUSED는 사용자의 resume까지 그대로다.
-- 페이지 이탈·새로고침은 비밀번호 메모리를 폐기한다. 재진입 때 AU-01 확인 후 FC-01로 상태를 조회한다. 이전에 RUNNING이면 서버 시간으로 남은 시간을 복원하고 PAUSED면 그 상태를 보여준다.
+- 내부 이동 시 앱 메모리 비밀번호를 유지하고 FC-01 보호 요청으로 상태를 조회한다. 새로고침·앱 종료 후에는 AU-01로 다시 확인한다. RUNNING은 서버 시간으로 복원하고 PAUSED는 그대로 표시한다.
 - 자정은 집중 상태·진행 시간·완료 보상에 영향을 주지 않는다. 습관의 한국 날짜 경계와 구분한다.
 - 창이 닫힌 동안 목표에 도달한 경우에도 접속 중 주기 작업 없이 복귀 후 완료 요청으로 지급한다. 오프라인 화면이 서버 없이 임의로 지급하지 않는다.
 
@@ -309,10 +331,12 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | API-Q-07 · 확정 | 모든 이모지 허용·피부색 제거 후 기본 이모지로 저장/중복/집계. emoji-picker-react 기본 UI | 응원 / ADR-064·065 |
 | API-Q-08 · 자산 수신 대기 | 기존8종 키·기본green 유지, 실제 색상·이미지는 추후 지정. 같은 nickname/name 조합은 409 STUDY_CONFLICT | 생성·수정·DB 복합 UNIQUE |
 | API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭·자동 pause 제외 | 미정 아님 |
-| API-Q-12 · 일부 자료 수신 대기 | Header 생성 버튼은 홈만·모든 기기. 모달은 배경 클릭 닫기·Escape 무시. 시간 설정은 모달. 빈 목록/실패는 기존 캡처, 완료는 시간 초과 시안, 로딩은 스켈레톤(변경 가능). 반응형·습관 편집 캡처는 추후 제공 | 화면 / ADR-065 |
+| API-Q-12 · 일부 자료 수신 대기 | Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px. 일반 모달은 배경 클릭 닫기·Escape 무시, 비밀번호 취소는 이전 화면 또는 홈. 상세 소개 전체 표시. 반응형·습관 편집 시안·18색 값은 수신 대기 | ADR-065·067·069·070 |
+| API-Q-14 · 확정 | 수정 완료 한 번으로 API-HB-06 일괄 저장. PATCH /routines/batch·creates/updates/endIds·200 오늘 목록·실패 전체 롤백. 개별 생성·수정·종료 폐기 | ADR-071·ISS-013·046 |
+| API-Q-15 · 설계 확인 대기 | 비밀번호 모달 취소는 이전 화면 또는 홈. 대상 선택 조건·배경 클릭 시 이동 적용 범위·스터디별 앱 메모리 구조는 후속 설계 | ADR-070·073 |
 | API-Q-13 · 후속 | 드래그앤드롭 저장·변경 API와 타이머 숫자 직접 입력은 현재 확정 범위 아님 | ISS-031 및 후속 검토 |
 
-응답 필드는 유지한다. 진행 일수·최근 조회 순서·색상·Header·모달 동작은 표시·클라이언트 규칙이며 새 API나 DTO 필드를 추가하지 않는다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
+기존 응답 필드 이름은 유지하되 응원 배열 범위는 ADR-072를 따른다. 진행 일수·최근 조회 순서·색상·Header·모달 동작은 표시·클라이언트 규칙이며 새 API나 DTO 필드를 추가하지 않는다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
 
 ## 11. 기능 ID 대응
 
@@ -335,11 +359,11 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | F-HB-001 | API-HB-01 |
 | F-HB-002 | 프론트 시간 표시, API-HB-01의 서버 날짜로 기준 확인 |
 | F-HB-003 | React Router 화면 이동. 별도 API 없음 |
-| F-HB-004 | API-HB-02 |
+| F-HB-004 | API-HB-06 일괄 저장 |
 | F-HB-005 | API-HB-05 |
 | F-HB-006 | 날짜별 조회·기록 처리; 체크 전체 초기화 API 없음 |
-| F-HB-007 | API-HB-03 |
-| F-HB-008 | API-HB-04 |
+| F-HB-007 | API-HB-06 일괄 저장 |
+| F-HB-008 | API-HB-06 일괄 저장 |
 | F-FC-001 | API-FC-01 |
 | F-FC-002 | 프론트 시작 전 설정 + API-FC-02 입력. RESET/COMPLETED 이후 최근 목표 복원 |
 | F-FC-003 | API-FC-02 |
@@ -352,12 +376,12 @@ HB-05 PUT body {recordDate,completed:boolean}. 서버 오늘 한국 날짜와 �
 | F-FC-010 | API-FC-03 |
 | F-FC-011 | API-FC-04 |
 | F-FC-012 | API-FC-05 |
-| F-AU-001 | API-AU-01 페이지 진입 확인·보호 API마다 비밀번호 헤더 검증 |
-| F-AU-002 | 이번 범위 제외. 재진입·새로고침마다 비밀번호 확인 |
+| F-AU-001 | 앱 메모리에 비밀번호가 없으면 AU-01 확인·매 보호 요청 헤더 검증 |
+| F-AU-002 | 토큰·자정 만료는 제외. 내부 이동은 앱 메모리 유지·새로고침 후 재입력 |
 
 ## 12. 습관 동시 요청
 
-Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 종료와 체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은 409 ROUTINE_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 재삭제는 최초 endsOn을 바꾸지 않는다.
+Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·유효 기간을 검사하고 변경한다. 일괄 종료와 체크의 경합에서 먼저 잠금을 획득한 요청의 결과를 확정한다. 종료 뒤 도착한 체크·이름 변경은 409 ROUTINE_ENDED, 종료 전 완료한 체크는 기록표에 보존한다. 일괄 저장의 재종료는 최초 endsOn을 바꾸지 않는다.
 
 집중의 stateVersion·여러 브라우저 요청 순서 보장은 제외했지만 위 습관 기록 무결성과 완료 중복 지급 방지를 함께 제거하지 않는다.
 
@@ -380,13 +404,11 @@ Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·
 {"error":{"code":"PASSWORD_CONFIRM_MISMATCH","message":"비밀번호 확인이 일치하지 않습니다.","details":null}}
 ```
 
-## 14. 명세 갱신과 현재 구현의 경계 — 2026-10-15
+## 14. 명세 갱신과 검증 경계 — 2026-10-20
 
-현재 명세는 ADR-064~066을 포함한다. 동작·화면 정책·요청 예시와 문서용 스키마 초안을 갱신하며 애플리케이션 코드·패키지·migration·실제 DB는 수정하거나 실행하지 않았다.
-
-- 목록 기본값·검색 처리·주간 월요일 보정/행 순서/축소 응답은 현재 코드 기준이다.
-- 비밀번호·확인값의 공백 포함 요청 거절은 ADR-066을 따른다. 공백 제거를 구현할 후속 항목은 폐기하고 생성·진입 확인·삭제·보호 요청의 400 응답을 검증한다. 모든 API의 미등록 쿼리 400, ST-08 다건 조회·중복 제거 후 10개 상한은 후속 구현·검증이 필요하다. HTTP의 성공/실패 주석은 계약 기대값이며 현재 서버 통과 결과가 아니다.
-- Sass 사용·Vitest 미사용을 확정했다. package.json의 vitest 실행 명령 정리는 후속 작업이다.
-- schema.prisma 초안에 Study(nickname,name) 복합 UNIQUE와 Reaction.emoji의 피부색 정규화 저장 설명을 추가했다. 새 UNIQUE migration은 작성·실행하지 않았다. 기존 데이터의 조합 중복·피부색 정규화 충돌 검토와 전환 계획이 먼저 필요하다. 기존 TEXT/CHECK/활성 UNIQUE migration 파일 존재와 실제 DB 적용 여부도 구분한다.
-- 목록limit 최대6·최근 3개·생성일 1일째·409 STUDY_CONFLICT·피부색 통합·새 UI 기준은 후속 구현/검증 대상이다. 이번 갱신으로 구현 완료를 표시하지 않는다.
-
+- ADR-067~073과 이후 사용자 결정을 반영한다. Header·소개·모달·앱 메모리는 화면·클라이언트 규칙이며 응원 집계 배열과 습관 저장 계약은 API 변경이다.
+- 개별 습관 생성·수정·종료는 폐기한다. 현재 코드에 남은 개별 생성 경로 제거와 일괄 저장의 계약 정합성은 후속 구현·검증 대상이다.
+- batch 라우트·스키마·서비스의 존재는 정적으로 확인했다. 확정된 API-HB-06과의 정합성·실제 실행은 별도로 확인한다.
+- Study 복합 UNIQUE migration 파일이 존재한다. 실제 DB 적용·중복 데이터 정리·피부색 정규화 전환은 확인하지 않았다. 기존 데이터를 임의 삭제하지 않는다.
+- 패키지에는 Sass·json-server가 있으며 Vitest는 사용하지 않는다. 임시 데이터 서버 성공은 실제 API 연동 완료가 아니다.
+- 이번 작업은 문서·요청 예시만 수정한다. 설치·Prisma CLI·migration·서버·API·테스트·배포는 실행하지 않았다. HTTP 주석은 기대값이며 검증 결과가 아니다.

@@ -1,6 +1,6 @@
 # 함께 일하는 규칙
 
-사람끼리 지키는 약속을 적는다. 명세는 README.md, docs/API.md, api/api.http, docs/DB.md, api/prisma/schema.prisma, docs/issues.md, docs/ADR.md에, AI 코딩 도구가 지킬 규칙은 AGENTS.md에 있다.
+사람끼리 지키는 협업 규칙을 적는다. 프로젝트 안내는 README.md, API 계약·요청 예시는 docs/API.md·api/requests/api.http, 데이터 설계는 docs/DB.md·api/prisma/schema.prisma, 작업 범위는 docs/issues.md, 결정 기록은 docs/ADR.md에서 관리한다. AI 작업 지침은 AGENTS.md를 따른다.
 
 ## 브랜치
 
