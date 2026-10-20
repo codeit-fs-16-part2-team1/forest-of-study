@@ -1,15 +1,28 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { goBackOrHome } from "../utils/studyNavigation.js";
 import useStudyPassword from "../hooks/useStudyPassword.js";
 import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
 import RegPage from "./RegPage.jsx";
 import styles from "./RegPage.module.scss";
 
 const EditStudyPage = ({ studyId, studyState }) => {
+  const navigate = useNavigate();
   const { study, isLoading, error } = studyState;
   const verification = useStudyPassword(study && !error ? study.id : null);
 
+  const leaveVerification = () => {
+    verification.close();
+    goBackOrHome(navigate);
+  };
+
   if (studyId && !isLoading && !error && study && verification.isVerified) {
-    return <RegPage key={study.id} study={study} />;
+    return (
+      <RegPage
+        key={study.id}
+        study={study}
+        verifiedPassword={verification.verifiedPassword}
+      />
+    );
   }
 
   return (
@@ -44,7 +57,7 @@ const EditStudyPage = ({ studyId, studyState }) => {
           <Link to="/">홈으로 이동</Link>
         </section>
       </main>
-      <StudyPasswordVerification verification={verification} />
+      <StudyPasswordVerification verification={verification} onClose={leaveVerification} />
     </>
   );
 };

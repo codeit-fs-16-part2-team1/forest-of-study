@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router";
 import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
 import useStudyPassword from "../hooks/useStudyPassword.js";
+import { goBackOrHome } from "../utils/studyNavigation.js";
 import ChallengeSessionPage from "./ChallengeSessionPage.jsx";
 import ChallengePage from "./ChallengePage.jsx";
 import "./challengePage.scss";
@@ -17,13 +18,7 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
     // 이동 전에 비밀번호와 대기 중인 검증 응답을 폐기한다.
     verification.close();
 
-    // 직접 접속한 첫 화면에서는 뒤로 가는 대신 홈으로 이동한다.
-    const historyIndex = window.history.state?.idx;
-    if (Number.isInteger(historyIndex) && historyIndex > 0) {
-      navigate(-1);
-    } else {
-      navigate("/", { replace: true });
-    }
+    goBackOrHome(navigate);
   };
 
   return (

@@ -1,5 +1,9 @@
-import { Link, useLocation } from "react-router";
-import { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { recordRecentStudy, removeRecentStudy } from "../utils/recentStudies.js";
+import { studyApi } from "../api/api.js";
+import { getApiError } from "../api/apiError.js";
+import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
 import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
@@ -10,9 +14,68 @@ import studyPoint from "../assets/studyPoint.svg";
 
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const deleteRequestRef = useRef(null);
+  const deleteFormVersionRef = useRef(0);
   const currentPath = location.pathname + location.search + location.hash;
   const { toasts, showToast } = useToast();
+  const visitedId = !isLoading && !error ? study?.id : null;
+
+  useEffect(() => {
+    if (visitedId) recordRecentStudy(visitedId);
+  }, [visitedId]);
+
+  useEffect(() => () => { deleteRequestRef.current = null; }, []);
+
+  const openDelete = () => {
+    deleteFormVersionRef.current += 1;
+    setDeleteError("");
+    setIsDeleteOpen(true);
+  };
+
+  const closeDelete = () => {
+    // 닫아도 이미 보낸 삭제 요청은 취소하지 않는다.
+    deleteFormVersionRef.current += 1;
+    setDeleteError("");
+    setIsDeleteOpen(false);
+  };
+
+  const handleDelete = async (password) => {
+    if (deleteRequestRef.current || !study?.id) return;
+    if (!isValidStudyPassword(password)) {
+      setDeleteError(studyPasswordMessages.invalid);
+      return;
+    }
+
+    const request = Symbol("deleteStudy");
+    const formVersion = deleteFormVersionRef.current;
+    deleteRequestRef.current = request;
+    setIsDeleting(true);
+    setDeleteError("");
+
+    try {
+      await studyApi.remove(study.id, password);
+      // 이탈 후에도 삭제된 ID는 정리하되 이전 페이지의 UI는 갱신하지 않는다.
+      removeRecentStudy(study.id);
+      if (deleteRequestRef.current !== request) return;
+
+      setIsDeleteOpen(false);
+      navigate("/", { replace: true, state: { studyDeleted: true } });
+    } catch (error) {
+      if (deleteRequestRef.current === request && deleteFormVersionRef.current === formVersion) {
+        // 비밀번호가 포함될 수 있는 Axios 오류 전체 대신 표시 문구만 보관한다.
+        setDeleteError(getApiError(error).message);
+      }
+    } finally {
+      if (deleteRequestRef.current === request) {
+        deleteRequestRef.current = null;
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const handleShare = async () => {
     if (!study?.id) return;
@@ -70,7 +133,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       <section className={styles.panel} aria-labelledby="study-title">
         <nav className={styles.management} aria-label="스터디 관리">
           <Link to={`/reg?id=${study.id}`}>수정하기</Link>
-          <button type="button" onClick={() => setIsDeleteOpen(true)}>삭제하기</button>
+          <button type="button" onClick={openDelete}>삭제하기</button>
         </nav>
         <div className={styles.toolbar}>
           <div className={styles.reactions}>
@@ -129,10 +192,12 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       {isDeleteOpen && (
         <PasswordModal
           title="스터디 삭제"
-          submitLabel="삭제하기"
           closeLabel="취소"
-          submitDisabled
-          onClose={() => setIsDeleteOpen(false)}
+          submitLabel={isDeleting ? "삭제 중..." : "삭제하기"}
+          isPending={isDeleting}
+          errorMessage={deleteError}
+          onSubmit={handleDelete}
+          onClose={closeDelete}
         />
       )}
       <Toast toasts={toasts} />

@@ -52,7 +52,7 @@ export const studyApi = {
   addReaction: (studyId, reaction) =>
     api.post(`${STUDIES}/${studyId}/reactions`, reaction),
 
-  // API-ST-08 — 서버 라우트 구현 대기. ids는 UUID 배열로 전달한다.
+  // API-ST-08 — ids는 UUID 배열로 전달한다.
   getByIds: (ids) =>
     api.get(`${STUDIES}/batch`, { params: { ids: ids.join(",") } }),
 

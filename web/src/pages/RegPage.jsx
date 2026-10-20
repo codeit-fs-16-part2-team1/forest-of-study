@@ -3,6 +3,7 @@ import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
 import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
+import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
 import styles from "./RegPage.module.scss";
 import { useEffect, useRef, useState } from "react";
 
@@ -47,7 +48,7 @@ const passwordFields = [
   },
 ];
 
-const RegPage = ({ study = null }) => {
+const RegPage = ({ study = null, verifiedPassword = null }) => {
   const isEditing = study !== null;
   const navigate = useNavigate();
   const formRef = useRef(null);
@@ -122,13 +123,7 @@ const handlePasswordKeyDown = (event) => {
 
     if (submittingRef.current) return;
 
-    // ISS-010 이후 저장 API를 연결한다. Enter 제출도 생성 요청으로 이어지지 않는다.
-    if (isEditing) {
-      setErrors(validateStudyFields(values));
-      return;
-    }
-
-    const nextErrors = validateStudy(values);
+    const nextErrors = isEditing ? validateStudyFields(values) : validateStudy(values);
     setErrors(nextErrors);
     setSubmitError("");
 
@@ -139,21 +134,32 @@ const handlePasswordKeyDown = (event) => {
       return;
     }
 
+    if (isEditing && !isValidStudyPassword(verifiedPassword)) {
+      setSubmitError(studyPasswordMessages.invalid);
+      return;
+    }
+
     submittingRef.current = true;
     setIsSubmitting(true);
 
-    const requestId = Symbol("createStudy");
+    const requestId = Symbol(isEditing ? "updateStudy" : "createStudy");
     activeRequestRef.current = requestId;
 
     try {
-      const { data } = await studyApi.create({
+      const fields = {
         nickname: values.nickname.trim(),
         name: values.name.trim(),
         introduction: values.introduction.trim(),
         backgroundKey: values.backgroundKey,
-        password: values.password,
-        passwordConfirm: values.passwordConfirm,
-      });
+      };
+      // 수정 본문에는 변경 가능한 네 필드만 보내고 비밀번호는 보호 헤더로 전달한다.
+      const { data } = isEditing
+        ? await studyApi.update(study.id, fields, verifiedPassword)
+        : await studyApi.create({
+          ...fields,
+          password: values.password,
+          passwordConfirm: values.passwordConfirm,
+        });
 
       if (activeRequestRef.current !== requestId) return;
 
@@ -168,7 +174,7 @@ const handlePasswordKeyDown = (event) => {
           ...previous,
           passwordConfirm: "*비밀번호가 일치하지 않습니다",
         }));
-      } else if (apiError.code === "STUDY_CONFLICT") {
+      } else if (!isEditing && apiError.code === "STUDY_CONFLICT") {
         setSubmitError("같은 닉네임과 스터디 이름으로 등록된 스터디가 있습니다.");
       } else {
         setSubmitError(apiError.message);
@@ -323,9 +329,11 @@ const handlePasswordKeyDown = (event) => {
           <button
             type="submit"
             className={styles.submitButton}
-            disabled={isSubmitting || isEditing}
+            disabled={isSubmitting || (isEditing && !verifiedPassword)}
           >
-            {isEditing ? "수정하기" : isSubmitting ? "만드는 중..." : "만들기"}
+            {isEditing
+              ? isSubmitting ? "수정 중..." : "수정하기"
+              : isSubmitting ? "만드는 중..." : "만들기"}
           </button>
         </form>
       </section>
