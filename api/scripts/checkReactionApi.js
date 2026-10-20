@@ -217,6 +217,33 @@ const runChecks = async () => {
   assert.deepEqual(await batchReactions(sortStudyId), sortedResponse.slice(0, 3));
   console.log("[성공] 0~8종 전체 집계·나머지5종·다른 스터디 분리·다건 상위3·등록/상세 정렬 일치");
 
+  step = "둘러보기 목록의 상위3·빈 응원·페이지네이션";
+  const expectedListReactions = new Map([
+    [studyId, eightReactions.slice(0, 3)],
+    [otherStudyId, [{ emoji: "👍", count: 1 }]],
+    [sortStudyId, sortedResponse.slice(0, 3)],
+    [legacyStudyId, []],
+  ]);
+  const listedIds = [];
+  for (const offset of [0, 2, 4]) {
+    const query = new URLSearchParams({ keyword: marker, limit: "2", offset: String(offset) });
+    const response = await request({ id: "", path: "?" + query });
+    assert.equal(response.status, 200);
+    assert.deepEqual(Object.keys(response.body).sort(), ["data", "pagination"]);
+    assert.deepEqual(response.body.pagination, {
+      offset, limit: 2, total: 4, hasMore: offset < 2,
+    });
+    assert.equal(response.body.data.length, offset < 4 ? 2 : 0);
+    for (const study of response.body.data) {
+      assert.equal(expectedListReactions.has(study.id), true);
+      expectSummary(study.reactions);
+      assert.deepEqual(study.reactions, expectedListReactions.get(study.id));
+      listedIds.push(study.id);
+    }
+  }
+  assert.deepEqual([...listedIds].sort(), [...fixtureIds].sort());
+  console.log("[성공] 둘러보기 목록 상위3·스터디별 집계 분리·응원 없는 카드·더보기·빈 페이지");
+
   step = "기존 피부색 행의 중복 검사·브라우저별 통합 집계·원본 보존";
   await prisma.reaction.createMany({ data: [
     { studyId: legacyStudyId, browserId: legacyBrowserId, emoji: "👍🏻", createdAt: earlier },

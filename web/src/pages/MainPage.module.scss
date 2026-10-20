@@ -93,6 +93,17 @@
   margin-top: 24px;
 }
 
+.recentGrid {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: min(240px, 100%);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  // 키보드로 카드에 접근했을 때 포커스 테두리가 잘리지 않도록 공간을 둔다.
+  margin: -4px;
+  padding: 4px;
+}
+
 .empty {
   display: flex;
   flex-direction: column;
@@ -167,6 +178,11 @@
     gap: 24px;
   }
 
+  .recentGrid {
+    grid-template-columns: none;
+    grid-auto-columns: 358px;
+  }
+
   .skeleton {
     min-height: 243px;
   }
@@ -183,5 +199,11 @@
 
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .recentGrid {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: visible;
   }
 }

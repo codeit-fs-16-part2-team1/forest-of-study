@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
+import studyCardPoint from "../../assets/studyCardPoint.svg";
 import styles from "./StudyCard.module.scss";
 
 const StudyCard = ({ study }) => {
@@ -29,6 +30,9 @@ const StudyCard = ({ study }) => {
         </h3>
 
         <span className={styles.points}>
+          <span className={styles.pointIcon} aria-hidden="true">
+            <img src={studyCardPoint} alt="" />
+          </span>
           {study.points.toLocaleString("ko-KR")}P 획득
         </span>
       </div>
