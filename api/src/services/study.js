@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
-import { getTopReactions, getTopReactionsForStudies } from "./reaction.js";
+import { getReactions, getTopReactionsForStudies } from "./reaction.js";
 import { checkStudyPassword } from "./studyPassword.js";
 
 const studySelect = {
@@ -173,7 +173,7 @@ export const getStudy = async (studyId) => {
     throw createApiError("STUDY_NOT_FOUND");
   }
 
-  const reactions = await getTopReactions(studyId);
+  const reactions = await getReactions(studyId);
 
   return { ...study, reactions };
 };

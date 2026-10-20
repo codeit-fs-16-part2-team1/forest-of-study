@@ -26,7 +26,12 @@ const App = () => {
   }
 
   const studyState = useStudyTitleData(studyId, pathname);
-  const { study, isLoading: isStudyLoading, error: studyError } = studyState;
+  const {
+    study,
+    isLoading: isStudyLoading,
+    error: studyError,
+    updateReactions,
+  } = studyState;
   const studyName = study?.name;
 
   let pageTitle = "공부의 숲";
@@ -55,6 +60,7 @@ const App = () => {
                 study={study}
                 isLoading={isStudyLoading}
                 error={studyError}
+                onReactionsChange={updateReactions}
               />
             }
           />

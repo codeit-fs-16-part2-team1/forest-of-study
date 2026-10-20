@@ -71,7 +71,6 @@ const runChecks = async () => {
   });
   const expectSummary = (reactions) => {
     assert.equal(Array.isArray(reactions), true);
-    assert.equal(reactions.length <= 3, true);
     for (const row of reactions) {
       assert.deepEqual(Object.keys(row).sort(), ["count", "emoji"]);
       assert.equal(typeof row.emoji, "string");
@@ -92,6 +91,16 @@ const runChecks = async () => {
     assert.equal(detail.body.data.id, id);
     expectSummary(detail.body.data.reactions);
     return detail.body.data.reactions;
+  };
+  const batchReactions = async (id = studyId) => {
+    const response = await request({ id: "batch", path: "?ids=" + encodeURIComponent(id) });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.length, 1);
+    assert.equal(response.body.data[0].id, id);
+    const reactions = response.body.data[0].reactions;
+    expectSummary(reactions);
+    assert.equal(reactions.length <= 3, true);
+    return reactions;
   };
   const expectError = (response, status, code) => {
     assert.equal(response.status, status);
@@ -157,7 +166,9 @@ const runChecks = async () => {
   for (const emoji of ["👩🏽‍💻", "🇰🇷", "1️⃣", "🌱"]) expectAdded(await add(emoji));
   assert.equal(await prisma.reaction.count({ where: { studyId, browserId } }), 6);
   const afterAdditions = await snapshot();
-  await detailReactions();
+  const sixReactions = await detailReactions();
+  assert.equal(sixReactions.length, 6);
+  assert.deepEqual(await batchReactions(), sixReactions.slice(0, 3));
   assert.deepEqual(await snapshot(), afterAdditions);
   assert.equal(afterAdditions[0].every((row) => row.points === 0), true);
 
@@ -167,6 +178,14 @@ const runChecks = async () => {
     (error) => error?.code === "P2002",
   );
   assert.deepEqual(await snapshot(), afterAdditions);
+
+  step = "8종 전체 반환·나머지 5종·다건 상위3 유지";
+  let eightReactions;
+  for (const emoji of ["👏", "💪"]) eightReactions = expectAdded(await add(emoji));
+  assert.equal(eightReactions.length, 8);
+  assert.equal(eightReactions.slice(3).length, 5);
+  assert.deepEqual(await detailReactions(), eightReactions);
+  assert.deepEqual(await batchReactions(), eightReactions.slice(0, 3));
 
   // 정렬 동률은 시계 속도에 의존하지 않도록 임시 행의 createdAt을 명시한다.
   const earlier = new Date("2026-10-12T00:00:00.000Z");
@@ -180,7 +199,7 @@ const runChecks = async () => {
   assert.deepEqual(await detailReactions(sortStudyId), [{ emoji: "🔥", count: 1 }]);
   await prisma.reaction.create({ data: seedReaction("🌱", earlier) });
   assert.deepEqual(await detailReactions(sortStudyId), [{ emoji: "🌱", count: 1 }, { emoji: "🔥", count: 1 }]);
-  step = "개수 내림·최초 시각 오름·C collation 동률·상위3";
+  step = "전체 집계의 개수 내림·최초 시각 오름·C collation 동률";
   await prisma.reaction.createMany({ data: [
     seedReaction("🔥", later),
     seedReaction("👏", earlier), seedReaction("👏", later),
@@ -188,12 +207,15 @@ const runChecks = async () => {
   ] });
   assert.deepEqual(await detailReactions(sortStudyId), [
     { emoji: "👏", count: 2 }, { emoji: "💪", count: 2 }, { emoji: "🔥", count: 2 },
+    { emoji: "🌱", count: 1 },
   ]);
   const sortedResponse = expectAdded(await add("🌱", randomUUID(), sortStudyId), [
     { emoji: "🌱", count: 2 }, { emoji: "👏", count: 2 }, { emoji: "💪", count: 2 },
+    { emoji: "🔥", count: 2 },
   ]);
   assert.deepEqual(await detailReactions(sortStudyId), sortedResponse);
-  console.log("[성공] 0~2종·종류 제한 없음·다른 스터디 분리·상위3 정렬·등록/상세 응답 일치");
+  assert.deepEqual(await batchReactions(sortStudyId), sortedResponse.slice(0, 3));
+  console.log("[성공] 0~8종 전체 집계·나머지5종·다른 스터디 분리·다건 상위3·등록/상세 정렬 일치");
 
   step = "기존 피부색 행의 중복 검사·브라우저별 통합 집계·원본 보존";
   await prisma.reaction.createMany({ data: [

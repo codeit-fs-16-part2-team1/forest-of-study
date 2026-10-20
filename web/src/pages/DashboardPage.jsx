@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
+import StudyReactions from "../components/reaction/StudyReactions.jsx";
 
-const DashboardPage = ({ study, isLoading, error }) => {
+const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
   const currentPath = location.pathname + location.search + location.hash;
 
@@ -45,16 +46,13 @@ const DashboardPage = ({ study, isLoading, error }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
-        {study.reactions?.length > 0 && (
-          <ul className={styles.reactions} aria-label="상위 응원">
-            {study.reactions.map(({ emoji, count }) => (
-              <li key={emoji}>
-                <span>{emoji}</span>
-                <span>{count}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className={styles.reactions}>
+          <StudyReactions
+            studyId={study.id}
+            reactions={study.reactions ?? []}
+            onReactionsChange={onReactionsChange}
+          />
+        </div>
 
         <div className={styles.heading}>
           <h1 id="study-title" className={styles.title}>
@@ -88,10 +86,10 @@ const DashboardPage = ({ study, isLoading, error }) => {
             </dd>
           </div>
         </dl>
-         <RoutineHistoryTable
+        <RoutineHistoryTable
           key={study.id}
           studyId={study.id}
-         />
+        />
       </section>
     </main>
   );
