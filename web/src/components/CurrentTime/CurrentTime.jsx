@@ -1,4 +1,7 @@
-const CurrentTime = ({ currentTime, className }) => {
+import useServerTime from "../../hooks/useServerTime.js";
+
+const CurrentTime = ({ clock, className }) => {
+  const currentTime = useServerTime(clock);
   return (
     <div className={className}>
       <p>현재 시간</p>
