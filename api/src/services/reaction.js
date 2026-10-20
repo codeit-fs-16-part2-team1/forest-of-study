@@ -5,10 +5,11 @@ import { normalizeEmoji } from "../utils/emoji.js";
 
 // 등록·상세·다건 조회가 같은 기준을 사용한다. 기존 피부색 행도 브라우저별로 한 번만 센다.
 // $transaction([...])에서도 사용할 수 있도록 PrismaPromise를 그대로 반환한다.
-export const getTopReactionsForStudies = (studyIds, db = prisma) => {
+const queryReactionsForStudies = (studyIds, db, onlyTopThree) => {
   const where = studyIds.length === 0
     ? Prisma.sql`FALSE`
     : Prisma.sql`"studyId" IN (${Prisma.join(studyIds.map((id) => Prisma.sql`${id}::uuid`))})`;
+  const rankFilter = onlyTopThree ? Prisma.sql`WHERE "rank" <= 3` : Prisma.empty;
 
   return db.$queryRaw`
     WITH normalized AS (
@@ -33,14 +34,24 @@ export const getTopReactionsForStudies = (studyIds, db = prisma) => {
     )
     SELECT "studyId", "emoji", "count"
     FROM ranked
-    WHERE "rank" <= 3
+    ${rankFilter}
     ORDER BY "studyId", "rank"
   `;
 };
 
+// 카드·다건 조회는 계속 스터디별 상위 3종만 반환한다.
+export const getTopReactionsForStudies = (studyIds, db = prisma) =>
+  queryReactionsForStudies(studyIds, db, true);
+
 export const getTopReactions = async (studyId, db = prisma) => {
   const reactions = await getTopReactionsForStudies([studyId], db);
   // 단건 공개 응답에는 내부 분류용 studyId를 포함하지 않는다.
+  return reactions.map(({ emoji, count }) => ({ emoji, count }));
+};
+
+// 상세·등록 응답은 전체 집계를 반환하고 화면에서 상위 3종과 나머지를 나눈다.
+export const getReactions = async (studyId, db = prisma) => {
+  const reactions = await queryReactionsForStudies([studyId], db, false);
   return reactions.map(({ emoji, count }) => ({ emoji, count }));
 };
 
@@ -63,7 +74,7 @@ export const createReaction = async ({ studyId, browserId, emoji }) => {
         throw createApiError("REACTION_POLICY_CONFLICT");
       }
       await tx.reaction.create({ data: key });
-      const reactions = await getTopReactions(studyId, tx);
+      const reactions = await getReactions(studyId, tx);
       return { reactions };
     }, { isolationLevel: "ReadCommitted" });
   } catch (error) {

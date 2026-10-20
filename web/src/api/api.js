@@ -48,7 +48,7 @@ export const studyApi = {
       params: { weekStart },
     }),
 
-  // API-ST-07 — 서버 라우트 구현 대기
+  // API-ST-07 — 성공 응답의 reactions는 전체 정렬 집계다.
   addReaction: (studyId, reaction) =>
     api.post(`${STUDIES}/${studyId}/reactions`, reaction),
 

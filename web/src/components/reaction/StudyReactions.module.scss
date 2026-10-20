@@ -56,6 +56,20 @@
   list-style: none;
 }
 
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-inline-size: 0;
+}
+
+.anchor {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -73,6 +87,43 @@
 .emoji {
   color: var(--color-text);
   font-weight: 500;
+}
+
+.moreButton {
+  border: 0;
+  background: rgba(0, 0, 0, 0.3);
+  font-family: inherit;
+
+  img {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.popover {
+  position: absolute;
+  z-index: 30;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-start: var(--popover-offset, 0px);
+  inline-size: max-content;
+  max-inline-size: calc(100vw - 32px);
+}
+
+.morePopover {
+  box-sizing: border-box;
+  inline-size: 242px;
+  max-block-size: min(280px, 60dvh);
+  overflow: auto;
+  padding: 11px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 15px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .empty,
@@ -101,8 +152,8 @@
 
 .picker {
   min-inline-size: 0;
-  max-inline-size: 100%;
-  overflow-x: auto;
+  max-block-size: 75dvh;
+  overflow: auto;
 
   fieldset {
     min-inline-size: 0;
