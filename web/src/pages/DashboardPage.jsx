@@ -3,11 +3,30 @@ import { useState } from "react";
 import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
+import StudyReactions from "../components/reaction/StudyReactions.jsx";
+import Toast from "../components/Toast/Toast.jsx";
+import useToast from "../hooks/useToast.js";
 
-const DashboardPage = ({ study, isLoading, error }) => {
+const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const currentPath = location.pathname + location.search + location.hash;
+  const { toasts, showToast } = useToast();
+
+  const handleShare = async () => {
+    if (!study?.id) return;
+
+    // 공개 상세 주소만 복사한다. 현재 URL의 쿼리나 해시는 포함하지 않는다.
+    const shareUrl = new URL(`/dashboard/${study.id}`, window.location.origin).href;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("링크를 복사했습니다.", "point");
+    } catch {
+      // 클립보드 미지원·권한 거절도 같은 실패 안내를 사용한다.
+      showToast("링크를 복사하지 못했습니다. 다시 시도해주세요.", "warning");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -52,16 +71,19 @@ const DashboardPage = ({ study, isLoading, error }) => {
           <Link to={`/reg?id=${study.id}`}>수정하기</Link>
           <button type="button" onClick={() => setIsDeleteOpen(true)}>삭제하기</button>
         </nav>
-        {study.reactions?.length > 0 && (
-          <ul className={styles.reactions} aria-label="상위 응원">
-            {study.reactions.map(({ emoji, count }) => (
-              <li key={emoji}>
-                <span>{emoji}</span>
-                <span>{count}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className={styles.toolbar}>
+          <div className={styles.reactions}>
+            <StudyReactions
+              studyId={study.id}
+              reactions={study.reactions ?? []}
+              onReactionsChange={onReactionsChange}
+              onShowToast={showToast}
+            />
+          </div>
+          <button type="button" className={styles.shareButton} onClick={handleShare}>
+            공유하기
+          </button>
+        </div>
 
         <div className={styles.heading}>
           <h1 id="study-title" className={styles.title}>
@@ -95,10 +117,10 @@ const DashboardPage = ({ study, isLoading, error }) => {
             </dd>
           </div>
         </dl>
-         <RoutineHistoryTable
+        <RoutineHistoryTable
           key={study.id}
           studyId={study.id}
-         />
+        />
       </section>
       {isDeleteOpen && (
         <PasswordModal
@@ -109,6 +131,7 @@ const DashboardPage = ({ study, isLoading, error }) => {
           onClose={() => setIsDeleteOpen(false)}
         />
       )}
+      <Toast toasts={toasts} />
     </main>
   );
 };

@@ -8,6 +8,21 @@ export const useStudyTitleData = (studyId, pathname = "") => {
   const [reloadCount, setReloadCount] = useState(0);
   const reloadStudy = useCallback(() => setReloadCount((count) => count + 1), []);
 
+  // 등록 응답의 집계만 바꾸고 상세 조회의 나머지 데이터는 보존한다.
+  const updateReactions = useCallback((reactions) => {
+    setResult((previous) => {
+      if (previous?.studyId !== studyId || previous?.pathname !== pathname
+        || !previous.study) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        study: { ...previous.study, reactions },
+      };
+    });
+  }, [studyId, pathname]);
+
   useEffect(() => {
     if (!isValidStudyId(studyId)) return;
 
@@ -51,6 +66,7 @@ export const useStudyTitleData = (studyId, pathname = "") => {
       study: null,
       isLoading: false,
       error: null,
+      updateReactions,
       reloadStudy,
     };
   }
@@ -60,6 +76,7 @@ export const useStudyTitleData = (studyId, pathname = "") => {
       study: null,
       isLoading: false,
       error: { status: 400, code: "VALIDATION_ERROR", message: "스터디 ID 형식이 올바르지 않습니다." },
+      updateReactions,
       reloadStudy,
     };
   }
@@ -74,6 +91,7 @@ export const useStudyTitleData = (studyId, pathname = "") => {
       study: null,
       isLoading: true,
       error: null,
+      updateReactions,
       reloadStudy,
     };
   }
@@ -82,6 +100,7 @@ export const useStudyTitleData = (studyId, pathname = "") => {
     study: result.study,
     isLoading: false,
     error: result.error,
+    updateReactions,
     reloadStudy,
   };
 };
