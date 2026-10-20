@@ -3,6 +3,7 @@ import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
 import RootLayout from "./layouts/RootLayout.jsx";
 import MainPage from "./pages/MainPage.jsx";
 import RegPage from "./pages/RegPage.jsx";
+import EditStudyPage from "./pages/EditStudyPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import RoutinesPage from "./pages/RoutinesPage.jsx";
 import ChallengeEntryPage from "./pages/ChallengeEntryPage.jsx";
@@ -21,7 +22,7 @@ const App = () => {
 
   if (dashboardMatch) {
     studyId = dashboardMatch.params.id;
-  } else if (routinesMatch || challengeMatch) {
+  } else if (routinesMatch || challengeMatch || regMatch) {
     studyId = searchParams.get("id");
   }
 
@@ -43,7 +44,7 @@ const App = () => {
   } else if (challengeMatch) {
     pageTitle = `오늘의 도전 | ${studyName || "공부의 숲"}`;
   } else if (regMatch) {
-    pageTitle = "스터디 등록 | 공부의 숲";
+    pageTitle = searchParams.has("id") ? "스터디 수정 | 공부의 숲" : "스터디 등록 | 공부의 숲";
   }
 
   return (
@@ -52,11 +53,14 @@ const App = () => {
       <Routes>
         <Route path="/" element={<RootLayout />}>
           <Route index element={<MainPage />} />
-          <Route path="reg" element={<RegPage />} />
+          <Route path="reg" element={searchParams.has("id") ? (
+            <EditStudyPage key={`edit:${studyId}`} studyId={studyId} studyState={studyState} />
+          ) : <RegPage key="create" />} />
           <Route
             path="dashboard/:id"
             element={
               <DashboardPage
+                key={studyId}
                 study={study}
                 isLoading={isStudyLoading}
                 error={studyError}

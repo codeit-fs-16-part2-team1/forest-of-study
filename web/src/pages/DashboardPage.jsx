@@ -1,4 +1,6 @@
 import { Link, useLocation } from "react-router";
+import { useState } from "react";
+import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
 import StudyReactions from "../components/reaction/StudyReactions.jsx";
@@ -7,6 +9,7 @@ import useToast from "../hooks/useToast.js";
 
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const currentPath = location.pathname + location.search + location.hash;
   const { toasts, showToast } = useToast();
 
@@ -64,6 +67,10 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
+        <nav className={styles.management} aria-label="스터디 관리">
+          <Link to={`/reg?id=${study.id}`}>수정하기</Link>
+          <button type="button" onClick={() => setIsDeleteOpen(true)}>삭제하기</button>
+        </nav>
         <div className={styles.toolbar}>
           <div className={styles.reactions}>
             <StudyReactions
@@ -115,6 +122,15 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
           studyId={study.id}
         />
       </section>
+      {isDeleteOpen && (
+        <PasswordModal
+          title="스터디 삭제"
+          submitLabel="삭제하기"
+          closeLabel="취소"
+          submitDisabled
+          onClose={() => setIsDeleteOpen(false)}
+        />
+      )}
       <Toast toasts={toasts} />
     </main>
   );
