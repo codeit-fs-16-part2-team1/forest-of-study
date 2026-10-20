@@ -1,6 +1,8 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import useStudyReactions from "../../hooks/useStudyReactions.js";
+import useToast from "../../hooks/useToast.js";
+import Toast from "../Toast/Toast.jsx";
 import smile from "../../assets/reaction/smile.svg";
 import plus from "../../assets/reaction/plus.svg";
 import styles from "./StudyReactions.module.scss";
@@ -34,8 +36,9 @@ const StudyReactionsContent = ({
   const pickerAnchorRef = useRef(null);
   const morePopoverRef = useRef(null);
   const pickerPopoverRef = useRef(null);
-  const [notice, setNotice] = useState("");
+  const { toasts, showToast } = useToast();
   const { isPending, error, addReaction } = useStudyReactions({ studyId, onReactionsChange });
+  const isDuplicateError = error?.code === "REACTION_POLICY_CONFLICT";
   const disabled = isLoading || isPending || !studyId
     || typeof onReactionsChange !== "function";
   const topReactions = reactions.slice(0, 3);
@@ -43,6 +46,12 @@ const StudyReactionsContent = ({
   const isPickerOpen = openPopovers.includes("picker");
   const isMoreOpen = openPopovers.includes("more") && remainingReactions.length > 0;
   const hasOpenPopover = isPickerOpen || isMoreOpen;
+
+  useEffect(() => {
+    if (error?.code === "REACTION_POLICY_CONFLICT") {
+      showToast(error.message, "warning");
+    }
+  }, [error, showToast]);
 
   const togglePopover = (type) => {
     const isDesktop = window.matchMedia(desktopQuery).matches;
@@ -135,10 +144,9 @@ const StudyReactionsContent = ({
 
   const handleEmojiClick = async (emojiData) => {
     if (disabled) return;
-    setNotice("");
 
     if (await addReaction(emojiData.emoji)) {
-      setNotice("응원을 보냈습니다.");
+      showToast("응원을 보냈습니다.", "point");
       setOpenPopovers((previous) => previous.filter((open) => open !== "picker"));
     }
   };
@@ -218,9 +226,10 @@ const StudyReactionsContent = ({
       </div>
 
       <p className={styles.status} role="status">
-        {isPending ? "응원을 보내는 중입니다." : notice}
+        {isPending ? "응원을 보내는 중입니다." : ""}
       </p>
-      {error && <p className={styles.error} role="alert">{error.message}</p>}
+      {error && !isDuplicateError && <p className={styles.error} role="alert">{error.message}</p>}
+      <Toast toasts={toasts} />
     </section>
   );
 };
