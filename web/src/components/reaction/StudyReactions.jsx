@@ -225,7 +225,7 @@ const StudyReactionsContent = ({
         </div>
       </div>
 
-      <p className={styles.status} role="status">
+      <p className={styles.srOnly} role="status">
         {isPending ? "응원을 보내는 중입니다." : ""}
       </p>
       {error && !isDuplicateError && <p className={styles.error} role="alert">{error.message}</p>}
