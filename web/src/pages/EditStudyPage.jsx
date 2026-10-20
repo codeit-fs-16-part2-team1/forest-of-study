@@ -28,7 +28,7 @@ const EditStudyPage = ({ studyId, studyState }) => {
   return (
     <>
       <main className={styles.page}>
-        <section className={styles.card} aria-labelledby="edit-title" aria-busy={isLoading}>
+        <section className={styles.card} aria-labelledby="edit-title" aria-busy={isLoading || verification.isPending}>
           <h1 id="edit-title" className={styles.title}>스터디 수정</h1>
           {isLoading ? (
             <>
@@ -40,9 +40,19 @@ const EditStudyPage = ({ studyId, studyState }) => {
           ) : !studyId || !study ? (
             <p role="alert">스터디 주소를 확인해주세요.</p>
           ) : (
-            <button type="button" className={styles.submitButton} onClick={verification.open}>
-              비밀번호 확인
-            </button>
+            <>
+              {verification.error && !verification.isOpen && (
+                <p className={styles.error} role="alert">{verification.error.message}</p>
+              )}
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={verification.open}
+                disabled={verification.isPending}
+              >
+                {verification.isPending ? "확인 중…" : verification.error ? "다시 시도" : "비밀번호 확인"}
+              </button>
+            </>
           )}
           <Link to="/">홈으로 이동</Link>
         </section>

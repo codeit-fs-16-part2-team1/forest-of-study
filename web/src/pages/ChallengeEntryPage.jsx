@@ -27,9 +27,10 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
         <ChallengeSessionPage
           study={currentStudy}
           verifiedPassword={verification.verifiedPassword}
+          isVerificationCurrent={verification.isVerificationCurrent}
           onVerificationRequired={verification.requireVerification}
         />
-      ) : isStudyLoading ? (
+      ) : isStudyLoading || verification.isPending ? (
         <ChallengePage isLoading />
       ) : (
         <main>
@@ -42,6 +43,8 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
                 <p role="alert">스터디 주소를 확인해주세요.</p>
               ) : studyError ? (
                 <p role="alert">{studyError.message}</p>
+              ) : verification.error ? (
+                <p role="alert">{verification.error.message}</p>
               ) : (
                 <p>비밀번호를 확인하면 집중을 시작하거나 진행 중인 집중을 이어갈 수 있습니다.</p>
               )}
@@ -52,7 +55,7 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
                     className="challengePage__link"
                     onClick={verification.open}
                   >
-                    비밀번호 확인
+                    {verification.error ? "다시 시도" : "비밀번호 확인"}
                   </button>
                 )}
                 <Link className="challengePage__link" to="/">홈</Link>

@@ -6,7 +6,9 @@ import { getServerTime, getNextKoreanMidnightDelay } from "../utils/serverTime.j
 
 const MINIMUM_LOADING_MS = 300;
 
-const useRoutines = (studyId, verifiedPassword, onRoutineError, onDateRefreshed) => {
+const useRoutines = (
+  studyId, verifiedPassword, onRoutineError, onDateRefreshed, isVerificationCurrent,
+) => {
   const [routineData, setRoutineData] = useState(null);
   const [clock, setClock] = useState(null);
   const [isLoadingRoutines, setIsLoadingRoutines] = useState(true);
@@ -20,7 +22,8 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError, onDateRefreshed)
     : null, [clock]);
 
   const isCurrentContext = useCallback((context) =>
-    context?.active && contextRef.current === context, []);
+    context?.active && contextRef.current === context && isVerificationCurrent(),
+  [isVerificationCurrent]);
 
   const getContext = useCallback(() => {
     const context = contextRef.current;
