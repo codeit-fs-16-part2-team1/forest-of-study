@@ -15,8 +15,8 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError, onDateRefreshed)
   const [pendingRoutineIds, setPendingRoutineIds] = useState([]);
   const [isSavingRoutines, setIsSavingRoutines] = useState(false);
   const contextRef = useRef(null);
-  const getCurrentDate = useCallback(() => clock
-    ? getKoreanDate(getServerTime(clock))
+  const getCurrentDate = useCallback((now = Date.now()) => clock
+    ? getKoreanDate(getServerTime(clock, now))
     : null, [clock]);
 
   const isCurrentContext = useCallback((context) =>
@@ -149,7 +149,9 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError, onDateRefreshed)
     let timer;
 
     const checkDate = () => {
-      const currentDate = getCurrentDate();
+      // 날짜 판정과 다음 예약이 자정의 서로 다른 쪽을 보지 않도록 같은 시각을 사용한다.
+      const now = Date.now();
+      const currentDate = getCurrentDate(now);
       if (currentDate > context.data.recordDate &&
           context.lastAutoRefreshDate !== currentDate && !context.loading &&
           !context.saving && context.pendingIds.size === 0) {
@@ -158,7 +160,7 @@ const useRoutines = (studyId, verifiedPassword, onRoutineError, onDateRefreshed)
         setReloadRequest({ reason: "date", targetDate: currentDate });
       }
       window.clearTimeout(timer);
-      timer = window.setTimeout(checkDate, getNextKoreanMidnightDelay(clock));
+      timer = window.setTimeout(checkDate, getNextKoreanMidnightDelay(clock, now));
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") checkDate();
