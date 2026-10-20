@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { routineApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { getKoreanDate } from "../utils/studyDate.js";
-import useServerTime from "./useServerTime.js";
+import { getServerTime, getNextKoreanMidnightDelay } from "../utils/serverTime.js";
 
 const MINIMUM_LOADING_MS = 300;
 
@@ -17,8 +17,9 @@ const useRoutines = (
   const [pendingRoutineIds, setPendingRoutineIds] = useState([]);
   const [isSavingRoutines, setIsSavingRoutines] = useState(false);
   const contextRef = useRef(null);
-  const currentTime = useServerTime(clock);
-  const currentDate = currentTime ? getKoreanDate(currentTime) : null;
+  const getCurrentDate = useCallback((now = Date.now()) => clock
+    ? getKoreanDate(getServerTime(clock, now))
+    : null, [clock]);
 
   const isCurrentContext = useCallback((context) =>
     context?.active && contextRef.current === context && isVerificationCurrent(),
@@ -137,29 +138,51 @@ const useRoutines = (
 
     context.handledReloadRequest = reloadRequest;
     if (reloadRequest.reason === "date") {
-      const targetDate = reloadRequest.targetDate ?? currentDate;
+      const targetDate = reloadRequest.targetDate ?? getCurrentDate();
       if (!reloadRequest.force && context.data?.recordDate === targetDate) return;
       context.lastAutoRefreshDate = targetDate;
     }
     loadRoutines(context, reloadRequest.reason);
-  }, [reloadRequest, currentDate, isLoadingRoutines, isSavingRoutines,
+  }, [reloadRequest, getCurrentDate, isLoadingRoutines, isSavingRoutines,
     pendingRoutineIds, getContext, loadRoutines]);
 
   useEffect(() => {
     const context = getContext();
-    if (!context?.data || !currentDate || currentDate <= context.data.recordDate ||
-        context.lastAutoRefreshDate === currentDate || context.loading ||
-        context.saving || context.pendingIds.size > 0) return;
+    if (!context?.data || !clock) return;
+    let timer;
 
-    // 같은 날짜의 실패를 반복 요청하지 않고 화면의 재시도 버튼으로 복구한다.
-    context.lastAutoRefreshDate = currentDate;
-    setReloadRequest({ reason: "date", targetDate: currentDate });
-  }, [currentDate, routineData?.recordDate, isLoadingRoutines, isSavingRoutines,
-    pendingRoutineIds, getContext]);
+    const checkDate = () => {
+      // 날짜 판정과 다음 예약이 자정의 서로 다른 쪽을 보지 않도록 같은 시각을 사용한다.
+      const now = Date.now();
+      const currentDate = getCurrentDate(now);
+      if (currentDate > context.data.recordDate &&
+          context.lastAutoRefreshDate !== currentDate && !context.loading &&
+          !context.saving && context.pendingIds.size === 0) {
+        // 실패한 날짜는 수동 재시도로 복구하며, 같은 날짜에 자동 요청을 반복하지 않는다.
+        context.lastAutoRefreshDate = currentDate;
+        setReloadRequest({ reason: "date", targetDate: currentDate });
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(checkDate, getNextKoreanMidnightDelay(clock, now));
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") checkDate();
+    };
+
+    // 자정·탭 복귀·진행 중이던 요청 완료 때 확인하며 주기적인 React 상태는 만들지 않는다.
+    checkDate();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [clock, routineData?.recordDate, isLoadingRoutines, isSavingRoutines,
+    pendingRoutineIds, getContext, getCurrentDate]);
 
   const reloadRoutines = () => {
     const context = getContext();
     if (!context) return;
+    const currentDate = getCurrentDate();
     const isDateChanged = context.data && currentDate > context.data.recordDate;
     setReloadRequest({ reason: isDateChanged ? "date" : "manual", targetDate: currentDate });
   };
@@ -193,6 +216,7 @@ const useRoutines = (
     if (!context?.data || context.loading || context.saving ||
         context.pendingIds.has(routine.id)) return;
 
+    const currentDate = getCurrentDate();
     if (currentDate > context.data.recordDate) {
       setReloadRequest({ reason: "date", targetDate: currentDate });
       return;
@@ -232,7 +256,7 @@ const useRoutines = (
 
   return {
     routineData,
-    currentTime,
+    clock,
     isLoadingRoutines,
     routineError,
     pendingRoutineIds,

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
-import { validateStudy } from "../utils/validateStudy.js";
+import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
 import styles from "./RegPage.module.scss";
 import { useEffect, useRef, useState } from "react";
 
@@ -47,7 +47,8 @@ const passwordFields = [
   },
 ];
 
-const RegPage = () => {
+const RegPage = ({ study = null }) => {
+  const isEditing = study !== null;
   const navigate = useNavigate();
   const formRef = useRef(null);
   const submittingRef = useRef(false);
@@ -59,7 +60,13 @@ const RegPage = () => {
   };
 }, []);
 
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState(() => study ? {
+    ...initialValues,
+    nickname: study.nickname,
+    name: study.name,
+    introduction: study.introduction,
+    backgroundKey: study.backgroundKey,
+  } : initialValues);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,6 +121,12 @@ const handlePasswordKeyDown = (event) => {
     event.preventDefault();
 
     if (submittingRef.current) return;
+
+    // ISS-010 이후 저장 API를 연결한다. Enter 제출도 생성 요청으로 이어지지 않는다.
+    if (isEditing) {
+      setErrors(validateStudyFields(values));
+      return;
+    }
 
     const nextErrors = validateStudy(values);
     setErrors(nextErrors);
@@ -173,7 +186,7 @@ const handlePasswordKeyDown = (event) => {
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="reg-title">
         <h2 id="reg-title" className={styles.title}>
-          스터디 만들기
+          {isEditing ? "스터디 수정" : "스터디 만들기"}
         </h2>
 
         <form
@@ -197,6 +210,7 @@ const handlePasswordKeyDown = (event) => {
                   value={values[name]}
                   placeholder={placeholder}
                   onChange={handleChange}
+                  onBlur={isEditing ? () => setErrors(validateStudyFields(values)) : undefined}
                   disabled={isSubmitting}
                   required
                   aria-invalid={Boolean(errors[name])}
@@ -245,7 +259,7 @@ const handlePasswordKeyDown = (event) => {
             </div>
           </fieldset>
 
-          {passwordFields.map(({ name, label, placeholder }) => (
+          {!isEditing && passwordFields.map(({ name, label, placeholder }) => (
             <div key={name} className={styles.field}>
               <label htmlFor={`reg-${name}`}>{label}</label>
 
@@ -309,9 +323,9 @@ const handlePasswordKeyDown = (event) => {
           <button
             type="submit"
             className={styles.submitButton}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isEditing}
           >
-            {isSubmitting ? "만드는 중..." : "만들기"}
+            {isEditing ? "수정하기" : isSubmitting ? "만드는 중..." : "만들기"}
           </button>
         </form>
       </section>

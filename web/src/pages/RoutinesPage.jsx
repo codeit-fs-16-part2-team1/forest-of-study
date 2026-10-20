@@ -59,7 +59,7 @@ const RoutinesPage = ({ studyState }) => {
   }, [showToast]);
   const {
     routineData,
-    currentTime,
+    clock,
     isLoadingRoutines,
     routineError,
     pendingRoutineIds,
@@ -109,7 +109,7 @@ const RoutinesPage = ({ studyState }) => {
             </nav>
           </div>
           <CurrentTime
-            currentTime={currentTime}
+            clock={clock}
             className={styles.currentTime}
           />
           <div className={styles.routineContainer}>

@@ -10,7 +10,7 @@ const textRules = [
 
 const passwordPattern = /^[A-Za-z0-9!@#$%^&*]{4,20}$/;
 
-export const validateStudy = (values) => {
+export const validateStudyFields = (values) => {
   const errors = {};
 
   textRules.forEach(({ name, label, max }) => {
@@ -25,6 +25,12 @@ export const validateStudy = (values) => {
     errors[name] = `${label}는 앞뒤 공백을 제외하고 1~${max}글자로 입력해주세요.`;
   }
 });
+
+  return errors;
+};
+
+export const validateStudy = (values) => {
+  const errors = validateStudyFields(values);
 
   ["password", "passwordConfirm"].forEach((name) => {
     if (/\s/u.test(values[name])) {

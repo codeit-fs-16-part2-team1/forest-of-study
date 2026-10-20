@@ -207,11 +207,12 @@ const useChallengeSession = ({ studyId, password, isVerificationCurrent }) => {
     const context = getContext();
     if (!context || context.pending || context.loading
       || context.snapshot?.challenge?.status !== "COMPLETED") {
-      return;
+      return false;
     }
     const snapshot = { ...context.snapshot, challenge: null, settlement: null };
     context.snapshot = snapshot;
     setState((previous) => ({ ...previous, snapshot, error: null }));
+    return true;
   }, [getContext]);
 
   const visible = state.studyId === studyId && password

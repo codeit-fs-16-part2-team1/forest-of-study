@@ -13,6 +13,7 @@ const Modal = ({
   closeLabel = "나가기",
   isPending = false,
   disabled = false,
+  submitDisabled = false,
   onSubmit,
   onClose,
   className = "",
@@ -23,7 +24,7 @@ const Modal = ({
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!isDisabled) onSubmit?.(event);
+    if (!isDisabled && !submitDisabled) onSubmit?.(event);
   };
 
   if (!isOpen) return null;
@@ -59,7 +60,7 @@ const Modal = ({
             <button
               className={styles.actionButton}
               type="submit"
-              disabled={isDisabled}
+              disabled={isDisabled || submitDisabled}
             >
               {submitLabel}
             </button>

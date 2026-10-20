@@ -1,11 +1,13 @@
-# 공부의 숲 API v0.13 — docs/API.md / ADR-051~066
+# 공부의 숲 API v0.14 — docs/API.md / ADR-051~073
 # 명세용 수동 요청 예시. 새 계약의 기대값이며 현재 구현 통과를 보장하지 않는다. 코드·DB 실행 없이 명세만 갱신했다.
 # 아래 비밀번호는 테스트용 가상 값이다. 실제 비밀번호를 커밋하지 않는다.
 # 보호 요청은 X-Study-Password, 진입 검증·삭제·생성은 본문 비밀번호.
 # 비밀번호·확인값은 공백 제거 없이 검사하며 공백 포함 시 400 VALIDATION_ERROR로 거절한다(ADR-066).
 # 각 요청을 개별 실행하며 RESET 경로와 COMPLETED 경로는 서로 다른 집중으로 검증한다.
 # Study nickname/name 조합은 중복 불가다. 생성 성공 예시는 새 조합으로 실행하고 반복 실행 전 기존 데이터를 확인한다.
-# 아래 기대값은 새 계약 기준이다. 복합 UNIQUE·limit 상한·피부색 정규화의 구현/새 migration은 별도 작업이다.
+# 아래는 계약 기대값이다. 복합 UNIQUE migration 파일 존재와 실제 적용은 구분한다.
+# 개별 습관 API-HB-02/03/04는 폐기했다. API-HB-06으로 일괄 저장하며 ‘수정 완료’ 한 번의 변경은 모두 성공하거나 모두 롤백한다.
+# 비밀번호는 앱 메모리에 유지해 내부 보호 페이지 이동 시 재입력하지 않는다. 새로고침 후 재확인하며 매 보호 요청은 헤더 검증한다.
 @baseUrl = http://localhost:3000/api
 @studyId = 11111111-1111-4111-8111-111111111111
 @challengeId = 22222222-2222-4222-8222-222222222222
@@ -13,10 +15,21 @@
 @browserId = 44444444-4444-4444-8444-444444444444
 @secondBrowserId = 66666666-6666-4666-8666-666666666666
 @otherStudyId = 55555555-5555-4555-8555-555555555555
+@deletedStudyId = aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+@missingStudyId = 99999999-9999-4999-8999-999999999999
+# otherStudyId는 조회 가능한 두 번째 스터디 ID로 바꾼다.
+# deletedStudyId는 삭제해도 되는 별도 테스트 스터디의 생성 응답 ID로 바꾸고 그 스터디의 비밀번호를 아래 삭제 본문에 사용한다.
+# missingStudyId는 DB에 없는 UUID로 준비한다. 삭제 테스트는 기본 studyId 흐름과 별개로 실행한다.
+@endRoutineId = 77777777-7777-4777-8777-777777777777
+@missingRoutineId = 88888888-8888-4888-8888-888888888888
+# endRoutineId는 같은 스터디의 다른 활성 습관, missingRoutineId는 실제로 없는 UUID로 교체한다.
+@deleteStudyPassword = Forest123!
+# deleteStudyPassword는 삭제용 테스트 스터디와 일치하는 로컬 가상 비밀번호로 설정한다. 실제 비밀값을 커밋하지 않는다.
 @studyPassword = Forest123!
 @todayDate = 2026-10-16
 @weekStart = 2026-10-12
-# studyId/routineId/challengeId는 실제 생성 응답 ID로 교체한다.
+# studyId/otherStudyId/deletedStudyId는 서로 다른 실제 생성 응답 ID로 교체한다. routineId/challengeId도 실제 응답 ID를 사용한다.
+# 10000000-...·90000000-... UUID는 개수 경계 검사용 가상 값이다. 존재 여부와 무관한 입력 상한 검사에만 사용한다.
 # todayDate는 서버 한국 날짜, weekStart는 조회할 주에 속한 날짜로 교체한다. 서버가 월요일로 보정한다.
 #
 # 중간점검: 10/13~15 구현, 10/16 발표 (ADR-055 / ISS-027·030)
@@ -27,7 +40,8 @@
 # 3. API-ST-03 상세: 200 data의 동일 ID·points 확인.
 # 4. API-AU-01 페이지 진입 비밀번호 확인: 200 data.verified=true (P1).
 #    이후 보호 요청마다 X-Study-Password를 전달한다. 검증 성공 응답은 인증 증표가 아니다.
-# 5. API-HB-02 생성: 201 data.id → routineId에 복사.
+# 5. 당시 HB-02 생성은 현재 폐기됐다. 현재 흐름은 일괄 저장으로 생성하고 오늘 목록에서 routineId를 확인한다.
+#    API-HB-06은 200 data.routines의 최신 목록을 반환한다. 생성한 습관 ID를 routineId에 복사한다.
 # 6. API-HB-01 오늘목록: 200 data.recordDate → todayDate 확인, data.routines에 생성 습관.
 # 7. API-HB-05 체크: 200 기록의 completed=true.
 # 8. API-ST-06 주간표: 200 data.routines의 해당 ID·오늘 cells.completed=true.
@@ -41,8 +55,8 @@
 # API-FC-06 완료재확인(200 이번 settlement 지급 0·총점 불변).
 # 조기 완료는 10번과 11번 사이, 반복 완료는 11번 이후 같은 challengeId로 실행한다.
 # 실제 10분 경과가 필요하므로 발표 전에 시작하거나 시연 시간을 확보한다. 검증 우회 금지.
-# P2: 검색·정렬·더보기, 최근ID다건, 응원·상위 집계.
-# 중간 범위 밖: 수정·삭제·습관 종료·집중 정지/재개/초기화 요청. 계약 예시는 아래에 보존한다.
+# P2: 검색·정렬·더보기, 최근ID다건·상위 3종, 상세·응원 등록의 전체 집계.
+# 중간 범위 밖 작업은 당시 시연 기록이다. 개별 습관 생성·수정·종료는 폐기하고 현재 예시는 API-HB-06 일괄 저장으로 전환한다.
 # 이 파일 작성은 서버 구현이나 실제 요청 실행 완료를 의미하지 않는다.
 
 
@@ -61,42 +75,43 @@ Content-Type: application/json
 }
 
 
-### 삭제 - 204, data: 없음
-DELETE {{baseUrl}}/studies/d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+### 별도 테스트 스터디 삭제 — 204, data: 없음
+# deletedStudyId에 지정한 스터디만 삭제한다. 기본 studyId와 otherStudyId는 유지한다.
+DELETE {{baseUrl}}/studies/{{deletedStudyId}}
 Accept: application/json
 Content-Type: application/json
 
 {
-  "password": "{{studyPassword}}"
+  "password": "{{deleteStudyPassword}}"
 }
 
 ### 삭제한 ID 조회 — 200, data: []
-GET {{baseUrl}}/studies/batch?ids=d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+GET {{baseUrl}}/studies/batch?ids={{deletedStudyId}}
 Accept: application/json
 
 ### 기존 ID와 혼합 — 200, 기존 스터디만 반환
-GET {{baseUrl}}/studies/batch?ids=10000000-0000-4000-8000-000000000001,d77d2dc1-dcf8-4078-a13a-9a67058a8e3e
+GET {{baseUrl}}/studies/batch?ids={{otherStudyId}},{{deletedStudyId}}
 Accept: application/json
 
 ### 3. 중복 제거 — 200, B → A 순서로 각 1개
-GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9
+GET {{baseUrl}}/studies/batch?ids={{otherStudyId}},{{studyId}},{{otherStudyId}},{{studyId}}
 Accept: application/json
 
 ### 4. 총 11개, 서로 다른 ID 2개 — 200
-GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,005da982-a241-409a-88dd-dd0ac6e768c9
+GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}},{{studyId}},{{otherStudyId}},{{studyId}},{{otherStudyId}},{{studyId}},{{otherStudyId}},{{studyId}},{{otherStudyId}},{{studyId}}
 Accept: application/json
 
 
 ### 5. 서로 다른 ID 11개 — 400 VALIDATION_ERROR
-GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008,10000000-0000-4000-8000-000000000009
+GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}},{{missingStudyId}},10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008,10000000-0000-4000-8000-000000000009
 Accept: application/json
 
 ### 6. 존재하는 ID 사이에 없는 ID 포함 — 200
-GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,005da982-a241-409a-88dd-dd0ac6e768c9
+GET {{baseUrl}}/studies/batch?ids={{otherStudyId}},{{missingStudyId}},{{studyId}}
 Accept: application/json
 
 ### 6-1. 없는 ID 제외 확인
-GET {{baseUrl}}/studies/batch?ids=8355a675-072f-4b7c-9682-178463cce38a,df59dbb3-e02b-457d-a704-19c822f681b6,005da982-a241-409a-88dd-dd0ac6e768c9
+GET {{baseUrl}}/studies/batch?ids={{otherStudyId}},{{missingStudyId}},{{studyId}}
 Accept: application/json
 
 ### 7. 잘못된 UUID — 400 VALIDATION_ERROR
@@ -104,11 +119,11 @@ GET {{baseUrl}}/studies/batch?ids=not-a-uuid
 Accept: application/json
 
 ### 8. ids 이외 쿼리 — 400
-GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9&page=1
+GET {{baseUrl}}/studies/batch?ids={{studyId}}&page=1
 Accept: application/json
 
 ### 9. 서로 다른 ID 10개 — 200
-GET {{baseUrl}}/studies/batch?ids=005da982-a241-409a-88dd-dd0ac6e768c9,8355a675-072f-4b7c-9682-178463cce38a,10000000-0000-4000-8000-000000000001,10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008
+GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}},{{missingStudyId}},10000000-0000-4000-8000-000000000002,10000000-0000-4000-8000-000000000003,10000000-0000-4000-8000-000000000004,10000000-0000-4000-8000-000000000005,10000000-0000-4000-8000-000000000006,10000000-0000-4000-8000-000000000007,10000000-0000-4000-8000-000000000008
 Accept: application/json
 
 
@@ -138,16 +153,16 @@ GET {{baseUrl}}/studies?offset=0&limit=6&sort=oldest
 Accept: application/json
 
 ### API-ST-08 최근ID다건
-# 200 첫 등장 순·삭제ID제외. 중복 제거 후 서로 다른ID 최대 10개, 11개 이상 400. 전용 라우트 후속 구현 필요.
+# 200 첫 등장 순·삭제ID제외. reactions는 상위 3종. 중복 제거 후 ID 최대 10개, 11개 이상 400. 실제 구현/실행은 별도 확인.
 GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}}
 Accept: application/json
 
 ### API-ST-03 상세
-# 기대 상태 200.
+# 200. introduction은 전체 표시하고 reactions는 전체 집계. 4종 이상이면 모두 반환(ADR-069·072).
 GET {{baseUrl}}/studies/{{studyId}}
 Accept: application/json
 
-### API-AU-01 페이지 진입 비밀번호 확인
+### API-AU-01 최초 확인·새로고침 후 재입력
 # 200 {data:{verified:true}}. 토큰 없음. 이후 요청도 비밀번호 헤더 필수.
 POST {{baseUrl}}/studies/{{studyId}}/password-verifications
 Accept: application/json
@@ -177,26 +192,39 @@ GET {{baseUrl}}/studies/{{studyId}}/routines
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 
-### API-HB-02 생성
-# 기대 상태 201. trim 후 1~20그래핌, 조합 이모지도 각각1글자. 활성 18개는 400.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+### API-HB-06 — 생성
+# 기대 상태 200. trim 후 1~20그래핌, 조합 이모지도 각각1글자. 활성 18개는 400.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "물 2L 마시기"
+  "creates": [
+    {
+      "name": "물 2L 마시기"
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
-### API-HB-03 이름수정
+### API-HB-06 — 이름 수정
 # 기대 상태 200. 생성과 같은 trim·그래핌 제한을 적용한다.
-PATCH {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "물 마시기"
+  "creates": [],
+  "updates": [
+    {
+      "routineId": "{{routineId}}",
+      "name": "물 마시기"
+    }
+  ],
+  "endIds": []
 }
 
 ### API-HB-05 체크
@@ -223,11 +251,19 @@ Content-Type: application/json
   "completed": false
 }
 
-### API-HB-04 종료
-# 204 종료일포함기록보존. 목록숨김·추가조작금지.
-DELETE {{baseUrl}}/studies/{{studyId}}/routines/{{routineId}}
+### API-HB-06 — 종료
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "creates": [],
+  "updates": [],
+  "endIds": [
+    "{{routineId}}"
+  ]
+}
 
 ### API-ST-06 주간표
 # 200 월요일 보정·월~일7칸·행 생성일 순. data={weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}. 기간 밖null, dates/exists/행별기간필드 없음.
@@ -235,7 +271,7 @@ GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{weekStart}}
 Accept: application/json
 
 ### API-ST-07 응원
-# COUNT DESC → 최초시각 ASC → 이모지 ASC, 상위3.
+# 200 data.reactions는 COUNT DESC → 최초시각 ASC → 이모지 C 정렬의 전체 집계. 상위 3종 제한 없음.
 POST {{baseUrl}}/studies/{{studyId}}/reactions
 Accept: application/json
 Content-Type: application/json
@@ -342,13 +378,19 @@ Content-Type: application/json
 
 ### 습관21글자거절
 # 400 VALIDATION_ERROR. trim 후 그래핌 기준. 임시 문구는 최종 확정 대기.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "가가가가가가가가가가가가가가가가가가가가가"
+  "creates": [
+    {
+      "name": "가가가가가가가가가가가가가가가가가가가가가"
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 응원중복
@@ -487,36 +529,54 @@ Content-Type: application/json
 }
 
 ### 킥오프 — 습관 trim·그래핌20개 허용
-# 201. 활성 18개 미만·TEXT migration 적용 후 실행. 저장 이름은 가족 이모지20개, 앞뒤 공백 없음. 생성 ID를 기억한다.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+# 200. 활성 18개 미만·TEXT migration 적용 후 실행. 저장 이름은 가족 이모지20개, 앞뒤 공백 없음. 생성 ID를 기억한다.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "  👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦  "
+  "creates": [
+    {
+      "name": "  👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦  "
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 킥오프 — 습관 조합 이모지21개 거절
 # 400 VALIDATION_ERROR. DB 저장 전 거절해야 한다.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"
+  "creates": [
+    {
+      "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 킥오프 — 습관 공백만 있는 이름 거절
 # 400 VALIDATION_ERROR. 빈 문자열도 같은 결과.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "   "
+  "creates": [
+    {
+      "name": "   "
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 킥오프 — 오늘 목록 생성일 순 확인
@@ -527,24 +587,36 @@ X-Study-Password: {{studyPassword}}
 
 ### 킥오프 — 활성 습관 18개에서 생성 거절
 # 사전 조건: endsOn=null인 습관이 18개. 400 VALIDATION_ERROR. 종료 습관·RoutineHistory 개수는 제한에 포함하지 않는다.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "18개 제한 확인"
+  "creates": [
+    {
+      "name": "18개 제한 확인"
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 킥오프 — 종료 후 새 습관 생성 허용
-# 위 18개 조건에서 기존 API-HB-04로 하나를 종료한 후 실행. 201. 과거 종료 습관의 기록은 유지하고 오늘 목록에서는 제외.
-POST {{baseUrl}}/studies/{{studyId}}/routines
+# 위 18개 조건에서 기존 일괄 저장으로 하나를 종료한 후 실행. 200. 과거 종료 습관의 기록은 유지하고 오늘 목록에서는 제외.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
 Accept: application/json
 X-Study-Password: {{studyPassword}}
 Content-Type: application/json
 
 {
-  "name": "종료 후 새 습관"
+  "creates": [
+    {
+      "name": "종료 후 새 습관"
+    }
+  ],
+  "updates": [],
+  "endIds": []
 }
 
 ### 킥오프 — 비밀번호 앞 공백 포함 생성 거절
@@ -925,8 +997,103 @@ Accept: application/json
 
 # 화면 수동 확인 — API 요청 결과와 별도:
 # 최근 A→B→C 조회: [C,B,A], A 재조회: [A,C,B], D 조회: [D,A,C]. 중복 없이 3개다.
-# Header 생성 버튼은 홈만 모든 기기에서 표시. 모달은 배경 클릭 닫기·내부 클릭 유지·Escape 무시.
+# Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px.
+# 일반 모달은 배경 클릭 닫기·내부 클릭 유지·Escape 무시. 비밀번호 취소는 이전 화면 또는 홈.
+# 상세 소개는 전체 표시, 카드만 한 줄 말줄임. json-server는 실제 Express API 검증을 대체하지 않는다.
 # 생성일은 1일째, 기록표19행은1번째 색·20행은2번째 색, 시간 변경은 모달.
 # 로딩은 스켈레톤. 빈/실패는 기존 캡처, 완료는 제공 시간 초과 시안. 색상값·반응형/편집 캡처는 추후 수신.
 
 
+
+### ADR-072 — 전체 응원 집계와 다건 상위 3종 비교
+# 선행: 같은 스터디에 기본 이모지 4종 이상의 응원을 준비한다. 응원 추가는 별도 요청으로 실행한다.
+# 아래 상세는 200·전체 reactions, 위 API-ST-07 등록 응답도 전체 집계다.
+GET {{baseUrl}}/studies/{{studyId}}
+Accept: application/json
+
+### ADR-072 — ID 다건 응원의 상위 3종 유지
+# 200. 같은 스터디의 reactions는 상세와 같은 정렬에서 최대 3종만 반환한다.
+GET {{baseUrl}}/studies/batch?ids={{studyId}}
+Accept: application/json
+
+### ADR-073 — 앱 메모리 유지 상태의 보호 요청
+# UI 선행: 최초 확인 후 습관→집중→수정을 이동해 재입력하지 않는지 확인한다.
+# HTTP는 앱 메모리 자체를 검증하지 못한다. 아래 요청의 200과 헤더 누락401을 별도로 확인한다.
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+
+### ADR-073 — 이전 확인 후에도 보호 헤더 누락 거절
+# AU-01 성공 후 실행해도 401 VERIFICATION_REQUIRED. 화면의 verified 값으로 서버 검증을 우회하지 않는다.
+GET {{baseUrl}}/studies/{{studyId}}/routines
+Accept: application/json
+
+### API-HB-06 — 생성·이름 변경·종료 혼합
+# studyId에 속한 서로 다른 활성 routineId·endRoutineId를 준비한다. 기대값 200·오늘 목록, 종료 후 활성 수 최대 18.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "creates": [
+    {
+      "name": "새 습관"
+    }
+  ],
+  "updates": [
+    {
+      "routineId": "{{routineId}}",
+      "name": "수정한 습관"
+    }
+  ],
+  "endIds": [
+    "{{endRoutineId}}"
+  ]
+}
+
+### API-HB-06 — 수정·종료 ID 중복 거절
+# 기대값 400 VALIDATION_ERROR. 모든 변경이 저장되지 않는지 재조회한다.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "creates": [
+    {
+      "name": "저장되면 안 되는 습관"
+    }
+  ],
+  "updates": [
+    {
+      "routineId": "{{routineId}}",
+      "name": "충돌"
+    }
+  ],
+  "endIds": [
+    "{{routineId}}"
+  ]
+}
+
+### API-HB-06 — 없는 대상의 전체 롤백
+# missingRoutineId가 없음을 먼저 확인한다. 기대값 404 ROUTINE_NOT_FOUND, 생성·변경·종료 모두 미반영.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{
+  "creates": [
+    {
+      "name": "롤백 검증용"
+    }
+  ],
+  "updates": [
+    {
+      "routineId": "{{missingRoutineId}}",
+      "name": "없는 습관"
+    }
+  ],
+  "endIds": []
+}
