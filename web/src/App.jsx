@@ -1,5 +1,7 @@
 import { Route, Routes, useLocation, useMatch, useSearchParams } from "react-router";
 import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
+import StudyPasswordProvider from "./contexts/StudyPasswordProvider.jsx";
+import { getSharedStudyId } from "./utils/studyNavigation.js";
 import RootLayout from "./layouts/RootLayout.jsx";
 import MainPage from "./pages/MainPage.jsx";
 import RegPage from "./pages/RegPage.jsx";
@@ -12,7 +14,7 @@ import ModalPreview from "./dev/ModalPreview/ModalPreview.jsx";
 import RoutePreview from "./dev/RoutePreview/RoutePreview.jsx";
 
 const App = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const dashboardMatch = useMatch("/dashboard/:id");
   const routinesMatch = useMatch("/routines");
   const challengeMatch = useMatch("/challenge");
@@ -34,6 +36,9 @@ const App = () => {
     updateReactions,
   } = studyState;
   const studyName = study?.name;
+  // 공개 상세를 경유해도 유지하고, 다른 스터디·홈·생성 화면에서는 폐기한다.
+  const sharedStudyId = studyError?.code === "STUDY_NOT_FOUND"
+    ? null : getSharedStudyId(pathname, search);
 
   let pageTitle = "공부의 숲";
 
@@ -50,46 +55,48 @@ const App = () => {
   return (
     <>
       <title>{pageTitle}</title>
-      <Routes>
-        <Route path="/" element={<RootLayout />}>
-          <Route index element={<MainPage />} />
-          <Route path="reg" element={searchParams.has("id") ? (
+      <StudyPasswordProvider key={sharedStudyId ?? "outside"} studyId={sharedStudyId}>
+        <Routes>
+          <Route path="/" element={<RootLayout />}>
+            <Route index element={<MainPage />} />
+            <Route path="reg" element={searchParams.has("id") ? (
             <EditStudyPage key={`edit:${studyId}`} studyId={studyId} studyState={studyState} />
           ) : <RegPage key="create" />} />
-          <Route
-            path="dashboard/:id"
-            element={
-              <DashboardPage
-                key={studyId}
-                study={study}
-                isLoading={isStudyLoading}
-                error={studyError}
-                onReactionsChange={updateReactions}
-              />
-            }
-          />
-          <Route
-            path="routines"
-            element={<RoutinesPage key={studyId ?? "missing"} studyState={studyState} />}
-          />
-          <Route path="challenge" element={
-            <ChallengeEntryPage
-              key={studyId ?? "missing"}
-              studyId={studyId}
-              study={study}
-              isStudyLoading={isStudyLoading}
-              studyError={studyError}
+            <Route
+              path="dashboard/:id"
+              element={
+                <DashboardPage
+                  key={studyId}
+                  study={study}
+                  isLoading={isStudyLoading}
+                  error={studyError}
+                  onReactionsChange={updateReactions}
+                />
+              }
             />
-          } />
-        </Route>
-        {import.meta.env.DEV && (
-          <>
-            <Route path="/dev/modal" element={<ModalPreview />} />
-            <Route path="/dev/routes" element={<RoutePreview />} />
-          </>
-        )}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+            <Route
+              path="routines"
+              element={<RoutinesPage key={studyId ?? "missing"} studyState={studyState} />}
+            />
+            <Route path="challenge" element={
+              <ChallengeEntryPage
+                key={studyId ?? "missing"}
+                studyId={studyId}
+                study={study}
+                isStudyLoading={isStudyLoading}
+                studyError={studyError}
+              />
+            } />
+          </Route>
+          {import.meta.env.DEV && (
+            <>
+              <Route path="/dev/modal" element={<ModalPreview />} />
+              <Route path="/dev/routes" element={<RoutePreview />} />
+            </>
+          )}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </StudyPasswordProvider>
     </>
   );
 };

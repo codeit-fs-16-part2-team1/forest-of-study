@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
+import { StudyPasswordContext } from "../contexts/StudyPasswordProvider.jsx";
 import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
 
 const emptyState = {
   studyId: null,
+  memoryGeneration: null,
   isOpen: false,
   isPending: false,
   verifiedPassword: null,
@@ -12,71 +14,60 @@ const emptyState = {
   formVersion: 0,
 };
 
-// 보호 페이지마다 한 번 사용한다. 앱 전체 Context나 저장소로 올리지 않는다.
+// 입력값만 공유한다. 각 페이지는 AU-01 성공 후 보호 데이터를 요청한다.
 const useStudyPassword = (studyId) => {
+  const memory = useContext(StudyPasswordContext);
+  if (!memory) throw new Error("useStudyPassword requires StudyPasswordProvider");
+  const { studyId: sharedStudyId, revision, getSnapshot, rememberPassword, clearPassword } = memory;
   const [state, setState] = useState(emptyState);
   const contextRef = useRef(null);
+  const canVerify = Boolean(studyId && studyId.toLowerCase() === sharedStudyId);
 
   const getContext = useCallback(() => {
     const context = contextRef.current;
-    return studyId && context?.active && context.studyId === studyId ? context : null;
-  }, [studyId]);
+    return canVerify && context?.active && context.studyId === studyId ? context : null;
+  }, [canVerify, studyId]);
 
-  const reset = useCallback((isOpen) => {
+  const reset = useCallback((isOpen, expectedGeneration, error = null) => {
     const context = getContext();
-    if (!context) return;
-
-    // 요청을 취소하지 않고, 닫기·재입력 이전 요청의 결과만 반영하지 않는다.
+    if (!context || !clearPassword(expectedGeneration)) return;
     context.generation += 1;
+    context.memoryGeneration = getSnapshot().generation;
     context.pending = false;
     context.isOpen = isOpen;
-    setState({ ...emptyState, studyId, isOpen, formVersion: context.generation });
-  }, [getContext, studyId]);
+    context.formVersion += 1;
+    setState({
+      ...emptyState, studyId, isOpen, error,
+      memoryGeneration: context.memoryGeneration, formVersion: context.formVersion,
+    });
+  }, [getContext, clearPassword, getSnapshot, studyId]);
 
-  useEffect(() => {
-    const context = { studyId, active: true, generation: 0, pending: false, isOpen: Boolean(studyId) };
-    contextRef.current = context;
-    setState({ ...emptyState, studyId, isOpen: Boolean(studyId) });
-
-    const handlePageHide = () => reset(true);
-    const handlePageShow = (event) => {
-      if (event.persisted) reset(true);
-    };
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("pageshow", handlePageShow);
-
-    return () => {
-      context.active = false;
-      context.generation += 1;
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("pageshow", handlePageShow);
-      if (contextRef.current === context) contextRef.current = null;
-    };
-  }, [studyId, reset]);
-
-  const verifyPassword = useCallback(async (password) => {
+  const verify = useCallback(async (password, automatic = false) => {
     const context = getContext();
-    if (!context || !context.isOpen || context.pending) return false;
+    if (!context || context.pending || (!automatic && !context.isOpen)) return false;
+    const memoryGeneration = context.memoryGeneration;
+    if (getSnapshot().generation !== memoryGeneration) return false;
 
     if (!isValidStudyPassword(password)) {
       setState((previous) => ({
-        ...previous,
-        error: { status: null, code: null, message: studyPasswordMessages.invalid },
+        ...previous, error: { status: null, code: null, message: studyPasswordMessages.invalid },
       }));
       return false;
     }
 
-    // state 반영 전에 잠가 Enter 연타·확인 버튼 중복 클릭을 막는다.
     context.pending = true;
     const generation = ++context.generation;
-    const isCurrent = () => getContext() === context && context.generation === generation;
-    setState((previous) => ({ ...previous, isPending: true, error: null }));
+    const isCurrent = () => getContext() === context && context.generation === generation &&
+      getSnapshot().generation === memoryGeneration;
+    setState({
+      ...emptyState, studyId, memoryGeneration, isOpen: !automatic,
+      isPending: true, formVersion: context.formVersion,
+    });
 
     try {
       const response = await studyApi.verifyPassword(studyId, password);
       if (!isCurrent()) return false;
 
-      // HTTP 성공만으로 통과시키지 않고 계약의 verified=true를 확인한다.
       if (response?.data?.verified !== true) {
         setState((previous) => ({
           ...previous,
@@ -85,15 +76,26 @@ const useStudyPassword = (studyId) => {
         return false;
       }
 
+      if (!rememberPassword(password, memoryGeneration)) return false;
       context.isOpen = false;
-      setState({ ...emptyState, studyId, verifiedPassword: password });
+      setState({ ...emptyState, studyId, memoryGeneration, verifiedPassword: password });
       return true;
     } catch (error) {
-      if (isCurrent()) {
-        const { status, code, message } = getApiError(error);
-        // Axios 오류 전체에는 요청 비밀번호가 들어갈 수 있어 화면용 정보만 보관한다.
-        setState((previous) => ({ ...previous, error: { status, code, message } }));
+      if (!isCurrent()) return false;
+      // Axios 오류 전체에는 요청 비밀번호가 들어갈 수 있어 화면용 정보만 보관한다.
+      const { status, code, message } = getApiError(error);
+      if (status === 401 || status === 400 || code === "STUDY_NOT_FOUND") {
+        clearPassword(memoryGeneration);
+        context.memoryGeneration = getSnapshot().generation;
+        context.generation += 1;
+        context.pending = false;
+        context.isOpen = code !== "STUDY_NOT_FOUND";
       }
+      // 통신 실패에서는 공유값을 남기고, 자동 재송신 없이 사용자 재시도를 기다린다.
+      setState({
+        ...emptyState, studyId, memoryGeneration: context.memoryGeneration,
+        isOpen: context.isOpen, error: { status, code, message }, formVersion: context.formVersion,
+      });
       return false;
     } finally {
       if (isCurrent()) {
@@ -101,15 +103,69 @@ const useStudyPassword = (studyId) => {
         setState((previous) => ({ ...previous, isPending: false }));
       }
     }
-  }, [getContext, studyId]);
+  }, [getContext, getSnapshot, rememberPassword, clearPassword, studyId]);
 
-  const open = useCallback(() => reset(true), [reset]);
-  const close = useCallback(() => reset(false), [reset]);
-  // 보호 요청에서 401을 받으면 이 함수를 호출해 비밀번호를 폐기하고 다시 입력받는다.
-  const requireVerification = open;
-  const visible = state.studyId === studyId
-    ? state
-    : { ...emptyState, studyId, isOpen: Boolean(studyId) };
+  useEffect(() => {
+    const snapshot = getSnapshot();
+    const password = canVerify ? snapshot.password : null;
+    const context = {
+      studyId, active: true, generation: 0, memoryGeneration: snapshot.generation,
+      pending: false, formVersion: 0, isOpen: canVerify && !password,
+    };
+    contextRef.current = context;
+    setState({
+      ...emptyState, studyId, memoryGeneration: snapshot.generation, isOpen: context.isOpen,
+    });
+    if (password) void verify(password, true);
+
+    return () => {
+      context.active = false;
+      context.generation += 1;
+      if (contextRef.current === context) contextRef.current = null;
+      // 내부 이동에서는 페이지 요청만 무효화하고 공통 비밀번호는 남긴다.
+    };
+  }, [canVerify, studyId, getSnapshot, verify]);
+
+  useEffect(() => {
+    const context = getContext();
+    const { generation } = getSnapshot();
+    if (!context || context.memoryGeneration === generation) return;
+    context.generation += 1;
+    context.memoryGeneration = generation;
+    context.pending = false;
+    context.isOpen = true;
+    context.formVersion += 1;
+    setState({
+      ...emptyState, studyId, memoryGeneration: generation, isOpen: true,
+      formVersion: context.formVersion,
+    });
+  }, [revision, getContext, getSnapshot, studyId]);
+
+  const snapshot = getSnapshot();
+  const open = useCallback(() => {
+    if (getSnapshot().generation !== snapshot.generation) return;
+    const password = getSnapshot().password;
+    if (password) void verify(password, true);
+    else reset(true, snapshot.generation);
+  }, [getSnapshot, snapshot.generation, verify, reset]);
+  const close = useCallback(() => reset(false, snapshot.generation), [reset, snapshot.generation]);
+  const requireVerification = useCallback(
+    (error) => {
+      const missingStudy = error?.code === "STUDY_NOT_FOUND";
+      reset(!missingStudy, snapshot.generation, missingStudy
+        ? { status: error.status, code: error.code, message: error.message } : null);
+    }, [reset, snapshot.generation],
+  );
+  const verifyPassword = useCallback((password) => verify(password), [verify]);
+  const isVerificationCurrent = useCallback(() =>
+    getContext()?.memoryGeneration === snapshot.generation &&
+    getSnapshot().generation === snapshot.generation,
+  [getContext, getSnapshot, snapshot.generation]);
+  const visible = canVerify && state.studyId === studyId &&
+    state.memoryGeneration === snapshot.generation ? state : {
+      ...emptyState, studyId, isOpen: canVerify && !snapshot.password,
+      isPending: canVerify && Boolean(snapshot.password),
+    };
 
   return {
     studyId,
@@ -119,10 +175,7 @@ const useStudyPassword = (studyId) => {
     error: visible.error,
     verifiedPassword: visible.verifiedPassword,
     isVerified: visible.verifiedPassword !== null,
-    verifyPassword,
-    open,
-    close,
-    requireVerification,
+    verifyPassword, open, close, requireVerification, isVerificationCurrent,
   };
 };
 
