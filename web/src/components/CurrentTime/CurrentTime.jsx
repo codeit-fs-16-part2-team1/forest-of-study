@@ -1,29 +1,4 @@
-import { useEffect, useState } from "react";
-
-const CurrentTime = ({ serverTime, className }) => {
-  const [currentTime, setCurrentTime] = useState(null);
-
-  useEffect(() => {
-    if (!serverTime) {
-      setCurrentTime(null);
-      return;
-    }
-
-    const serverStart = new Date(serverTime).getTime();
-    const browserStart = Date.now();
-
-    const updateTime = () => {
-      const elapsed = Date.now() - browserStart;
-      setCurrentTime(new Date(serverStart + elapsed));
-    };
-
-    updateTime();
-
-    const timer = window.setInterval(updateTime, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [serverTime]);
-
+const CurrentTime = ({ currentTime, className }) => {
   return (
     <div className={className}>
       <p>현재 시간</p>
