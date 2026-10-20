@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import Toast from "../components/Toast/Toast.jsx";
+import useToast from "../hooks/useToast.js";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import StudyCard from "../components/StudyCard/StudyCard.jsx";
+import RecentStudies from "../components/RecentStudies/RecentStudies.jsx";
 import styles from "./MainPage.module.scss";
 
 const PAGE_SIZE = 6;
@@ -14,6 +18,22 @@ const sortOptions = [
 ];
 
 const MainPage = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toasts, showToast } = useToast();
+  const notifiedLocationRef = useRef(null);
+
+  useEffect(() => {
+    if (location.state?.studyDeleted !== true || notifiedLocationRef.current === location.key) return;
+    notifiedLocationRef.current = location.key;
+    showToast("스터디가 삭제되었습니다.", "warning");
+    const remainingState = { ...location.state };
+    delete remainingState.studyDeleted;
+    navigate(location.pathname + location.search + location.hash, {
+      replace: true,
+      state: remainingState,
+    });
+  }, [location, navigate, showToast]);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState({
     keyword: "",
@@ -159,6 +179,7 @@ const MainPage = () => {
 
   return (
     <main className={styles.page}>
+      <RecentStudies />
       <section
         className={styles.section}
         aria-labelledby="browse-title"
@@ -266,6 +287,7 @@ const MainPage = () => {
           )}
         </div>
       </section>
+      <Toast toasts={toasts} />
     </main>
   );
 };

@@ -9,7 +9,7 @@ import Toast from "../components/Toast/Toast.jsx";
 import useRoutines from "../hooks/useRoutines.js";
 import useStudyPassword from "../hooks/useStudyPassword.js";
 import useToast from "../hooks/useToast.js";
-import { getStudyReturnPath, isValidStudyId } from "../utils/studyNavigation.js";
+import { getStudyReturnPath, goBackOrHome, isValidStudyId } from "../utils/studyNavigation.js";
 import styles from "./RoutinesPage.module.scss";
 
 const RoutinesPage = ({ studyState }) => {
@@ -70,7 +70,7 @@ const RoutinesPage = ({ studyState }) => {
 
   const handleClosePasswordModal = () => {
     verification.close();
-    goBack();
+    goBackOrHome(navigate);
   };
 
   const handleSaveRoutines = async (changes) => {

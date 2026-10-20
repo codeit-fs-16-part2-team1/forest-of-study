@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { createApiError } from "../utils/apiError.js";
 import { getReactions, getTopReactionsForStudies } from "./reaction.js";
 import { checkStudyPassword } from "./studyPassword.js";
+import { isStudyCombinationConflict } from "../utils/studyConflict.js";
 
 const studySelect = {
   id: true,
@@ -140,10 +141,40 @@ export const createStudy = async (data) => {
     });
   } catch (error) {
     // 동시 요청은 사전 조회를 함께 통과할 수 있다. 최종 보장은 DB 복합 UNIQUE다.
-    if (error?.code === "P2002") {
-      const conflict = await prisma.study.findFirst({ where, select: { id: true } });
-      if (conflict !== null) throw createApiError("STUDY_CONFLICT");
-    }
+    if (isStudyCombinationConflict(error)) throw createApiError("STUDY_CONFLICT");
+    throw error;
+  }
+};
+
+export const updateStudy = async (studyId, data) => {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 같은 행의 부분 수정끼리 대기하게 해 최신의 미전달 필드와 조합한다.
+      const [current] = await tx.$queryRaw`
+        SELECT "nickname", "name" FROM "Study"
+        WHERE "id" = ${studyId}::uuid FOR UPDATE
+      `;
+      if (!current) throw createApiError("STUDY_NOT_FOUND");
+
+      const combination = {
+        nickname: data.nickname ?? current.nickname,
+        name: data.name ?? current.name,
+      };
+      const conflict = await tx.study.findFirst({
+        where: { ...combination, id: { not: studyId } },
+        select: { id: true },
+      });
+      if (conflict) throw createApiError("STUDY_CONFLICT");
+
+      return tx.study.update({
+        where: { id: studyId },
+        data,
+        select: studySelect,
+      });
+    });
+  } catch (error) {
+    // 충돌 행이 나중에 삭제·변경돼도 오류에 기록된 해당 제약으로 판별한다.
+    if (isStudyCombinationConflict(error)) throw createApiError("STUDY_CONFLICT");
     throw error;
   }
 };
