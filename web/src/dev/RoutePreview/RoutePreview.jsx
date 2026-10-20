@@ -1,7 +1,8 @@
-import { Link, useSearchParams } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import styles from "./RoutePreview.module.scss";
 
 const RoutePreview = () => {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const studyId =
     searchParams.get("studyId") ?? "10000000-0000-4000-8000-000000000001";
@@ -11,6 +12,9 @@ const RoutePreview = () => {
     { label: "스터디 등록", to: "/reg" },
     { label: "스터디 상세", to: "/dashboard/" + encodeURIComponent(studyId) },
     { label: "오늘의 습관", to: "/routines?" + studyQuery },
+    { label: "습관: 스터디 ID 누락", to: "/routines" },
+    { label: "습관: 잘못된 스터디 ID", to: "/routines?id=invalid-id" },
+    { label: "습관: 존재하지 않는 스터디 ID", to: "/routines?id=ffffffff-ffff-4fff-8fff-ffffffffffff" },
     { label: "오늘의 집중", to: "/challenge?" + studyQuery },
     { label: "스터디 수정", to: "/reg?" + studyQuery },
     { label: "없는 주소 (404)", to: "/dev/route-not-found" },
@@ -46,13 +50,20 @@ const RoutePreview = () => {
         링크를 누르면 해당 페이지로 이동합니다. 브라우저 뒤로 가기로
         돌아올 수 있습니다.
       </p>
+      <p className={styles.note}>
+        습관 진입 예외 링크는 이 화면으로 돌아오는지 확인하는 용도입니다.
+        없는 스터디 예시는 해당 ID가 로컬 DB에 없는 경우에만 해당합니다.
+      </p>
       <nav className={styles.routeLinks} aria-label="페이지 라우트 테스트">
         {routeLinks.map(({ label, to }) => (
-          <Link
-            key={label}
-            className={[styles.link, styles.routeLink].join(" ")}
-            to={to}
-          >
+            <Link
+              key={label}
+              className={[styles.link, styles.routeLink].join(" ")}
+              to={to}
+              state={{
+                from: location.pathname + location.search + location.hash,
+              }}
+            >
             <span>{label}</span>
             <code>{to}</code>
           </Link>

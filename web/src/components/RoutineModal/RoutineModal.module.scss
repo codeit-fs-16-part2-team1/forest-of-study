@@ -1,0 +1,245 @@
+// 모바일
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: auto;
+  padding: 1rem; // 16px
+  background: rgb(0 0 0 / 60%);
+}
+
+.backdrop,
+.routineList {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+.dialog {
+  position: relative;
+  flex-shrink: 0;
+  padding: 1rem 1rem 1.5rem 1rem; // 16px 16px 24px 16px
+  width: 100%;
+  max-width: 40.5rem; // 648px
+  max-height: calc(100dvh - 4.5rem); // 72px
+  border-radius: 1.25rem; // 20px
+  background: var(--color-white);
+}
+.title {
+  color: var(--color-black);
+  font-size: 1.25rem; // 20px
+  font-weight: 800;
+  line-height: 1.875rem; // 30px
+  text-align: center;
+}
+.form {
+  margin-top: 1.5rem; // 24px
+  text-align: center;
+}
+.routineEditor {
+  display: grid;
+  gap: 1.5rem; // 24px
+}
+.scrollViewport {
+  position: relative;
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: 1;
+    right: 0;
+    left: 0;
+    height: 2rem; // 32px
+    opacity: 0;
+    pointer-events: none;
+    content: "";
+  }
+
+  &::before {
+    top: 0;
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 95%),
+      rgb(255 255 255 / 8%)
+    );
+  }
+
+  &::after {
+    bottom: 0;
+    background: linear-gradient(
+      to top,
+      rgb(255 255 255 / 95%),
+      rgb(255 255 255 / 8%)
+    );
+  }
+
+  &.hasMoreAbove::before {
+    opacity: 1;
+  }
+
+  &.hasMoreBelow::after {
+    opacity: 1;
+  }
+}
+.routineList {
+  overflow-y: auto;
+  max-height: calc(100dvh - 20.25rem); // 324px
+}
+.routineRows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; // 8px
+}
+.routineRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3rem; // 48px
+  gap: 0.5rem; // 8px
+}
+.routineField {
+  min-width: 0;
+}
+.routineRow .routineInput {
+  display: block;
+  padding: 0 1.25rem; // 20px
+  min-width: 0;
+  width: 100%;
+  height: 3.375rem; // 54px
+  outline: none;
+  border: none;
+  border-radius: 1.25rem; // 20px
+  background: var(--color-gray-lighter);
+  color: var(--color-gray);
+  font-size: 0.875rem; // 14px
+  font-weight: 700;
+  text-align: center;
+
+  &::placeholder {
+    color: #aaa;
+    font-weight: 400;
+  }
+
+  &[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 0.0625rem var(--color-red-error); // 1px
+  }
+}
+.inputError {
+  margin-top: 0.5rem; // 8px
+  color: var(--color-red-error);
+  font-size: 0.875rem; // 14px
+  font-weight: 400;
+  line-height: 1.25rem; // 20px
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.deleteButton {
+  align-self: start;
+  margin-top: 0.1875rem; // 3px: 입력칸 높이 54px와 버튼 높이 48px의 차이 절반
+  overflow: hidden;
+  width: 3rem; // 48px
+  height: 3rem; // 48px
+  border-radius: 50%;
+  background: var(--color-pink);
+  background-image: url(../../assets/ic_trash.svg);
+  background-repeat: no-repeat;
+  background-position: center center;
+  text-indent: -999rem;
+}
+.addRoutineButton {
+  overflow: hidden;
+  width: 100%;
+  height: 3.375rem; // 54px
+  border: 0.125rem solid var(--color-black); // 2px
+  border-radius: 1.25rem; // 20px
+  background: var(--color-white);
+  background-image: url(../../assets/ic_plus.svg);
+  background-repeat: no-repeat;
+  background-position: center center;
+  text-indent: -999rem;
+}
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem; // 16px
+  margin-top: 1.5rem; // 24px
+  padding: 0 0.5rem; // 8px
+}
+.actionButton {
+  flex: 1;
+  min-width: 0;
+  height: 3.5rem; // 56px
+  border-radius: 1rem; // 16px
+  background: var(--color-gray-light);
+  box-shadow: 0 0.125rem 0 var(--color-gray); // 2px
+  color: var(--color-white);
+  font-family: var(--font-family-display);
+  font-size: 1.125rem; // 18px
+  text-shadow: 0 -0.125rem 0 var(--color-gray); // -2px
+
+  &.submitButton {
+    background: var(--color-brand);
+    box-shadow: 0 0.125rem 0 var(--color-green-text); // 2px
+    text-shadow: 0 -0.125rem 0 var(--color-green-text); // -2px
+  }
+
+  &:active:enabled {
+    box-shadow: none;
+    transform: translateY(0.125rem); // 2px
+  }
+}
+.deleteButton:disabled,
+.addRoutineButton:disabled,
+.actionButton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+// 태블릿, 데스크톱
+@media (min-width: 48rem) { // 768px
+  .dialog {
+    padding: 2.5rem 1.5rem; // 40px 24px
+    max-height: calc(100dvh - 11.25rem); // 180px
+  }
+
+  .title {
+    font-size: 1.5rem; // 24px
+  }
+  .routineEditor {
+    gap: 1.25rem; // 20px
+  }
+  .routineList {
+    // 습관 6개: 행 54px × 6 + 간격 20px × 5 = 424px
+    max-height: min(26.5rem, calc(100dvh - 29.375rem)); // 최대 424px, 화면 높이에서 470px 제외
+  }
+  .routineRows {
+    gap: 1.25rem; // 20px
+  }
+  .routineRow {
+    grid-template-columns: 1fr 25rem 1fr; // 400px
+  }
+  .routineField {
+    grid-column: 2;
+  }
+  .routineRow .routineInput {
+    font-size: 1rem; // 16px
+  }
+  .deleteButton {
+    grid-column: 3;
+  }
+
+  .addRoutineButton {
+    margin: 0 auto;
+    width: 25rem; // 400px
+  }
+  .actions {
+    gap: 1.5rem; // 24px
+    padding: 0;
+  }
+}

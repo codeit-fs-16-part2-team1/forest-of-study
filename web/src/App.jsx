@@ -25,13 +25,13 @@ const App = () => {
     studyId = searchParams.get("id");
   }
 
+  const studyState = useStudyTitleData(studyId, pathname);
   const {
     study,
     isLoading: isStudyLoading,
     error: studyError,
     updateReactions,
-  } = useStudyTitleData(studyId, pathname);
-
+  } = studyState;
   const studyName = study?.name;
 
   let pageTitle = "공부의 숲";
@@ -53,15 +53,21 @@ const App = () => {
         <Route path="/" element={<RootLayout />}>
           <Route index element={<MainPage />} />
           <Route path="reg" element={<RegPage />} />
-          <Route path="dashboard/:id" element={<DashboardPage
-            study={study}
-            isLoading={isStudyLoading}
-            error={studyError}
-            onReactionsChange={updateReactions}
-            />
-           }
+          <Route
+            path="dashboard/:id"
+            element={
+              <DashboardPage
+                study={study}
+                isLoading={isStudyLoading}
+                error={studyError}
+                onReactionsChange={updateReactions}
+              />
+            }
           />
-          <Route path="routines" element={<RoutinesPage />} />
+          <Route
+            path="routines"
+            element={<RoutinesPage key={studyId ?? "missing"} studyState={studyState} />}
+          />
           <Route path="challenge" element={
             <ChallengeEntryPage
               key={studyId ?? "missing"}

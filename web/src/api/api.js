@@ -70,20 +70,9 @@ export const routineApi = {
   create: (studyId, { name }, password) =>
     api.post(`${STUDIES}/${studyId}/routines`, { name }, withStudyPassword(password)),
 
-  // API-HB-03 — 서버 라우트 구현 대기
-  update: (studyId, routineId, { name }, password) =>
-    api.patch(
-      `${STUDIES}/${studyId}/routines/${routineId}`,
-      { name },
-      withStudyPassword(password)
-    ),
-
-  // API-HB-04 — 서버 라우트 구현 대기. 물리 삭제 대신 습관을 종료한다.
-  end: (studyId, routineId, password) =>
-    api.delete(
-      `${STUDIES}/${studyId}/routines/${routineId}`,
-      withStudyPassword(password)
-    ),
+  // 일괄 생성·이름 변경·종료. 오늘 목록과 같은 형태의 응답을 받는다.
+  saveBatch: (studyId, changes, password) =>
+    api.patch(`${STUDIES}/${studyId}/routines/batch`, changes, withStudyPassword(password)),
 
   // API-HB-05 — completed: true는 체크, false는 해제다.
   setCompleted: (studyId, routineId, { recordDate, completed }, password) =>
