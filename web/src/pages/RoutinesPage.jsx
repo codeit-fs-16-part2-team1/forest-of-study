@@ -54,15 +54,19 @@ const RoutinesPage = ({ studyState }) => {
     }
     handleRequestError(error);
   }, [requireVerification, handleRequestError]);
+  const handleDateRefreshed = useCallback(() => {
+    showToast("날짜가 변경되어 오늘의 습관을 새로 불러왔어요.", "point");
+  }, [showToast]);
   const {
     routineData,
+    currentTime,
     isLoadingRoutines,
     routineError,
     pendingRoutineIds,
     reloadRoutines,
     saveRoutines,
     handleToggleRoutine,
-  } = useRoutines(studyId, verifiedPassword, handleRoutineError);
+  } = useRoutines(studyId, verifiedPassword, handleRoutineError, handleDateRefreshed);
 
   const handleClosePasswordModal = () => {
     verification.close();
@@ -102,7 +106,7 @@ const RoutinesPage = ({ studyState }) => {
             </nav>
           </div>
           <CurrentTime
-            serverTime={routineData?.serverTime}
+            currentTime={currentTime}
             className={styles.currentTime}
           />
           <div className={styles.routineContainer}>
