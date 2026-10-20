@@ -2,10 +2,28 @@ import { Link, useLocation } from "react-router";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
 import StudyReactions from "../components/reaction/StudyReactions.jsx";
+import Toast from "../components/Toast/Toast.jsx";
+import useToast from "../hooks/useToast.js";
 
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
   const currentPath = location.pathname + location.search + location.hash;
+  const { toasts, showToast } = useToast();
+
+  const handleShare = async () => {
+    if (!study?.id) return;
+
+    // 공개 상세 주소만 복사한다. 현재 URL의 쿼리나 해시는 포함하지 않는다.
+    const shareUrl = new URL(`/dashboard/${study.id}`, window.location.origin).href;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("링크를 복사했습니다.", "point");
+    } catch {
+      // 클립보드 미지원·권한 거절도 같은 실패 안내를 사용한다.
+      showToast("링크를 복사하지 못했습니다. 다시 시도해주세요.", "warning");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -46,12 +64,18 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
-        <div className={styles.reactions}>
-          <StudyReactions
-            studyId={study.id}
-            reactions={study.reactions ?? []}
-            onReactionsChange={onReactionsChange}
-          />
+        <div className={styles.toolbar}>
+          <div className={styles.reactions}>
+            <StudyReactions
+              studyId={study.id}
+              reactions={study.reactions ?? []}
+              onReactionsChange={onReactionsChange}
+              onShowToast={showToast}
+            />
+          </div>
+          <button type="button" className={styles.shareButton} onClick={handleShare}>
+            공유하기
+          </button>
         </div>
 
         <div className={styles.heading}>
@@ -91,6 +115,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
           studyId={study.id}
         />
       </section>
+      <Toast toasts={toasts} />
     </main>
   );
 };

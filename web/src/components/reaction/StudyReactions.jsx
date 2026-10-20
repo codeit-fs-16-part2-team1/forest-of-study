@@ -25,6 +25,7 @@ const StudyReactionsContent = ({
   reactions = [],
   isLoading = false,
   onReactionsChange,
+  onShowToast,
 }) => {
   const id = useId();
   // 열린 순서를 보관해 좁은 화면으로 바뀌면 마지막으로 연 창만 남긴다.
@@ -36,7 +37,9 @@ const StudyReactionsContent = ({
   const pickerAnchorRef = useRef(null);
   const morePopoverRef = useRef(null);
   const pickerPopoverRef = useRef(null);
-  const { toasts, showToast } = useToast();
+  const { toasts, showToast: showLocalToast } = useToast();
+  // 상세에서는 공유 알림과 같은 목록을 쓰고, 독립 미리보기에서는 자체 표시한다.
+  const showToast = onShowToast ?? showLocalToast;
   const { isPending, error, addReaction } = useStudyReactions({ studyId, onReactionsChange });
   const isDuplicateError = error?.code === "REACTION_POLICY_CONFLICT";
   const disabled = isLoading || isPending || !studyId
@@ -229,7 +232,7 @@ const StudyReactionsContent = ({
         {isPending ? "응원을 보내는 중입니다." : ""}
       </p>
       {error && !isDuplicateError && <p className={styles.error} role="alert">{error.message}</p>}
-      <Toast toasts={toasts} />
+      {!onShowToast && <Toast toasts={toasts} />}
     </section>
   );
 };
