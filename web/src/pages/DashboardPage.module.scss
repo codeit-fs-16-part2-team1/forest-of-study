@@ -12,6 +12,21 @@
   background: var(--color-surface);
 }
 
+.management {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+  color: var(--color-text-muted);
+
+  > a,
+  > button {
+    padding: 8px;
+    font: inherit;
+  }
+}
+
 .reactions {
   display: flex;
   flex-wrap: wrap;

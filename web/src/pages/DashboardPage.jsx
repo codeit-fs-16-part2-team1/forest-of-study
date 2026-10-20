@@ -1,9 +1,12 @@
 import { Link, useLocation } from "react-router";
+import { useState } from "react";
+import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
 import styles from "./DashboardPage.module.scss";
 import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
 
 const DashboardPage = ({ study, isLoading, error }) => {
   const location = useLocation();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const currentPath = location.pathname + location.search + location.hash;
 
   if (isLoading) {
@@ -45,6 +48,10 @@ const DashboardPage = ({ study, isLoading, error }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
+        <nav className={styles.management} aria-label="스터디 관리">
+          <Link to={`/reg?id=${study.id}`}>수정하기</Link>
+          <button type="button" onClick={() => setIsDeleteOpen(true)}>삭제하기</button>
+        </nav>
         {study.reactions?.length > 0 && (
           <ul className={styles.reactions} aria-label="상위 응원">
             {study.reactions.map(({ emoji, count }) => (
@@ -93,6 +100,15 @@ const DashboardPage = ({ study, isLoading, error }) => {
           studyId={study.id}
          />
       </section>
+      {isDeleteOpen && (
+        <PasswordModal
+          title="스터디 삭제"
+          submitLabel="삭제하기"
+          closeLabel="취소"
+          submitDisabled
+          onClose={() => setIsDeleteOpen(false)}
+        />
+      )}
     </main>
   );
 };
