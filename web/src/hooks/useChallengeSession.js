@@ -16,12 +16,13 @@ const emptyState = {
 
 // 공통 진입 검증에 성공한 페이지에서만 password를 전달한다.
 // 페이지 이탈 시 함께 unmount하며, 새 스터디·이전 페이지의 응답을 섞지 않는다.
-const useChallengeSession = ({ studyId, password }) => {
+const useChallengeSession = ({ studyId, password, isVerificationCurrent }) => {
   const [state, setState] = useState(emptyState);
   const contextRef = useRef(null);
 
   const isCurrent = useCallback((context) =>
-    context.active && contextRef.current === context, []);
+    context.active && contextRef.current === context && isVerificationCurrent(),
+  [isVerificationCurrent]);
 
   const loadCurrent = useCallback(async (context, keepError = false) => {
     if (!isCurrent(context)) {
@@ -53,7 +54,7 @@ const useChallengeSession = ({ studyId, password }) => {
     } catch (error) {
       if (isCurrent(context)) {
         const apiError = getApiError(error);
-        if (apiError.status === 401) {
+        if (apiError.status === 401 || apiError.code === "STUDY_NOT_FOUND") {
           context.password = null;
           context.snapshot = null;
         }
@@ -120,11 +121,11 @@ const useChallengeSession = ({ studyId, password }) => {
 
   const getContext = useCallback(() => {
     const context = contextRef.current;
-    return context?.active && context.studyId === studyId
+    return context?.active && isVerificationCurrent() && context.studyId === studyId
       && context.password === password && Boolean(password)
       ? context
       : null;
-  }, [studyId, password]);
+  }, [studyId, password, isVerificationCurrent]);
 
   const refetch = useCallback(() => {
     const context = getContext();
@@ -175,7 +176,7 @@ const useChallengeSession = ({ studyId, password }) => {
     } catch (error) {
       if (isCurrent(context)) {
         const apiError = getApiError(error);
-        if (apiError.status === 401) {
+        if (apiError.status === 401 || apiError.code === "STUDY_NOT_FOUND") {
           context.password = null;
           context.snapshot = null;
         }
@@ -222,7 +223,8 @@ const useChallengeSession = ({ studyId, password }) => {
     isLoading: visible.isLoading,
     isPending: visible.isPending,
     error: visible.error,
-    needsPassword: !password || visible.requiresVerification || visible.error?.status === 401,
+    needsPassword: !password || visible.requiresVerification || visible.error?.status === 401 ||
+      visible.error?.code === "STUDY_NOT_FOUND",
     refetch,
     startChallenge,
     pauseChallenge,

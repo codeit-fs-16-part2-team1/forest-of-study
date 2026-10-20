@@ -2,6 +2,7 @@ import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import StudyPasswordVerification from "../../components/PasswordModal/StudyPasswordVerification.jsx";
 import useStudyPassword from "../../hooks/useStudyPassword.js";
+import StudyPasswordProvider from "../../contexts/StudyPasswordProvider.jsx";
 import "../../styles/index.scss";
 import styles from "./StudyPasswordPreview.module.scss";
 
@@ -14,10 +15,18 @@ const VerificationExample = ({ studyId, onLeave }) => {
         <h2>확인 상태</h2>
         <p role="status">
           {verification.isVerified
-            ? "확인 성공. 비밀번호는 현재 페이지 메모리에만 있습니다."
+            ? "확인 성공. 비밀번호는 현재 스터디의 앱 메모리에만 있습니다."
             : verification.isPending ? "서버에서 확인 중입니다." : "비밀번호 확인 전입니다."}
         </p>
-        <p>집중·습관·수정 페이지와 보호 데이터 요청은 연결하지 않았습니다.</p>
+        <p>아래 버튼은 확인 화면만 전환합니다. 실제 습관·집중·수정 요청은 보내지 않습니다.</p>
+        {verification.error && !verification.isOpen && (
+          <>
+            <p role="alert">{verification.error.message}</p>
+            <button type="button" onClick={verification.open} disabled={verification.isPending}>
+              다시 시도
+            </button>
+          </>
+        )}
         <div className={styles.actions}>
           <button type="button" onClick={verification.requireVerification} disabled={verification.isPending}>
             {verification.isVerified ? "비밀번호 폐기 후 다시 확인" : "비밀번호 모달 열기"}
@@ -33,6 +42,7 @@ const VerificationExample = ({ studyId, onLeave }) => {
 const StudyPasswordPreview = () => {
   const [studyIdInput, setStudyIdInput] = useState("");
   const [studyId, setStudyId] = useState(null);
+  const [page, setPage] = useState("습관");
 
   return (
     <main className={styles.preview}>
@@ -59,7 +69,16 @@ const StudyPasswordPreview = () => {
           <button type="submit">비밀번호 확인 화면 열기</button>
         </form>
       ) : (
-        <VerificationExample key={studyId} studyId={studyId} onLeave={() => setStudyId(null)} />
+        <StudyPasswordProvider key={studyId} studyId={studyId.toLowerCase()}>
+          <nav className={styles.actions} aria-label="같은 스터디의 확인 화면 이동">
+            {["습관", "집중", "수정"].map((name) => (
+              <button type="button" key={name} onClick={() => setPage(name)} aria-current={page === name ? "page" : undefined}>
+                {name}
+              </button>
+            ))}
+          </nav>
+          <VerificationExample key={`${studyId}:${page}`} studyId={studyId} onLeave={() => setStudyId(null)} />
+        </StudyPasswordProvider>
       )}
     </main>
   );

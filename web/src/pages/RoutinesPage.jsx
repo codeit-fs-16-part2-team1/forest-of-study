@@ -41,16 +41,16 @@ const RoutinesPage = ({ studyState }) => {
   }, [showToast]);
 
   const verification = useStudyPassword(isValidId ? studyId : null);
-  const { verifiedPassword, requireVerification } = verification;
+  const { verifiedPassword, requireVerification, isVerificationCurrent } = verification;
 
   useEffect(() => {
     if (verification.error) handleRequestError(verification.error);
   }, [verification.error, handleRequestError]);
 
   const handleRoutineError = useCallback((error) => {
-    if (error.status === 401) {
+    if (error.status === 401 || error.code === "STUDY_NOT_FOUND") {
       setIsRoutineModalOpen(false);
-      requireVerification();
+      requireVerification(error);
     }
     handleRequestError(error);
   }, [requireVerification, handleRequestError]);
@@ -66,7 +66,9 @@ const RoutinesPage = ({ studyState }) => {
     reloadRoutines,
     saveRoutines,
     handleToggleRoutine,
-  } = useRoutines(studyId, verifiedPassword, handleRoutineError, handleDateRefreshed);
+  } = useRoutines(
+    studyId, verifiedPassword, handleRoutineError, handleDateRefreshed, isVerificationCurrent,
+  );
 
   const handleClosePasswordModal = () => {
     verification.close();
@@ -80,8 +82,9 @@ const RoutinesPage = ({ studyState }) => {
   };
 
   const isLoading = isLoadingStudy ||
-    (!studyError && (verifiedPassword === null || isLoadingRoutines));
-  const errorMessage = studyError?.message || routineError;
+    (!studyError && (verifiedPassword === null
+      ? !verification.error : isLoadingRoutines));
+  const errorMessage = studyError?.message || verification.error?.message || routineError;
 
   if (entryErrorMessage) {
     return <Popup message={entryErrorMessage} onClose={goBack} />;
@@ -132,7 +135,8 @@ const RoutinesPage = ({ studyState }) => {
                   ? "스터디 정보를 불러오지 못했어요"
                   : "습관을 불러오지 못했어요"}
                 pendingRoutineIds={pendingRoutineIds}
-                onRetry={studyError ? reloadStudy : reloadRoutines}
+                onRetry={studyError ? reloadStudy
+                  : verifiedPassword === null ? verification.open : reloadRoutines}
                 onToggle={handleToggleRoutine}
               />
             </div>

@@ -6,11 +6,13 @@ import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
 const VerifiedChallengeSession = ({
   study,
   verifiedPassword,
+  isVerificationCurrent,
   onVerificationRequired,
 }) => {
   const session = useChallengeSession({
     studyId: study.id,
     password: verifiedPassword,
+    isVerificationCurrent,
   });
   const [goalDraft, setGoalDraft] = useState(null);
   // 재조회·상태 변경 뒤에는 서버 응답의 목표를 사용한다.
@@ -20,10 +22,10 @@ const VerifiedChallengeSession = ({
 
   useEffect(() => {
     if (session.needsPassword) {
-      // 부모의 비밀번호 메모리도 지우고 공통 진입 모달을 다시 표시한다.
-      onVerificationRequired?.();
+      // 공유값까지 폐기한다. 없는 스터디는 재입력 대신 오류를 표시한다.
+      onVerificationRequired?.(session.error);
     }
-  }, [session.needsPassword, onVerificationRequired]);
+  }, [session.needsPassword, session.error, onVerificationRequired]);
 
   const changeGoalMinutes = (minutes) => {
     if (!session.snapshot || session.snapshot.challenge
@@ -70,7 +72,7 @@ const VerifiedChallengeSession = ({
 };
 
 // 공통 비밀번호 진입 API가 성공한 뒤에만 verifiedPassword를 전달한다.
-// 부모는 이탈·스터디 변경·401 때 비밀번호를 폐기하며 전역 저장소에 두지 않는다.
+// 내부 이동에서는 공유 입력값을 유지하고, 집중 상태는 진입마다 서버에서 복원한다.
 const ChallengeSessionPage = (props) => {
   if (!props.study?.id || typeof props.verifiedPassword !== "string" || !props.verifiedPassword) {
     return null;

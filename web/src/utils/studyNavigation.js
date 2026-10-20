@@ -2,6 +2,22 @@
 export const isValidStudyId = (value) => typeof value === "string" &&
   /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(value);
 
+// 상세·습관·집중·수정 URL만 같은 스터디의 메모리를 공유한다.
+export const getSharedStudyId = (pathname, search = "") => {
+  const dashboardMatch = /^\/dashboard\/([^/]+)\/?$/i.exec(pathname);
+  const isQueryPage = /^\/(?:routines|challenge|reg)\/?$/i.test(pathname);
+  let studyId = dashboardMatch?.[1] ??
+    (isQueryPage ? new URLSearchParams(search).get("id") : null);
+  if (dashboardMatch) {
+    try {
+      studyId = decodeURIComponent(studyId);
+    } catch {
+      return null;
+    }
+  }
+  return isValidStudyId(studyId) ? studyId.toLowerCase() : null;
+};
+
 export const getStudyReturnPath = (from, currentPath) => {
   if (typeof from !== "string" || !from.startsWith("/") ||
       from.startsWith("//") || from.includes("\\")) return "/";
