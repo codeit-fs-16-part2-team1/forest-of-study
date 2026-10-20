@@ -4,6 +4,7 @@ import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistor
 import StudyReactions from "../components/reaction/StudyReactions.jsx";
 import Toast from "../components/Toast/Toast.jsx";
 import useToast from "../hooks/useToast.js";
+import studyPoint from "../assets/studyPoint.svg";
 
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
@@ -106,6 +107,9 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
           <div>
             <dt>현재까지 획득한 포인트</dt>
             <dd className={styles.points}>
+              <span className={styles.pointIcon} aria-hidden="true">
+                <img src={studyPoint} alt="" />
+              </span>
               {study.points.toLocaleString("ko-KR")}P 획득
             </dd>
           </div>

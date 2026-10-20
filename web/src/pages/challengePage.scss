@@ -153,6 +153,12 @@
       }
     }
   }
+
+  // 피그마의 집중 토스트는 PC·모바일 모두 화면 아래에서 40px 띄운다.
+  &__toastStack {
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px));
+  }
 }
 
 // 페이지가 들어갈 공통 레이아웃의 폭에 맞춰 본문만 조정한다.

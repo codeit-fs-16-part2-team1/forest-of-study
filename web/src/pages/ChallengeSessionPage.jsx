@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import useChallengeSession from "../hooks/useChallengeSession.js";
+import useToast from "../hooks/useToast.js";
+import Toast from "../components/Toast/Toast.jsx";
 import ChallengePage from "./ChallengePage.jsx";
 import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
 
@@ -13,6 +15,7 @@ const VerifiedChallengeSession = ({
     password: verifiedPassword,
   });
   const [goalDraft, setGoalDraft] = useState(null);
+  const { toasts, showToast } = useToast();
   // 재조회·상태 변경 뒤에는 서버 응답의 목표를 사용한다.
   const goalMinutes = goalDraft && goalDraft.snapshot === session.snapshot
     ? goalDraft.minutes
@@ -43,29 +46,50 @@ const VerifiedChallengeSession = ({
     }
   };
 
+  const pauseChallenge = async () => {
+    const paused = await session.pauseChallenge();
+    if (paused) {
+      showToast("집중이 중단되었습니다.", "warning");
+    }
+    return paused;
+  };
+
+  const dismissCompletion = () => {
+    // 완료 API의 신규 지급량만 안내한다. 총점이나 기존 행의 지급량을 사용하지 않는다.
+    const awardedPoints = session.snapshot?.settlement?.awardedPoints;
+    if (!session.dismissCompletion()) return;
+
+    if (Number.isInteger(awardedPoints) && awardedPoints > 0) {
+      showToast(`${awardedPoints}포인트를 획득했습니다!`, "point");
+    }
+  };
+
   if (session.needsPassword) {
     return null;
   }
 
   return (
-    <ChallengePage
-      study={session.snapshot ? study : undefined}
-      challenge={session.snapshot?.challenge ?? null}
-      goalMinutes={goalMinutes}
-      receivedAt={session.snapshot?.receivedAt}
-      points={session.snapshot?.points}
-      isLoading={session.isLoading}
-      isPending={session.isPending}
-      error={session.error}
-      onRetry={session.refetch}
-      onStart={startChallenge}
-      onPause={session.pauseChallenge}
-      onResume={session.resumeChallenge}
-      onReset={session.resetChallenge}
-      onComplete={session.completeChallenge}
-      onDismissCompletion={session.dismissCompletion}
-      onGoalMinutesChange={changeGoalMinutes}
-    />
+    <>
+      <ChallengePage
+        study={session.snapshot ? study : undefined}
+        challenge={session.snapshot?.challenge ?? null}
+        goalMinutes={goalMinutes}
+        receivedAt={session.snapshot?.receivedAt}
+        points={session.snapshot?.points}
+        isLoading={session.isLoading}
+        isPending={session.isPending}
+        error={session.error}
+        onRetry={session.refetch}
+        onStart={startChallenge}
+        onPause={pauseChallenge}
+        onResume={session.resumeChallenge}
+        onReset={session.resetChallenge}
+        onComplete={session.completeChallenge}
+        onDismissCompletion={dismissCompletion}
+        onGoalMinutesChange={changeGoalMinutes}
+      />
+      <Toast toasts={toasts} className="challengePage__toastStack" />
+    </>
   );
 };
 
