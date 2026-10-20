@@ -148,6 +148,47 @@ export const createStudy = async (data) => {
   }
 };
 
+export const updateStudy = async (studyId, data) => {
+  let combination;
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // 같은 행의 부분 수정끼리 대기하게 해 최신의 미전달 필드와 조합한다.
+      const [current] = await tx.$queryRaw`
+        SELECT "nickname", "name" FROM "Study"
+        WHERE "id" = ${studyId}::uuid FOR UPDATE
+      `;
+      if (!current) throw createApiError("STUDY_NOT_FOUND");
+
+      combination = {
+        nickname: data.nickname ?? current.nickname,
+        name: data.name ?? current.name,
+      };
+      const conflict = await tx.study.findFirst({
+        where: { ...combination, id: { not: studyId } },
+        select: { id: true },
+      });
+      if (conflict) throw createApiError("STUDY_CONFLICT");
+
+      return tx.study.update({
+        where: { id: studyId },
+        data,
+        select: studySelect,
+      });
+    });
+  } catch (error) {
+    // 다른 행의 동시 생성·수정은 DB 복합 UNIQUE로 막고, 롤백 후 충돌을 식별한다.
+    if (error?.code === "P2002" && combination) {
+      const conflict = await prisma.study.findFirst({
+        where: { ...combination, id: { not: studyId } },
+        select: { id: true },
+      });
+      if (conflict) throw createApiError("STUDY_CONFLICT");
+    }
+    throw error;
+  }
+};
+
 export const deleteStudy = async (studyId, password) => {
   await checkStudyPassword(studyId, password);
 

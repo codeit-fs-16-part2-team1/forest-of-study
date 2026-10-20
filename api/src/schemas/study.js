@@ -8,13 +8,15 @@ const createTextSchema = (maxLength) => z.string().trim().refine((value) => {
   return length >= 1 && length <= maxLength;
 });
 
+const backgroundKeySchema = z.enum([
+  "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4",
+]);
+
 const createStudySchema = z.strictObject({
   nickname: createTextSchema(10),
   name: createTextSchema(15),
   introduction: createTextSchema(100),
-  backgroundKey: z.enum([
-    "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4",
-  ]).default("green"),
+  backgroundKey: backgroundKeySchema.default("green"),
   password: studyPasswordSchema,
   passwordConfirm: studyPasswordSchema,
 }).refine((data) => data.password === data.passwordConfirm, {
@@ -44,7 +46,15 @@ const studyBatchQuerySchema = z.object({
 
 const studyIdParamsSchema = z.strictObject({ studyId: uuidSchema });
 
+const updateStudySchema = z.strictObject({
+  nickname: createTextSchema(10).optional(),
+  name: createTextSchema(15).optional(),
+  introduction: createTextSchema(100).optional(),
+  backgroundKey: backgroundKeySchema.optional(),
+}).refine((data) => Object.values(data).some((value) => value !== undefined));
+
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);
+export const validateUpdateStudy = (body) => updateStudySchema.safeParse(body);
 export const validateStudyListQuery = (query) => studyListQuerySchema.safeParse(query);
 export const validateStudyBatchQuery = (query) => studyBatchQuerySchema.safeParse(query);
 export const validateStudyIdParams = (params) => studyIdParamsSchema.safeParse(params);

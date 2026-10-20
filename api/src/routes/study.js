@@ -1,6 +1,7 @@
 import express from "express";
-import { validateCreateStudy, validateStudyListQuery, validateStudyBatchQuery, validateStudyIdParams } from "../schemas/study.js";
-import { createStudy, getStudies, getStudiesByIds, getStudy, deleteStudy } from "../services/study.js";
+import { validateCreateStudy, validateUpdateStudy, validateStudyListQuery, validateStudyBatchQuery, validateStudyIdParams } from "../schemas/study.js";
+import { createStudy, updateStudy, getStudies, getStudiesByIds, getStudy, deleteStudy } from "../services/study.js";
+import { verifyStudyPassword } from "../middlewares/verifyStudyPassword.js";
 import { validatePasswordVerificationBody } from "../schemas/studyPassword.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendSuccess, sendPaginatedSuccess } from "../utils/apiResponse.js";
@@ -57,8 +58,22 @@ studyRouter.get("/:studyId", rejectQuery, async (req, res) => {
   return sendSuccess(res, study);
 });
 
+// 검증 미들웨어가 UUID·비밀번호 원문·존재 여부·bcrypt를 요청마다 확인한다.
+studyRouter.patch("/:studyId", rejectQuery, verifyStudyPassword, async (req, res) => {
+  const result = validateUpdateStudy(req.body);
+  if (!result.success) {
+    const onlyInvalidBackground = result.error.issues.every((issue) =>
+      issue.code === "invalid_value" && issue.path.length === 1 && issue.path[0] === "backgroundKey");
+    throw createApiError(onlyInvalidBackground ? "INVALID_BACKGROUND" : "VALIDATION_ERROR");
+  }
+
+  const study = await updateStudy(req.params.studyId, result.data);
+  return sendSuccess(res, study);
+});
+
 // 삭제는 보호 요청 헤더 대신 삭제 모달의 본문 비밀번호를 검증한다.
 studyRouter.delete("/:studyId", rejectQuery, async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const paramsResult = validateStudyIdParams(req.params);
   if (!paramsResult.success) {
     throw createApiError("VALIDATION_ERROR");
