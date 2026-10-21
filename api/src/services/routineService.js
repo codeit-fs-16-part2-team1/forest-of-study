@@ -43,11 +43,15 @@ export const createRoutine = async ({ studyId, name, stickerColor }) => {
 
     // 잠금 대기 중 자정을 넘었을 수 있으므로 저장 직전에 오늘 날짜를 정한다.
     const recordDate = getKoreanDate(new Date());
+    const last = await tx.routine.aggregate({
+      where: { studyId, endsOn: null }, _max: { position: true },
+    });
     const routine = await tx.routine.create({
       data: {
         studyId,
         name,
         stickerColor,
+        position: (last._max.position ?? 0) + 1,
         startsOn: new Date(`${recordDate}T00:00:00.000Z`),
       },
       select: routineSelect,
@@ -69,7 +73,7 @@ export const getTodayRoutines = async ({ studyId, client = prisma, now = new Dat
   const today = new Date(`${recordDate}T00:00:00.000Z`);
   const routines = await client.routine.findMany({
     where: { studyId, endsOn: null, startsOn: { lte: today } },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
     select: {
       ...routineSelect,
       history: {

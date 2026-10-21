@@ -26,7 +26,17 @@ const routineBatchSchema = z.strictObject({
     stickerColor: stickerColorSchema.optional(),
   })).max(18),
   endIds: z.array(batchRoutineIdSchema).max(18),
-}).refine(({ updates, endIds }) => {
+  order: z.array(z.union([
+    z.strictObject({ routineId: batchRoutineIdSchema }),
+    z.strictObject({ createIndex: z.number().int().min(0).max(17) }),
+  ])).max(18).optional(),
+}).refine(({ creates, updates, endIds, order }) => {
+  if (order) {
+    const keys = order.map((item) => item.routineId ?? `new-${item.createIndex}`);
+    if (new Set(keys).size !== keys.length || order.some((item) =>
+      item.routineId ? endIds.includes(item.routineId) : item.createIndex >= creates.length)) return false;
+    if (order.filter((item) => item.createIndex !== undefined).length !== creates.length) return false;
+  }
   const ids = [...updates.map((routine) => routine.routineId), ...endIds];
   // 같은 ID의 중복 변경과 수정·종료 충돌을 모두 거절한다.
   return ids.length <= 18 && new Set(ids).size === ids.length;

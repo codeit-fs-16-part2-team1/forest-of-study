@@ -11,6 +11,7 @@
     "mock": "json-server --watch mocks/db.json --port 3001"
   },
   "dependencies": {
+    "@dnd-kit/react": "0.5.1",
     "axios": "^1.20.0",
     "emoji-picker-react": "^5.0.0",
     "react": "^19.2.8",
