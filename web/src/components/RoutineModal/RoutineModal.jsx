@@ -164,57 +164,64 @@ const RoutineModal = ({
                           index={index}
                           disabled={isSaving || Boolean(colorRoutine)}
                         >
-                          <button
-                            type="button"
-                            className={styles.colorButton}
-                            onClick={(event) => {
-                              colorTriggerRef.current = event.currentTarget;
-                              setColorRoutineId(routine.clientId);
-                            }}
-                            aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${routine.stickerColor}번`}
-                            aria-haspopup="dialog"
-                            disabled={isSaving || isDragging}
-                          >
-                            <img src={getRoutineSticker(routine.stickerColor)} width="32" height="32" alt="" />
-                          </button>
-                          <div className={styles.routineField}>
-                            <input
-                              id={`${id}-${routine.clientId}`}
-                              className={styles.routineInput}
-                              type="text"
-                              value={routine.name}
-                              onChange={(event) =>
-                                handleChangeRoutine(routine.clientId, event.target.value)
-                              }
-                              placeholder="습관을 입력해주세요"
-                              aria-label={`${index + 1}번째 습관 이름`}
-                              aria-invalid={Boolean(errors[routine.clientId])}
-                              aria-describedby={
-                                errors[routine.clientId]
-                                  ? `${id}-${routine.clientId}-error`
-                                  : undefined
-                              }
-                              disabled={isSaving}
-                            />
-                            {errors[routine.clientId] && (
-                              <p
-                                id={`${id}-${routine.clientId}-error`}
-                                className={styles.inputError}
-                                aria-live="polite"
+                          {(dragHandle) => (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.colorButton}
+                                onClick={(event) => {
+                                  colorTriggerRef.current = event.currentTarget;
+                                  setColorRoutineId(routine.clientId);
+                                }}
+                                aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${routine.stickerColor}번`}
+                                aria-haspopup="dialog"
+                                disabled={isSaving || isDragging}
                               >
-                                {errors[routine.clientId]}
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            className={styles.deleteButton}
-                            onClick={() => handleRemoveRoutine(routine.clientId)}
-                            aria-label={`${routine.name || `${index + 1}번째 습관`} 삭제`}
-                            disabled={!canRemoveRoutine(routine) || isDragging}
-                          >
-                            삭제
-                          </button>
+                                <img src={getRoutineSticker(routine.stickerColor)} width="32" height="32" alt="" />
+                              </button>
+                              <div className={styles.routineField}>
+                                <div className={styles.routineInputWrapper}>
+                                  <input
+                                    id={`${id}-${routine.clientId}`}
+                                    className={styles.routineInput}
+                                    type="text"
+                                    value={routine.name}
+                                    onChange={(event) =>
+                                      handleChangeRoutine(routine.clientId, event.target.value)
+                                    }
+                                    placeholder="습관을 입력해주세요"
+                                    aria-label={`${index + 1}번째 습관 이름`}
+                                    aria-invalid={Boolean(errors[routine.clientId])}
+                                    aria-describedby={
+                                      errors[routine.clientId]
+                                        ? `${id}-${routine.clientId}-error`
+                                        : undefined
+                                    }
+                                    disabled={isSaving}
+                                  />
+                                  {dragHandle}
+                                </div>
+                                {errors[routine.clientId] && (
+                                  <p
+                                    id={`${id}-${routine.clientId}-error`}
+                                    className={styles.inputError}
+                                    aria-live="polite"
+                                  >
+                                    {errors[routine.clientId]}
+                                  </p>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                className={styles.deleteButton}
+                                onClick={() => handleRemoveRoutine(routine.clientId)}
+                                aria-label={`${routine.name || `${index + 1}번째 습관`} 삭제`}
+                                disabled={!canRemoveRoutine(routine) || isDragging}
+                              >
+                                삭제
+                              </button>
+                            </>
+                          )}
                         </SortableRoutineRow>
                       ))}
                     </div>
