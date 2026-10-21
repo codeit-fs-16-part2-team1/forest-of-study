@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
+import { validateCreateStudy, validateUpdateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
 import { validateCreateRoutine, validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
 import { validateStudyPassword, validatePasswordVerificationBody } from "../src/schemas/studyPassword.js";
 import { assertLocalSeedDatabase } from "../seedData.js";
@@ -46,6 +46,77 @@ try {
   assert.equal(validateCreateStudy(body).data.backgroundKey, "green");
   assert.equal(validateCreateStudy({ ...body, backgroundKey: "unknown" }).success, false);
   assert.equal(validateCreateStudy({ ...body, points: 100 }).success, false);
+
+  step = "기존 배경과 사용자 지정 색상 조합";
+  for (const backgroundKey of ["green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4"]) {
+    const created = validateCreateStudy({ ...body, backgroundKey });
+    assert.equal(created.success, true);
+    assert.equal(created.data.backgroundColor, null);
+    assert.equal(created.data.textColor, null);
+    assert.equal(created.data.patternKey, null);
+    assert.equal(created.data.patternColor, null);
+    assert.deepEqual(validateUpdateStudy({ backgroundKey }).data, {
+      backgroundKey, backgroundColor: null, textColor: null, patternKey: null, patternColor: null,
+    });
+  }
+  const custom = { backgroundKey: "custom", backgroundColor: "#3A8F72" };
+  assert.equal(validateCreateStudy({ ...body, ...custom }).data.backgroundColor, "#3a8f72");
+  assert.deepEqual(validateUpdateStudy(custom).data, { ...custom, backgroundColor: "#3a8f72" });
+  assert.deepEqual(validateUpdateStudy({ name: "새 이름" }).data, { name: "새 이름" });
+  for (const color of [undefined, null, "", "#abc", "#12345678", "rgb(1, 2, 3)", "red", " #123456", "#123456\n", 123456]) {
+    assert.equal(validateCreateStudy({ ...body, backgroundKey: "custom", backgroundColor: color }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "custom", backgroundColor: color }).success, false);
+  }
+  assert.equal(validateCreateStudy({ ...body, backgroundKey: "green", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundKey: "pink", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: null }).success, false);
+
+  step = "사용자 지정 배경의 공통 글자색·자동 대비 복귀";
+  assert.equal(validateCreateStudy({ ...body, ...custom, textColor: "#ABCDEF" }).data.textColor, "#abcdef");
+  assert.equal(validateCreateStudy({ ...body, ...custom }).data.textColor, null);
+  assert.deepEqual(validateUpdateStudy({ textColor: "#ABCDEF" }).data, { textColor: "#abcdef" });
+  assert.deepEqual(validateUpdateStudy({ textColor: null }).data, { textColor: null });
+  assert.deepEqual(validateUpdateStudy({ ...custom, textColor: null }).data, {
+    backgroundKey: "custom", backgroundColor: "#3a8f72", textColor: null,
+  });
+  for (const textColor of ["", "#abc", "#12345678", "rgb(1,2,3)", "red", " #123456", "#123456\n", 123456]) {
+    assert.equal(validateCreateStudy({ ...body, ...custom, textColor }).success, false);
+    assert.equal(validateUpdateStudy({ textColor }).success, false);
+  }
+  for (const backgroundKey of ["green", "image1"]) {
+    assert.equal(validateCreateStudy({ ...body, backgroundKey, textColor: "#123456" }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey, textColor: "#123456" }).success, false);
+  }
+  assert.equal(validateCreateStudy({ ...body, textColor: "#123456" }).success, false);
+
+  step = "씨앗·잔물결·소프트 체크·작은 잎·페이퍼 패턴과 두 색상 조합";
+  for (const patternKey of ["dots", "waves", "stripes", "leaves", "paper"]) {
+    const pattern = { patternKey, patternColor: "#FF52DC" };
+    const created = validateCreateStudy({ ...body, ...custom, ...pattern });
+    assert.equal(created.success, true);
+    assert.equal(created.data.patternKey, patternKey);
+    assert.equal(created.data.patternColor, "#ff52dc");
+    assert.deepEqual(validateUpdateStudy(pattern).data, { patternKey, patternColor: "#ff52dc" });
+    assert.equal(validateCreateStudy({ ...body, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "green", ...pattern }).success, false);
+  }
+  assert.deepEqual(validateUpdateStudy({ patternKey: null, patternColor: null }).data, {
+    patternKey: null, patternColor: null,
+  });
+  for (const pattern of [
+    { patternKey: "dots" }, { patternColor: "#123456" },
+    { patternKey: "dots", patternColor: null }, { patternKey: null, patternColor: "#123456" },
+    { patternKey: "unknown", patternColor: "#123456" },
+    { patternKey: "dots", patternColor: "#abc" },
+    { patternKey: "dots", patternColor: "#123456\n" },
+    { patternKey: ["dots"], patternColor: "#123456" },
+  ]) {
+    assert.equal(validateCreateStudy({ ...body, ...custom, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy(pattern).success, false);
+  }
+  assert.equal(validateUpdateStudy({ patternKey: null }).success, false);
+  assert.equal(validateUpdateStudy({ patternColor: null }).success, false);
 
   step = "목록 기본값·정규화·미등록 쿼리";
   assert.deepEqual(validateStudyListQuery({}).data, { keyword: "", offset: 0, limit: 6, sort: "latest" });

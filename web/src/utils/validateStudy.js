@@ -1,3 +1,5 @@
+import { isValidBackgroundColor, isValidStudyPattern, isValidStudyPatternKey } from "./studyBackground.js";
+
 const segmenter = new Intl.Segmenter("ko", {
   granularity: "grapheme",
 });
@@ -25,6 +27,18 @@ export const validateStudyFields = (values) => {
     errors[name] = `${label}는 앞뒤 공백을 제외하고 1~${max}글자로 입력해주세요.`;
   }
 });
+
+  if (values.backgroundKey === "custom" && !isValidBackgroundColor(values.backgroundColor)) {
+    errors.backgroundColor = "배경 색상을 선택해주세요.";
+  }
+
+  if (values.backgroundKey === "custom" && values.patternKey) {
+    if (!isValidStudyPatternKey(values.patternKey)) {
+      errors.patternKey = "패턴을 선택해주세요.";
+    } else if (!isValidStudyPattern(values.patternKey, values.patternColor)) {
+      errors.patternColor = "무늬 색상을 선택해주세요.";
+    }
+  }
 
   return errors;
 };

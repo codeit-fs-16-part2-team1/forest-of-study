@@ -1,9 +1,9 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.14 습관 스티커 색상 저장 · 2026-10-21 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~074; 최신 후속 결정을 우선 적용한다.
+- 버전:0.16 배경·패턴·습관 색상 병합 · 2026-10-21 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~076; 최신 후속 결정을 우선 적용한다.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
-- 색상 선택 구현에 맞춰 명세·스키마와 새 migration 파일을 갱신했다. 실제 DB·migration·API 실행은 하지 않았다.
+- 배경·글자색·패턴과 습관 스티커 색상 변경을 함께 반영한다. 이번 병합 정리에서 CLI·DB·API는 실행하지 않았으며 환경별 migration 적용·검증은 별도로 확인한다.
 
 ## 로컬 실행 환경 — ADR-049·050
 
@@ -50,6 +50,10 @@ erDiagram
         String name
         String introduction
         String backgroundKey
+        String backgroundColor "NULL 허용"
+        String textColor "NULL 허용"
+        String patternKey "NULL 허용"
+        String patternColor "NULL 허용"
         String passwordHash
         Int points
         DateTime createdAt
@@ -116,6 +120,10 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 | name | `String   @db.Text` | 불가 |
 | introduction | `String   @db.Text` | 불가 |
 | backgroundKey | `String   @default("green") @db.Text` | 불가 |
+| backgroundColor | `String? @db.Text` | 허용 |
+| textColor | `String? @db.Text` | 허용 |
+| patternKey | `String? @db.Text` | 허용 |
+| patternColor | `String? @db.Text` | 허용 |
 | passwordHash | `String   @db.Text` | 불가 |
 | points | `Int      @default(0)` | 불가 |
 | createdAt | `DateTime @default(now()) @db.Timestamptz(3)` | 불가 |
@@ -169,7 +177,9 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 ### 컬럼 의미와 파생값
 
 - Study.nickname/name/introduction은 trim 후 그래핌 기준 1~10/1~15/1~100개, Routine.name은 1~20개다. 빈 문자열·공백만 있는 입력은 거절하고 정리한 문자열을 저장한다. Intl.Segmenter를 사용해 조합 이모지도 각각 1글자로 센다. 네 컬럼은 TEXT로 저장해 DB의 문자 길이 제한과 충돌하지 않게 한다. 최대 그래핌 수는 서버에서 검사하며 프론트에서도 같은 기준으로 안내한다(ADR-056~057).
-- Study.backgroundKey 기본green은 첫 초록색. 총8종(원색4·이미지4) 중 나머지 7종의 임시 키·자산은 담당자가 지정·공유하고 추후 변경한다. API와 프론트는 같은 목록을 쓴다. TEXT 타입을 유지하며 최종 목록 변경 시 기존 저장값 매핑을 함께 검토한다.
+- Study.backgroundKey는 기존 8종과 custom을 허용하며 기본값은 green이다. backgroundColor는 custom에서만 소문자 #rrggbb를 저장하고 기존 배경에서는 NULL이다. API는 대문자 HEX를 소문자로 정리한다. 두 컬럼을 함께 검사하는 Study_background_color_check로 custom의 NULL·잘못된 색상과 기존 배경의 색상 동시 저장을 막는다(ADR-076).
+- Study.textColor는 custom 배경의 닉네임·스터디 이름·소개에 함께 적용하는 선택적 소문자 #rrggbb다. NULL이면 자동 대비를 사용한다. 기존 배경에서는 NULL만 허용한다. Study_text_color_check로 배경 종류·형식·길이를 검사한다. 진행 일수·포인트·응원 배지의 표시 색상은 이 컬럼을 사용하지 않는다(ADR-075).
+- Study.patternKey와 patternColor는 custom 배경에서만 함께 저장한다. patternKey는 dots·stripes·waves, patternColor는 소문자 #rrggbb다. 패턴 없음은 두 컬럼 모두 NULL이며 한쪽만 NULL인 상태는 허용하지 않는다. Study_pattern_check로 종류·형식·길이·배경 조합을 검사한다. 패턴 파일은 프론트 자산이며 DB에는 키와 색상만 저장한다(ADR-076).
 - Study.passwordHash는 bcrypt, points 기본0·음수 금지. 비밀번호·확인값은 공백을 제거하거나 trim하지 않고 원문으로 4~20자·`/^[A-Za-z0-9!@#$%^&*]+$/`를 검사한다. 앞뒤·중간 공백, 탭, 줄바꿈이 포함되면 400 VALIDATION_ERROR로 거절한다. 생성은 각 값의 형식·두 값의 일치를 확인한 뒤 유효한 비밀번호 원문만 해시하고 모든 검증 API도 원문 형식 검사 후 bcrypt 비교한다(ADR-066). DB에는 평문을 저장하지 않고 해시만 저장한다. nickname·name은 trim 후 저장값의 조합이 같은 스터디를 허용하지 않는다. Study의 @@unique([nickname,name])로 보장하며 단일 nickname 또는 단일 name만 같은 것은 허용한다. 생성·수정 충돌은 409 STUDY_CONFLICT로 매핑한다(ADR-064).
 - Routine.startsOn/endsOn은 양 끝 포함. 종료일이null이면 열린 기간이다. 종료 즉시 오늘 목록에서 숨기고 체크·이름 변경 금지. 생성 당일 종료도 유효하며 startsOn=endsOn 허용.
 - 습관 18개 제한은 studyId별 endsOn IS NULL인 행만 센다. 종료 행과 RoutineHistory는 개수에 포함하지 않는다. 일괄 저장의 종료·개수 검사·생성을 Study 잠금 안의 같은 트랜잭션으로 처리한다. 종료 반영 후 미종료 개수가 18개를 넘지 않아야 한다. 행 합계 제한을 단일 행 CHECK로 대신하지 않는다.
@@ -192,7 +202,7 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 
 | 테이블 | 결정자 | 비키 속성 |
 | --- | --- | --- |
-| Study | id | nickname, name, introduction, backgroundKey, passwordHash, points, createdAt, updatedAt |
+| Study | id | nickname, name, introduction, backgroundKey, backgroundColor, textColor, patternKey, patternColor, passwordHash, points, createdAt, updatedAt |
 | Routine | id | studyId, name, stickerColor, startsOn, endsOn, createdAt, updatedAt |
 | RoutineHistory | routineId, recordDate | completed, createdAt, updatedAt |
 | Challenge | id | studyId, goalMinutes, status, elapsedMilliseconds, lastStartedAt, awardedPoints, createdAt |
@@ -258,9 +268,34 @@ WHERE "status" IN ('RUNNING', 'PAUSED');
 ALTER TABLE "Study"
 ADD CONSTRAINT "Study_points_nonnegative" CHECK ("points" >= 0);
 
+ALTER TABLE "Study"
+ADD CONSTRAINT "Study_background_color_check" CHECK (
+  ("backgroundKey" = 'custom' AND "backgroundColor" IS NOT NULL
+    AND char_length("backgroundColor") = 7 AND "backgroundColor" ~ '^#[0-9a-f]{6}$')
+  OR ("backgroundKey" <> 'custom' AND "backgroundColor" IS NULL)
+);
+
+ALTER TABLE "Study"
+ADD CONSTRAINT "Study_text_color_check" CHECK (
+  "textColor" IS NULL
+  OR ("backgroundKey" = 'custom'
+    AND char_length("textColor") = 7 AND "textColor" ~ '^#[0-9a-f]{6}$')
+);
+
+ALTER TABLE "Study"
+ADD CONSTRAINT "Study_pattern_check" CHECK (
+  ("patternKey" IS NULL AND "patternColor" IS NULL)
+  OR ("backgroundKey" = 'custom'
+    AND "patternKey" IS NOT NULL AND "patternKey" IN ('dots', 'stripes', 'waves')
+    AND "patternColor" IS NOT NULL
+    AND char_length("patternColor") = 7 AND "patternColor" ~ '^#[0-9a-f]{6}$')
+);
+
 ALTER TABLE "Routine"
 ADD CONSTRAINT "Routine_period" CHECK ("endsOn" IS NULL OR "startsOn" <= "endsOn"),
-ADD CONSTRAINT "Routine_name_nonempty" CHECK (char_length("name") >= 1);
+ADD CONSTRAINT "Routine_name_nonempty" CHECK (char_length("name") >= 1),
+ADD CONSTRAINT "Routine_sticker_color_range"
+  CHECK ("stickerColor" IS NULL OR "stickerColor" BETWEEN 1 AND 18);
 
 ALTER TABLE "Challenge"
 ADD CONSTRAINT "Challenge_goal_range" CHECK ("goalMinutes" BETWEEN 10 AND 180),
@@ -292,7 +327,7 @@ ADD CONSTRAINT "Challenge_award_state" CHECK (
 
 기존 DB에 데이터가 있다면 PointHistory의 기존 지급 기록과 Study.points를 먼저 대조하고, 과거 초기화 보상까지 새 완료 전용 정책에 어떻게 처리할지 별도로 확인해야 한다. 기존 지급 내역을 새 awardedPoints로 기계적으로 복사하거나 삭제하지 않는다. 과거 RESET 지급 행이 있으면 새 CHECK와 충돌할 수 있다. 데이터 존재·전환 정책을 확인하기 전 파괴적 migration을 적용하지 않는다.
 
-현재 저장소에는 5개 모델 생성·CHECK·Cascade·활성 부분 UNIQUE를 정의한 migration 파일이 있다. 이번 작업은 명세 업데이트뿐이며 Prisma CLI validate·generate·migration·실제 DB 검증을 실행하지 않았다. 파일이 있다는 사실만으로 적용 완료로 표시하지 않는다.
+현재 저장소에는 5개 모델 생성·CHECK·Cascade·활성 부분 UNIQUE를 정의한 migration 파일이 있다. Prisma CLI validate·generate·migration·실제 DB 검증을 실행하지 않았다. 사용자 지정 배경 색상의 파일 작성 상태는 아래 ADR-075·076 절에서 구분한다. 파일이 있다는 사실만으로 적용 완료로 표시하지 않는다.
 
 ### 킥오프 후속 스키마 변경 — ADR-056~057
 
@@ -317,6 +352,10 @@ TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_g
 
 - 습관 생성·수정·종료는 일괄 저장으로 전환한다. 개별 API-HB-02/03/04는 폐기하고 기존 Routine·RoutineHistory 모델과 종료일·기록 보존 규칙을 유지한다. 일괄 저장 자체의 컬럼 추가는 없으며 후속 색상 컬럼은 ADR-074를 따른다.
 
+- 비밀번호 앱 메모리는 클라이언트 수명 관리다. DB에는 passwordHash만 저장하며 토큰·검증 테이블은 만들지 않는다.
+- 상세·응원 등록의 전체 집계와 ID 다건 조회의 상위 3종은 같은 Reaction의 조회 범위 차이다. DB에 집계 배열을 저장하지 않는다.
+- Header 여백·소개 전체 표시·모달 취소·json-server 도입에는 DB 스키마 변경이 없다. 임시 데이터는 실제 PostgreSQL 검증을 대신하지 않는다.
+
 ### 습관 스티커 색상 (ADR-074 · 2026-10-21)
 
 - Routine.stickerColor는 기존 발자국 자산 sticker-01.png~sticker-18.png에 대응하는 1~18 정수다. 기본값·UNIQUE·추가 인덱스는 없으며 여러 습관이 같은 색상을 가질 수 있다.
@@ -325,6 +364,24 @@ TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_g
 - RoutineHistory에 색상을 복제하지 않는다. 현재 Routine.stickerColor를 조회해 과거 기록에도 최신 색상을 표시한다. 체크·해제 API 및 날짜별 이력은 그대로 보존한다.
 - migration `20261021000100_routine_sticker_color`는 nullable 컬럼과 CHECK만 추가한다. 기존 행·기록을 삭제하거나 일괄 변환하지 않는다. 신규 컬럼의 실제 적용은 미실행이다.
 - 적용 전 대상 DB와 백업을 확인한다. 복구가 필요하면 먼저 이전 앱으로 되돌리고, 저장한 색상 값은 백업한 뒤 별도 승인된 후속 migration으로 CHECK·컬럼을 제거한다. 이 경우 색상 선택 정보는 소실되며 기존 습관·기록은 유지된다. 기존 migration 이력을 수정하지 않는다.
-- 비밀번호 앱 메모리는 클라이언트 수명 관리다. DB에는 passwordHash만 저장하며 토큰·검증 테이블은 만들지 않는다.
-- 상세·응원 등록의 전체 집계와 ID 다건 조회의 상위 3종은 같은 Reaction의 조회 범위 차이다. DB에 집계 배열을 저장하지 않는다.
-- Header 여백·소개 전체 표시·모달 취소·json-server 도입에는 DB 스키마 변경이 없다. 임시 데이터는 실제 PostgreSQL 검증을 대신하지 않는다.
+### 사용자 지정 배경 색상 — ADR-076
+
+`20261021000100_study_custom_background_color`는 Study.backgroundColor를 NULL 허용 TEXT로 추가하고 키·색상 조합 CHECK를 만든다. 기존 행의 backgroundKey와 다른 데이터는 변경하지 않으며 추가 컬럼은 NULL로 시작한다. 기존 DB에 custom 키를 직접 저장한 비정상 행이 있다면 색상 없이 CHECK를 통과하지 못하므로 적용 전 해당 행을 확인한다. 데이터를 임의로 보정하거나 삭제하지 않는다.
+
+적용 순서는 migration → Prisma Client 생성 → 새 API → 새 프론트다. 새 API의 모든 Study 조회가 추가 컬럼을 읽으므로 DB 적용 전에 새 API를 시작하지 않는다. 되돌릴 때는 먼저 custom 배경을 이해하는 이전 호환 버전의 앱으로 전환하고, 사용 중인 색상 데이터를 보존한 채 컬럼은 남겨둔다. 컬럼 제거·기존 색상 변환은 별도 데이터 전환 작업으로 승인받는다. 실제 적용·롤백·API 검증은 이번 파일 작성으로 수행하지 않았다.
+
+### 사용자 지정 글자색 — ADR-075
+
+`20261021000200_study_text_color`는 Study.textColor를 NULL 허용 TEXT로 추가하고 Study_text_color_check를 만든다. 기존 행은 NULL로 시작하므로 자동 대비를 유지한다. 기존 배경색 migration은 수정하지 않는다.
+
+PATCH는 미전달 글자색을 유지하고 null이면 자동 대비로 되돌린다. 기본 배경 전환은 backgroundColor·textColor·patternKey·patternColor를 같은 수정에서 NULL로 비운다. 글자색만 변경하는 요청은 Study 행을 잠근 뒤 현재 backgroundKey와 조합을 확인하고 저장한다.
+
+추가 컬럼을 사용하는 API 시작 전에 migration → Prisma Client 생성을 마친다. 되돌릴 때는 이전 앱으로 전환하고 textColor 컬럼·저장값을 보존한다. 컬럼 제거는 별도 승인 대상이다. 이번에는 파일만 작성했으며 실제 DB 적용·API 검증은 수행하지 않았다.
+
+### 사용자 지정 패턴 — ADR-076
+
+`20261021000300_study_pattern`은 Study.patternKey·patternColor를 NULL 허용 TEXT로 추가하고 Study_pattern_check를 만든다. 기존 행은 두 값이 NULL로 시작해 패턴 없는 표시를 유지한다. 기존 배경·글자색·습관 색상 migration 파일은 수정하지 않는다.
+
+생성 시 패턴을 선택하면 두 값이 모두 필요하다. PATCH에서 둘 다 생략하면 기존 값을 유지하고, 변경·제거할 때는 두 필드를 함께 전달한다. 제거는 둘 다 NULL이다. 패턴만 변경하는 요청도 Study 행 잠금 안에서 현재 backgroundKey가 custom인지 확인한다. 기존 배경 전환은 배경색·글자색·패턴 정보를 같은 수정에서 비운다.
+
+병합 후 CHECK는 기존 7개와 습관 색상 1개, 스터디 배경·글자색·패턴 3개를 합친 11개다. 새 API 시작 전에 대상 DB의 migration 상태 확인 → 미적용 migration 적용 → Prisma Client 생성 순서로 준비한다. 실제 적용·검증은 이번 병합 정리에서 실행하지 않았다. 이전 앱으로 되돌릴 때도 컬럼과 저장값을 보존하며 컬럼 제거·데이터 변환은 별도 승인을 받는다.
