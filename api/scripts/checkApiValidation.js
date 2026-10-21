@@ -130,12 +130,12 @@ try {
   assert.equal(validateRoutineBatch({ ...emptyBatch, creates: [{ name: "독서" }] }).success, false);
   assert.equal(validateRoutineBatch({ ...emptyBatch, endIds: [routineId] }).success, true);
   assert.equal(validateRoutineBatch({
-    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서", stickerColor: 1 })),
+    ...emptyBatch, creates: Array.from({ length: 10 }, () => ({ name: "독서", stickerColor: 1 })),
   }).success, true);
   for (const invalidBatch of [
     { ...emptyBatch, creates: [{ name: family.repeat(21), stickerColor: 1 }] },
     { ...emptyBatch, creates: [{ name: " \t", stickerColor: 1 }] },
-    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서", stickerColor: 1 })) },
+    { ...emptyBatch, creates: Array.from({ length: 11 }, () => ({ name: "독서", stickerColor: 1 })) },
     { ...emptyBatch, creates: [{ name: "독서", stickerColor: 1, routineId }] },
     { ...emptyBatch, updates: [{ routineId: "invalid", name: "독서" }] },
     { ...emptyBatch, updates: [{ routineId, name: family.repeat(21) }] },

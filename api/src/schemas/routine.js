@@ -19,7 +19,8 @@ const routineCheckSchema = z.strictObject({
 });
 const batchRoutineIdSchema = uuidSchema.transform((value) => value.toLowerCase());
 const routineBatchSchema = z.strictObject({
-  creates: z.array(createRoutineSchema).max(18),
+  creates: z.array(createRoutineSchema).max(10),
+  // 기존 11~18개 스터디도 편집·종료·재정렬할 수 있도록 기존 대상 상한은 유지한다.
   updates: z.array(z.strictObject({
     routineId: batchRoutineIdSchema,
     name: routineNameSchema,
@@ -28,7 +29,7 @@ const routineBatchSchema = z.strictObject({
   endIds: z.array(batchRoutineIdSchema).max(18),
   order: z.array(z.union([
     z.strictObject({ routineId: batchRoutineIdSchema }),
-    z.strictObject({ createIndex: z.number().int().min(0).max(17) }),
+    z.strictObject({ createIndex: z.number().int().min(0).max(9) }),
   ])).max(18).optional(),
 }).refine(({ creates, updates, endIds, order }) => {
   if (order) {

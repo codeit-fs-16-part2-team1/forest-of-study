@@ -2,7 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { getKoreanDate } from "../utils/date.js";
 import { createApiError } from "../utils/apiError.js";
 
-const MAX_ACTIVE_ROUTINES = 18;
+const MAX_ACTIVE_ROUTINES = 10;
 
 const routineSelect = {
   id: true,

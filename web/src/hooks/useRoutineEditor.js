@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-const MAX_ROUTINES = 18;
+const MAX_ROUTINES = 10;
 const segmenter = new Intl.Segmenter("ko", { granularity: "grapheme" });
 const nameErrorMessage = "습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요.";
-const limitErrorMessage = "습관 입력칸은 최대 18개까지 추가할 수 있어요.";
+const limitErrorMessage = "습관 입력칸은 최대 10개까지 추가할 수 있어요.";
 
 const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) => {
   const originalRoutinesRef = useRef(routines);
@@ -167,7 +167,7 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
     errors,
     isSaving,
     canSubmit,
-    canAddRoutine: !isSaving,
+    canAddRoutine: !isSaving && draftRoutines.length < MAX_ROUTINES,
     canRemoveRoutine,
     handleChangeRoutine,
     handleChangeColor,

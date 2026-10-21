@@ -4,7 +4,7 @@ import { getKoreanDate } from "../utils/date.js";
 import { createApiError } from "../utils/apiError.js";
 import { getTodayRoutines } from "./routineService.js";
 
-const MAX_ACTIVE_ROUTINES = 18;
+const MAX_ACTIVE_ROUTINES = 10;
 
 export const saveRoutineBatch = async ({ studyId, creates, updates, endIds, order }) =>
   prisma.$transaction(async (tx) => {
@@ -40,7 +40,9 @@ export const saveRoutineBatch = async ({ studyId, creates, updates, endIds, orde
     }
     const activeEndIds = endIds.filter((id) => byId.get(id).endsOn === null);
     const activeCount = await tx.routine.count({ where: { studyId, endsOn: null } });
-    if (activeCount - activeEndIds.length + creates.length > MAX_ACTIVE_ROUTINES) {
+    const nextActiveCount = activeCount - activeEndIds.length + creates.length;
+    // 기존 초과 데이터의 편집·종료는 허용하되, 초과 상태에서 개수를 늘리지 않는다.
+    if (nextActiveCount > MAX_ACTIVE_ROUTINES && nextActiveCount > activeCount) {
       throw createApiError("VALIDATION_ERROR");
     }
 
