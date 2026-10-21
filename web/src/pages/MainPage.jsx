@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import Toast from "../components/Toast/Toast.jsx";
 import useToast from "../hooks/useToast.js";
@@ -10,6 +10,7 @@ import StudySort from "../components/StudySort/StudySort.jsx";
 import styles from "./MainPage.module.scss";
 
 const PAGE_SIZE = 6;
+const SEARCH_DELAY_MS = 500;
 
 const MainPage = () => {
   const location = useLocation();
@@ -29,6 +30,9 @@ const MainPage = () => {
     });
   }, [location, navigate, showToast]);
   const [searchInput, setSearchInput] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+  const composingRef = useRef(false);
+  const searchTimerRef = useRef(null);
   const [query, setQuery] = useState({
     keyword: "",
     sort: "latest",
@@ -88,7 +92,7 @@ const MainPage = () => {
     };
   }, [query]);
 
-  const changeQuery = (nextQuery) => {
+  const changeQuery = useCallback((nextQuery) => {
     // 이전 조건의 응답이 새 목록에 반영되지 않도록 즉시 무효화합니다.
     generationRef.current += 1;
     loadingMoreRef.current = false;
@@ -103,14 +107,31 @@ const MainPage = () => {
       error: "",
     });
     setQuery(nextQuery);
-  };
+  }, []);
+
+  useEffect(() => {
+    const keyword = searchInput.trim().normalize("NFC");
+    if (isComposing || keyword === query.keyword) return;
+
+    searchTimerRef.current = window.setTimeout(() => {
+      searchTimerRef.current = null;
+      // 대기 중 바뀐 정렬 조건도 유지한다.
+      changeQuery((previous) => ({ ...previous, keyword }));
+    }, SEARCH_DELAY_MS);
+
+    return () => window.clearTimeout(searchTimerRef.current);
+  }, [searchInput, isComposing, query.keyword, changeQuery]);
 
   const handleSearch = (event) => {
     event.preventDefault();
+    if (composingRef.current) return;
 
+    window.clearTimeout(searchTimerRef.current);
     const keyword = searchInput.trim().normalize("NFC");
     setSearchInput(keyword);
-    changeQuery({ ...query, keyword });
+    if (keyword !== query.keyword || result.error) {
+      changeQuery({ ...query, keyword });
+    }
   };
 
   const handleSortChange = (sort) => {
@@ -197,6 +218,22 @@ const MainPage = () => {
               type="search"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
+              onCompositionStart={() => {
+                window.clearTimeout(searchTimerRef.current);
+                composingRef.current = true;
+                setIsComposing(true);
+              }}
+              onCompositionEnd={(event) => {
+                composingRef.current = false;
+                setIsComposing(false);
+                setSearchInput(event.currentTarget.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" &&
+                    (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229)) {
+                  event.preventDefault();
+                }
+              }}
               placeholder="검색"
             />
 
