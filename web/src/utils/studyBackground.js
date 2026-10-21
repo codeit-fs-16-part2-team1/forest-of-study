@@ -6,6 +6,9 @@ export const getStudyTextColor = (backgroundKey, textColor) =>
     ? textColor.toLowerCase()
     : undefined;
 
+export const isValidStudyPattern = (patternKey, patternColor) =>
+  ["dots", "stripes", "waves"].includes(patternKey) && isValidBackgroundColor(patternColor);
+
 const getLuminance = (channels) => {
   const [red, green, blue] = channels.map((channel) => {
     const value = channel / 255;
@@ -31,4 +34,15 @@ export const getCustomBackgroundTheme = (color) => {
     textColor: useWhiteText ? "var(--color-white)" : "var(--color-black-dark)",
     badgeBackground: useWhiteText ? "rgb(0 0 0 / 40%)" : "rgb(255 255 255 / 50%)",
   };
+};
+
+// 지정한 글자색에는 반대 명암의 불투명 배경을 붙여 무늬가 글자 뒤로 비치지 않게 한다.
+export const getPatternTextBackground = (backgroundColor, textColor = null) => {
+  const manualTheme = getCustomBackgroundTheme(textColor);
+  if (manualTheme) return manualTheme.textColor;
+  const theme = getCustomBackgroundTheme(backgroundColor);
+  if (!theme) return undefined;
+  return theme.textColor === "var(--color-white)"
+    ? "var(--color-black-dark)"
+    : "var(--color-white)";
 };

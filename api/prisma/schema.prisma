@@ -28,6 +28,9 @@ model Study {
   backgroundColor String? @db.Text
   // custom 배경의 닉네임·스터디 이름·소개 공통 색상. NULL이면 자동 대비를 사용한다.
   textColor       String? @db.Text
+  // custom 배경의 패턴과 무늬색은 함께 저장하거나 함께 NULL로 비운다.
+  patternKey      String? @db.Text
+  patternColor    String? @db.Text
   passwordHash    String   @db.Text
   points          Int      @default(0)
   createdAt       DateTime @default(now()) @db.Timestamptz(3)

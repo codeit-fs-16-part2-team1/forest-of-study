@@ -15,6 +15,8 @@ const backgroundKeySchema = z.enum([
 const hexColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
   .transform((value) => value.toLowerCase()).nullable();
 
+const patternKeySchema = z.enum(["dots", "stripes", "waves"]).nullable();
+
 const checkBackgroundCombination = (data, context) => {
   if (data.backgroundKey === "custom" && data.backgroundColor == null) {
     context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
@@ -28,6 +30,17 @@ const checkBackgroundCombination = (data, context) => {
   if (data.backgroundKey !== undefined && data.backgroundKey !== "custom" && data.textColor != null) {
     context.addIssue({ code: "custom", path: ["textColor"], message: "" });
   }
+
+  // PATCH는 패턴과 무늬색을 함께 변경한다. 둘 다 null이면 패턴을 제거한다.
+  const hasPatternField = data.patternKey !== undefined || data.patternColor !== undefined;
+  if (hasPatternField && ((data.patternKey == null) !== (data.patternColor == null)
+    || data.patternKey === undefined || data.patternColor === undefined)) {
+    context.addIssue({ code: "custom", path: ["patternKey"], message: "" });
+  }
+  if (data.backgroundKey !== undefined && data.backgroundKey !== "custom"
+    && (data.patternKey != null || data.patternColor != null)) {
+    context.addIssue({ code: "custom", path: ["patternKey"], message: "" });
+  }
 };
 
 const createStudySchema = z.strictObject({
@@ -37,6 +50,8 @@ const createStudySchema = z.strictObject({
   backgroundKey: backgroundKeySchema.default("green"),
   backgroundColor: hexColorSchema.default(null),
   textColor: hexColorSchema.default(null),
+  patternKey: patternKeySchema.default(null),
+  patternColor: hexColorSchema.default(null),
   password: studyPasswordSchema,
   passwordConfirm: studyPasswordSchema,
 }).superRefine(checkBackgroundCombination).refine((data) => data.password === data.passwordConfirm, {
@@ -73,10 +88,12 @@ const updateStudySchema = z.strictObject({
   backgroundKey: backgroundKeySchema.optional(),
   backgroundColor: hexColorSchema.optional(),
   textColor: hexColorSchema.optional(),
+  patternKey: patternKeySchema.optional(),
+  patternColor: hexColorSchema.optional(),
 }).superRefine(checkBackgroundCombination)
   .refine((data) => Object.values(data).some((value) => value !== undefined))
   .transform((data) => data.backgroundKey !== undefined && data.backgroundKey !== "custom"
-    ? { ...data, backgroundColor: null, textColor: null }
+    ? { ...data, backgroundColor: null, textColor: null, patternKey: null, patternColor: null }
     : data);
 
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);

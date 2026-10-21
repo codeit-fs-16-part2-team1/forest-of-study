@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
-import { getCustomBackgroundTheme, getStudyTextColor } from "../../utils/studyBackground.js";
+import { getCustomBackgroundTheme, getPatternTextBackground, getStudyTextColor, isValidStudyPattern } from "../../utils/studyBackground.js";
+import StudyPatternLayer, { StudyPatternText } from "../StudyPatternLayer/StudyPatternLayer.jsx";
 import styles from "./StudyCard.module.scss";
 
 const StudyCard = ({ study }) => {
@@ -13,15 +14,19 @@ const StudyCard = ({ study }) => {
   const customTheme = study.backgroundKey === "custom"
     ? getCustomBackgroundTheme(study.backgroundColor)
     : null;
+  const hasPattern = customTheme !== null && isValidStudyPattern(study.patternKey, study.patternColor);
+  const manualTextColor = getStudyTextColor(study.backgroundKey, study.textColor);
+  const contentBackground = getPatternTextBackground(study.backgroundColor, manualTextColor);
+  const daysBackground = getPatternTextBackground(study.backgroundColor);
 
   return (
     <Link
       to={`/dashboard/${study.id}`}
-      className={[styles.card, hasImage && styles.imageCard, customTheme && styles.customCard].filter(Boolean).join(" ")}
+      className={[styles.card, hasImage && styles.imageCard, customTheme && styles.customCard, hasPattern && styles.patternCard].filter(Boolean).join(" ")}
       style={{
         backgroundColor: customTheme?.backgroundColor ?? background?.color,
         "--custom-text-color": customTheme?.textColor,
-        "--custom-content-color": getStudyTextColor(study.backgroundKey, study.textColor) ?? customTheme?.textColor,
+        "--custom-content-color": manualTextColor ?? customTheme?.textColor,
         "--custom-badge-background": customTheme?.badgeBackground,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
@@ -29,10 +34,13 @@ const StudyCard = ({ study }) => {
           : undefined,
       }}
     >
+      {hasPattern && <StudyPatternLayer patternKey={study.patternKey} patternColor={study.patternColor} />}
       <div className={styles.header}>
         <h3 className={styles.title}>
-          <span className={styles.nickname}>{study.nickname}</span>
-          의 {study.name}
+          <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
+            <span className={styles.nickname}>{study.nickname}</span>
+            의 {study.name}
+          </StudyPatternText>
         </h3>
 
         <span className={styles.points}>
@@ -41,10 +49,16 @@ const StudyCard = ({ study }) => {
       </div>
 
       <p className={styles.days}>
-        {getStudyDays(study.createdAt)}일째 진행 중
+        <StudyPatternText active={hasPattern} backgroundColor={daysBackground}>
+          {getStudyDays(study.createdAt)}일째 진행 중
+        </StudyPatternText>
       </p>
 
-      <p className={styles.introduction}>{study.introduction}</p>
+      <p className={styles.introduction}>
+        <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
+          {study.introduction}
+        </StudyPatternText>
+      </p>
 
       {study.reactions?.length > 0 && (
         <ul className={styles.reactions} aria-label="상위 응원">

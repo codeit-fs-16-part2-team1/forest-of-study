@@ -1,4 +1,4 @@
-import { isValidBackgroundColor } from "./studyBackground.js";
+import { isValidBackgroundColor, isValidStudyPattern } from "./studyBackground.js";
 
 const segmenter = new Intl.Segmenter("ko", {
   granularity: "grapheme",
@@ -35,6 +35,14 @@ export const validateStudyFields = (values) => {
   if (values.backgroundKey === "custom" && values.useDefaultTextColor === false
     && !isValidBackgroundColor(values.textColor)) {
     errors.textColor = "글자 색상을 선택해주세요.";
+  }
+
+  if (values.backgroundKey === "custom" && values.patternKey) {
+    if (!["dots", "stripes", "waves"].includes(values.patternKey)) {
+      errors.patternKey = "패턴을 선택해주세요.";
+    } else if (!isValidStudyPattern(values.patternKey, values.patternColor)) {
+      errors.patternColor = "무늬 색상을 선택해주세요.";
+    }
   }
 
   return errors;

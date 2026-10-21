@@ -2,7 +2,9 @@ import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
-import { getCustomBackgroundTheme, getStudyTextColor } from "../utils/studyBackground.js";
+import { studyPatterns } from "../constants/studyPatterns.js";
+import { getCustomBackgroundTheme, getPatternTextBackground, getStudyTextColor, isValidStudyPattern } from "../utils/studyBackground.js";
+import StudyPatternLayer, { StudyPatternText } from "../components/StudyPatternLayer/StudyPatternLayer.jsx";
 import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
 import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
 import useToast from "../hooks/useToast.js";
@@ -16,6 +18,8 @@ const initialValues = {
   introduction: "",
   backgroundKey: "green",
   backgroundColor: "#e1edde",
+  patternKey: "",
+  patternColor: "#ff52dc",
   textColor: "#14151a",
   useDefaultTextColor: true,
   password: "",
@@ -74,6 +78,8 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     introduction: study.introduction,
     backgroundKey: study.backgroundKey,
     backgroundColor: study.backgroundColor ?? initialValues.backgroundColor,
+    patternKey: study.patternKey ?? initialValues.patternKey,
+    patternColor: study.patternColor ?? initialValues.patternColor,
     textColor: study.textColor ?? initialValues.textColor,
     useDefaultTextColor: study.textColor == null,
   } : initialValues);
@@ -89,6 +95,8 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
   const customTextColor = values.useDefaultTextColor
     ? undefined
     : getStudyTextColor(values.backgroundKey, values.textColor);
+  const hasPattern = isValidStudyPattern(values.patternKey, values.patternColor);
+  const contentBackground = getPatternTextBackground(values.backgroundColor, customTextColor);
 
   const handleChange = (event) => {
     const { name, value, type, checked } = event.target;
@@ -96,12 +104,13 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     setValues((previous) => ({
       ...previous,
       [name]: type === "checkbox" ? checked : value,
-      ...(name === "backgroundKey" && value !== "custom" ? { useDefaultTextColor: true } : {}),
+      ...(name === "backgroundKey" && value !== "custom" ? { useDefaultTextColor: true, patternKey: "" } : {}),
     }));
     setErrors((previous) => ({
       ...previous,
       [name]: undefined,
       ...(name === "backgroundKey" || name === "useDefaultTextColor" ? { textColor: undefined } : {}),
+      ...(name === "backgroundKey" || name === "patternKey" ? { patternKey: undefined, patternColor: undefined } : {}),
     }));
     setSubmitError("");
   };
@@ -152,7 +161,9 @@ const handlePasswordKeyDown = (event) => {
     const firstInvalidField = Object.keys(nextErrors)[0];
 
     if (firstInvalidField) {
-      formRef.current?.elements.namedItem(firstInvalidField)?.focus();
+      const invalidControl = formRef.current?.elements.namedItem(firstInvalidField);
+      if (typeof invalidControl?.focus === "function") invalidControl.focus();
+      else invalidControl?.[0]?.focus();
       return;
     }
 
@@ -174,6 +185,8 @@ const handlePasswordKeyDown = (event) => {
         introduction: values.introduction.trim(),
         backgroundKey: values.backgroundKey,
         backgroundColor: values.backgroundKey === "custom" ? values.backgroundColor : null,
+        patternKey: values.backgroundKey === "custom" && values.patternKey ? values.patternKey : null,
+        patternColor: values.backgroundKey === "custom" && values.patternKey ? values.patternColor : null,
         textColor: values.backgroundKey === "custom" && !values.useDefaultTextColor
           ? values.textColor
           : null,
@@ -318,6 +331,20 @@ const handlePasswordKeyDown = (event) => {
                       <output htmlFor="reg-backgroundColor">{values.backgroundColor}</output>
                     </div>
                     <div className={styles.colorControls}>
+                      <label htmlFor="reg-patternColor">무늬 색상</label>
+                      <input
+                        id="reg-patternColor"
+                        name="patternColor"
+                        type="color"
+                        className={styles.colorInput}
+                        value={values.patternColor}
+                        onChange={handleChange}
+                        aria-invalid={Boolean(errors.patternColor)}
+                        aria-describedby={errors.patternColor ? "patternColor-error" : undefined}
+                      />
+                      <output htmlFor="reg-patternColor">{values.patternColor}</output>
+                    </div>
+                    <div className={styles.colorControls}>
                       <label htmlFor="reg-textColor">글자 색상</label>
                       {values.useDefaultTextColor ? (
                         <button
@@ -350,6 +377,32 @@ const handlePasswordKeyDown = (event) => {
                       )}
                     </div>
                   </div>
+                  <fieldset className={styles.patternField}>
+                    <legend>패턴</legend>
+                    <div className={styles.patternGrid}>
+                      {[{ key: "", label: "없음" }, ...studyPatterns].map(({ key, label }) => (
+                        <label key={key} className={styles.patternOption}>
+                          <input
+                            type="radio"
+                            name="patternKey"
+                            value={key}
+                            checked={values.patternKey === key}
+                            onChange={handleChange}
+                            aria-invalid={Boolean(errors.patternKey)}
+                            aria-describedby={errors.patternKey ? "patternKey-error" : undefined}
+                          />
+                          <span
+                            className={styles.patternPreview}
+                            style={{ backgroundColor: values.backgroundColor }}
+                            aria-hidden="true"
+                          >
+                            <StudyPatternLayer patternKey={key} patternColor={values.patternColor} />
+                          </span>
+                          <span>{label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <label className={styles.customOption}>
                     <input
                       type="checkbox"
@@ -369,6 +422,12 @@ const handlePasswordKeyDown = (event) => {
                       {errors.textColor}
                     </p>
                   )}
+                  {errors.patternKey && (
+                    <p id="patternKey-error" className={styles.error} role="alert">{errors.patternKey}</p>
+                  )}
+                  {errors.patternColor && (
+                    <p id="patternColor-error" className={styles.error} role="alert">{errors.patternColor}</p>
+                  )}
                   {customTheme && (
                     <div
                       className={styles.customPreview}
@@ -380,11 +439,16 @@ const handlePasswordKeyDown = (event) => {
                         "--custom-content-color": customTextColor ?? customTheme.textColor,
                       }}
                     >
+                      {hasPattern && <StudyPatternLayer patternKey={values.patternKey} patternColor={values.patternColor} />}
                       <p className={styles.previewTitle}>
-                        {values.nickname.trim() || "닉네임"}의 {values.name.trim() || "스터디 이름"}
+                        <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
+                          {values.nickname.trim() || "닉네임"}의 {values.name.trim() || "스터디 이름"}
+                        </StudyPatternText>
                       </p>
                       <p className={styles.previewIntroduction}>
-                        {values.introduction.trim() || "선택한 색상이 카드 배경에 적용됩니다."}
+                        <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
+                          {values.introduction.trim() || "선택한 색상이 카드 배경에 적용됩니다."}
+                        </StudyPatternText>
                       </p>
                     </div>
                   )}

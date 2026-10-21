@@ -109,6 +109,20 @@
   }
 }
 
+.patternCard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  .header,
+  .days,
+  .introduction,
+  .reactions {
+    position: relative;
+    z-index: 1;
+  }
+}
+
 @media (min-width: 744px) {
   .card {
     min-height: 243px;

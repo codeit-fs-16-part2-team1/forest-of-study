@@ -53,7 +53,11 @@ try {
     assert.equal(created.success, true);
     assert.equal(created.data.backgroundColor, null);
     assert.equal(created.data.textColor, null);
-    assert.deepEqual(validateUpdateStudy({ backgroundKey }).data, { backgroundKey, backgroundColor: null, textColor: null });
+    assert.equal(created.data.patternKey, null);
+    assert.equal(created.data.patternColor, null);
+    assert.deepEqual(validateUpdateStudy({ backgroundKey }).data, {
+      backgroundKey, backgroundColor: null, textColor: null, patternKey: null, patternColor: null,
+    });
   }
   const custom = { backgroundKey: "custom", backgroundColor: "#3A8F72" };
   assert.equal(validateCreateStudy({ ...body, ...custom }).data.backgroundColor, "#3a8f72");
@@ -85,6 +89,34 @@ try {
     assert.equal(validateUpdateStudy({ backgroundKey, textColor: "#123456" }).success, false);
   }
   assert.equal(validateCreateStudy({ ...body, textColor: "#123456" }).success, false);
+
+  step = "점·줄·물결 패턴과 두 색상 조합";
+  for (const patternKey of ["dots", "stripes", "waves"]) {
+    const pattern = { patternKey, patternColor: "#FF52DC" };
+    const created = validateCreateStudy({ ...body, ...custom, ...pattern });
+    assert.equal(created.success, true);
+    assert.equal(created.data.patternKey, patternKey);
+    assert.equal(created.data.patternColor, "#ff52dc");
+    assert.deepEqual(validateUpdateStudy(pattern).data, { patternKey, patternColor: "#ff52dc" });
+    assert.equal(validateCreateStudy({ ...body, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "green", ...pattern }).success, false);
+  }
+  assert.deepEqual(validateUpdateStudy({ patternKey: null, patternColor: null }).data, {
+    patternKey: null, patternColor: null,
+  });
+  for (const pattern of [
+    { patternKey: "dots" }, { patternColor: "#123456" },
+    { patternKey: "dots", patternColor: null }, { patternKey: null, patternColor: "#123456" },
+    { patternKey: "unknown", patternColor: "#123456" },
+    { patternKey: "dots", patternColor: "#abc" },
+    { patternKey: "dots", patternColor: "#123456\n" },
+    { patternKey: ["dots"], patternColor: "#123456" },
+  ]) {
+    assert.equal(validateCreateStudy({ ...body, ...custom, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy(pattern).success, false);
+  }
+  assert.equal(validateUpdateStudy({ patternKey: null }).success, false);
+  assert.equal(validateUpdateStudy({ patternColor: null }).success, false);
 
   step = "목록 기본값·정규화·미등록 쿼리";
   assert.deepEqual(validateStudyListQuery({}).data, { keyword: "", offset: 0, limit: 6, sort: "latest" });

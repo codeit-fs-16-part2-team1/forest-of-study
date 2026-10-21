@@ -27,7 +27,7 @@ studyRouter.post("/", rejectQuery, async (req, res) => {
     if (issues.every((issue) => issue.code === "custom" && issue.path[0] === "passwordConfirm")) {
       code = "PASSWORD_CONFIRM_MISMATCH";
     } else if (issues.every((issue) =>
-      issue.path.length === 1 && ["backgroundKey", "backgroundColor"].includes(issue.path[0]))) {
+      issue.path.length === 1 && ["backgroundKey", "backgroundColor", "patternKey", "patternColor"].includes(issue.path[0]))) {
       code = "INVALID_BACKGROUND";
     }
     throw createApiError(code);
@@ -64,7 +64,7 @@ studyRouter.patch("/:studyId", rejectQuery, verifyStudyPassword, async (req, res
   const result = validateUpdateStudy(req.body);
   if (!result.success) {
     const onlyInvalidBackground = result.error.issues.every((issue) =>
-      issue.path.length === 1 && ["backgroundKey", "backgroundColor"].includes(issue.path[0]));
+      issue.path.length === 1 && ["backgroundKey", "backgroundColor", "patternKey", "patternColor"].includes(issue.path[0]));
     throw createApiError(onlyInvalidBackground ? "INVALID_BACKGROUND" : "VALIDATION_ERROR");
   }
 

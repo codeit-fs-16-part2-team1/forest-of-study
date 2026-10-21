@@ -1,0 +1,23 @@
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background-color: var(--study-pattern-color);
+  -webkit-mask-image: var(--study-pattern-image);
+  mask-image: var(--study-pattern-image);
+  -webkit-mask-size: var(--study-pattern-size);
+  mask-size: var(--study-pattern-size);
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  mask-mode: alpha;
+  pointer-events: none;
+}
+
+.textBadge {
+  padding: 4px 8px;
+  border-radius: 20px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  line-height: 1.9;
+}

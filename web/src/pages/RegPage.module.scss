@@ -203,6 +203,8 @@ textarea.input {
 }
 
 .customPreview {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: 16px;
   min-width: 0;
@@ -210,20 +212,87 @@ textarea.input {
   padding: 24px;
   border: 1px solid var(--color-gray-light);
   border-radius: 20px;
+  overflow: hidden;
   overflow-wrap: anywhere;
 }
 
 .previewTitle {
+  position: relative;
+  z-index: 1;
   color: var(--custom-content-color);
   font-size: 18px;
   font-weight: 700;
 }
 
 .previewIntroduction {
+  position: relative;
+  z-index: 1;
   color: var(--custom-content-color);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.patternField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+}
+
+.patternGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patternOption {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:checked + .patternPreview {
+    border-color: var(--color-green-text);
+    box-shadow: 0 0 0 1px var(--color-green-text);
+  }
+
+  > input:focus-visible + .patternPreview {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .patternPreview {
+    cursor: default;
+    opacity: 0.65;
+  }
+}
+
+.patternPreview {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  min-width: 0;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 12px;
 }
 
 .selectedMark {
