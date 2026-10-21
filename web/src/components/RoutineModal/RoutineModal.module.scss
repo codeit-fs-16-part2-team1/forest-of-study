@@ -102,7 +102,7 @@
 }
 .routineRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 3rem; // 48px
+  grid-template-columns: 3rem minmax(0, 1fr) 3rem; // 48px
   gap: 0.5rem; // 8px
 }
 .routineField {
@@ -145,61 +145,24 @@
   text-align: left;
   overflow-wrap: anywhere;
 }
-.colorPicker {
-  margin: 0.75rem 0 0;
-  padding: 0;
-  min-width: 0;
-  border: 0;
-  text-align: left;
-}
-.colorLegend {
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-.legacyColor {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.75rem;
-}
-.colorOptions {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.25rem;
-}
-.colorOption {
-  position: relative;
+.colorButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.75rem;
-  border: 2px solid transparent;
-  border-radius: 0.5rem;
-  cursor: pointer;
+  align-self: start;
+  margin-top: 0.1875rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--color-white);
 
-  input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-  }
   img {
-    max-width: 100%;
-    object-fit: contain;
+    width: 2rem;
+    height: 2rem;
   }
-  &:has(input:checked) {
-    border-color: var(--color-green-text);
-    background: var(--color-gray-lighter);
-  }
-  &:has(input:focus-visible) {
-    outline: 2px solid var(--color-black);
-    outline-offset: 2px;
-  }
-  &:has(input:disabled) {
-    cursor: default;
-    opacity: 0.5;
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-green-text);
+    outline-offset: -0.125rem;
   }
 }
 .deleteButton {
@@ -257,6 +220,7 @@
     transform: translateY(0.125rem); // 2px
   }
 }
+.colorButton:disabled,
 .deleteButton:disabled,
 .addRoutineButton:disabled,
 .actionButton:disabled {
@@ -278,14 +242,15 @@
     gap: 1.25rem; // 20px
   }
   .routineList {
-    // 색상 선택기를 포함한 항목은 모달 안에서 스크롤한다.
+    // 입력 행은 모달 안에서 스크롤한다.
     max-height: min(26.5rem, calc(100dvh - 29.375rem)); // 최대 424px, 화면 높이에서 470px 제외
   }
   .routineRows {
     gap: 1.25rem; // 20px
   }
   .routineRow {
-    grid-template-columns: 1fr 25rem 1fr; // 400px
+    grid-template-columns: 3rem minmax(0, 25rem) 3rem;
+    justify-content: center;
   }
   .routineField {
     grid-column: 2;

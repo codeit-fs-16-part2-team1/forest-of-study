@@ -4,7 +4,6 @@ const MAX_ROUTINES = 18;
 const segmenter = new Intl.Segmenter("ko", { granularity: "grapheme" });
 const nameErrorMessage = "습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요.";
 const limitErrorMessage = "습관 입력칸은 최대 18개까지 추가할 수 있어요.";
-const colorErrorMessage = "습관의 스티커 색상을 선택해주세요.";
 
 const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) => {
   const originalRoutinesRef = useRef(routines);
@@ -18,13 +17,12 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
           clientId: `routine-${routine.id}`,
           routineId: routine.id,
           name: routine.name,
-          stickerColor: routine.stickerColor ?? null,
+          stickerColor: routine.stickerColor ?? 1,
         }))
-      : [{ clientId: "new-0", routineId: null, name: "", stickerColor: null }],
+      : [{ clientId: "new-0", routineId: null, name: "", stickerColor: 1 }],
   );
   const [deletedRoutineIds, setDeletedRoutineIds] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -33,27 +31,19 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
 
   const errors = Object.fromEntries(draftRoutines.map((routine) => [
     routine.clientId,
-    Array.from(segmenter.segment(routine.name.trim())).length > 20 ||
-      (hasSubmitted && routine.routineId === null && routine.stickerColor !== null && !routine.name.trim())
+    Array.from(segmenter.segment(routine.name.trim())).length > 20
       ? `*${nameErrorMessage}`
-      : "",
-  ]));
-  const colorErrors = Object.fromEntries(draftRoutines.map((routine) => [
-    routine.clientId,
-    hasSubmitted && routine.routineId === null && routine.name.trim() && routine.stickerColor === null
-      ? colorErrorMessage
       : "",
   ]));
   const hasErrors = Object.values(errors).some(Boolean);
   const hasName = draftRoutines.some((routine) => routine.name.trim() !== "");
-  const hasColorChange = draftRoutines.some((routine) => routine.stickerColor !== null);
   const canSubmit = typeof onSubmit === "function" &&
-    (hasName || hasColorChange || deletedRoutineIds.length > 0) && !isSaving;
+    (hasName || deletedRoutineIds.length > 0) && !isSaving;
 
   const createEmptyRoutine = () => {
     const clientId = `new-${nextDraftIdRef.current}`;
     nextDraftIdRef.current += 1;
-    return { clientId, routineId: null, name: "", stickerColor: null };
+    return { clientId, routineId: null, name: "", stickerColor: 1 };
   };
 
   const canRemoveRoutine = (routine) =>
@@ -110,17 +100,8 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!canSubmit || isSavingRef.current) return;
-    setHasSubmitted(true);
-    if (hasErrors || draftRoutines.some((routine) =>
-      routine.routineId === null && routine.stickerColor !== null && !routine.name.trim(),
-    )) {
+    if (hasErrors) {
       onValidationError?.(nameErrorMessage);
-      return;
-    }
-    if (draftRoutines.some((routine) =>
-      routine.routineId === null && routine.name.trim() && routine.stickerColor === null,
-    )) {
-      onValidationError?.(colorErrorMessage);
       return;
     }
 
@@ -139,7 +120,7 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
         updates.push({
           routineId: routine.routineId,
           name,
-          ...(routine.stickerColor !== null && { stickerColor: routine.stickerColor }),
+          stickerColor: routine.stickerColor,
         });
       }
     }
@@ -164,7 +145,6 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
     draftRoutines,
     pendingFocusIdRef,
     errors,
-    colorErrors,
     isSaving,
     canSubmit,
     canAddRoutine: !isSaving,

@@ -149,7 +149,7 @@ const RoutineHistoryTable = ({ studyId }) => {
             </thead>
 
             <tbody>
-              {data.routines.map((routine, rowIndex) => (
+              {data.routines.map((routine) => (
                 <tr key={routine.id}>
                   <th scope="row">{routine.name}</th>
 
@@ -159,7 +159,7 @@ const RoutineHistoryTable = ({ studyId }) => {
                         <img
                           src={
                             completed === true
-                              ? getRoutineSticker(routine.stickerColor, rowIndex)
+                              ? getRoutineSticker(routine.stickerColor)
                               : emptySticker
                           }
                           width="36"
