@@ -1,9 +1,9 @@
 # 공부의 숲 데이터베이스 설계
 
-- 버전:0.13 킥오프 결정 동기화 · 2026-10-20 (Asia/Seoul)
-- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~073; 최신 후속 결정을 우선 적용한다.
+- 버전:0.14 습관 스티커 색상 저장 · 2026-10-21 (Asia/Seoul)
+- 기준: [README.md](../README.md), [API.md](API.md), [ADR.md](ADR.md) ADR-051~074; 최신 후속 결정을 우선 적용한다.
 - 스키마: [api/prisma/schema.prisma](../api/prisma/schema.prisma). 5개 테이블을 사용한다. VerificationToken·PointHistory·회원 테이블은 만들지 않는다.
-- 이번 작업은 명세만 갱신한다. 기존 스키마·애플리케이션 코드·데이터·migration 파일은 변경하지 않으며 CLI·DB·API는 실행하지 않는다.
+- 색상 선택 구현에 맞춰 명세·스키마와 새 migration 파일을 갱신했다. 실제 DB·migration·API 실행은 하지 않았다.
 
 ## 로컬 실행 환경 — ADR-049·050
 
@@ -59,6 +59,7 @@ erDiagram
         String id PK
         String studyId FK
         String name
+        Int stickerColor "1~18 / 기존 습관 NULL 허용"
         DateTime startsOn
         DateTime endsOn "NULL 허용"
         DateTime createdAt
@@ -127,6 +128,7 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 | id | `String    @id @default(uuid()) @db.Uuid` | 불가 |
 | studyId | `String    @db.Uuid` | 불가 |
 | name | `String    @db.Text` | 불가 |
+| stickerColor | `Int?` — 1~18, 기본값 없음 | 기존 습관만 허용 |
 | startsOn | `DateTime  @db.Date` | 불가 |
 | endsOn | `DateTime? @db.Date` | 허용 |
 | createdAt | `DateTime  @default(now()) @db.Timestamptz(3)` | 불가 |
@@ -191,7 +193,7 @@ NULL 여부·기본값·Prisma 자료형은 아래 스키마 선언과 대응한
 | 테이블 | 결정자 | 비키 속성 |
 | --- | --- | --- |
 | Study | id | nickname, name, introduction, backgroundKey, passwordHash, points, createdAt, updatedAt |
-| Routine | id | studyId, name, startsOn, endsOn, createdAt, updatedAt |
+| Routine | id | studyId, name, stickerColor, startsOn, endsOn, createdAt, updatedAt |
 | RoutineHistory | routineId, recordDate | completed, createdAt, updatedAt |
 | Challenge | id | studyId, goalMinutes, status, elapsedMilliseconds, lastStartedAt, awardedPoints, createdAt |
 | Reaction | studyId, browserId, emoji | createdAt |
@@ -300,7 +302,7 @@ TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_g
 
 후속 검증 기준: 조합 이모지로 닉네임10·이름15·소개100·습관20그래핌 저장 성공, 각 제한+1과 trim 후 빈 문자열 거절, 활성 18개 생성 거절·종료 후 생성 성공, 생성일 순 조회, 생성·진입 확인·삭제·보호 요청에서 비밀번호 또는 확인값의 앞뒤·중간 공백·탭·줄바꿈을 400으로 거절하고, 공백 없는 유효한 비밀번호의 생성·검증이 일치하는지 확인. 이번에는 실제 명령·API·DB 검증을 실행하지 않았다.
 
-확정: 같은 nickname/name 조합 중복 금지·409 STUDY_CONFLICT, 모든 이모지 허용·피부색 변형의 기본 이모지 통합, 목록최대6·최근 3개·생성일 1일째, 목록순18색 순환 배정이다(ADR-064·065). 남은 자료: 배경색·이미지,18개 색상값, 반응형·습관 편집 캡처다. 후속 사용자 정렬 저장 방식은 별도 검토한다. 목록 기본값·검색 규칙·주간 날짜 보정/행 순서/조회 기간·다건 10개 상한은 ADR-059·060·063으로 확정했다. 안내 문구는 최종 확정 전 임시 구현을 허용한다.
+확정: 같은 nickname/name 조합 중복 금지·409 STUDY_CONFLICT, 모든 이모지 허용·피부색 변형의 기본 이모지 통합, 목록최대6·최근 3개·생성일 1일째다(ADR-064). 습관 스티커는 기존 18종에서 사용자가 선택해 저장하고 기존 null 습관만 목록순 순환 표시한다(ADR-074). 남은 자료: 배경색·이미지, 반응형·습관 편집 캡처다. 후속 사용자 정렬 저장 방식은 별도 검토한다. 목록 기본값·검색 규칙·주간 날짜 보정/행 순서/조회 기간·다건 10개 상한은 ADR-059·060·063으로 확정했다. 안내 문구는 최종 확정 전 임시 구현을 허용한다.
 
 
 
@@ -308,12 +310,21 @@ TEXT 변경 migration은 `20261013000100_routine_name_text`와 `20261014000100_g
 
 - Study 복합 UNIQUE 적용 전에 기존 nickname/name 조합 중복을 조사하고 데이터가 있다면 정리 방안을 별도로 확인한다. 기존 행을 임의 삭제·덮어쓰지 않는다.
 - 기존 Reaction에 피부색별 행이 있으면 기본 이모지로 변환할 때 PK 충돌·집계 차이가 생길 수 있다. 새 저장 규칙 적용과 기존 데이터 전환을 구분하고 승인된 전환 계획 전에는 기존 데이터를 자동 변경하지 않는다.
-- 최근 조회 3개는 LocalStorage·표시 규칙, 진행 일수 1일째와 목록순18색은 파생·프론트 규칙이다. 이를 위해 DB 컬럼·테이블을 추가하지 않는다.
+- 최근 조회 3개는 LocalStorage·표시 규칙, 진행 일수 1일째는 파생·프론트 규칙이다. 습관별 색상 저장은 ADR-074를 따른다.
 
 
 ## 10. 10.16~10.20 결정의 저장 영향
 
-- 습관 생성·수정·종료는 일괄 저장으로 전환한다. 개별 API-HB-02/03/04는 폐기하고 기존 Routine·RoutineHistory 모델과 종료일·기록 보존 규칙을 유지한다. 새 모델·컬럼은 추가하지 않는다.
+- 습관 생성·수정·종료는 일괄 저장으로 전환한다. 개별 API-HB-02/03/04는 폐기하고 기존 Routine·RoutineHistory 모델과 종료일·기록 보존 규칙을 유지한다. 일괄 저장 자체의 컬럼 추가는 없으며 후속 색상 컬럼은 ADR-074를 따른다.
+
+### 습관 스티커 색상 (ADR-074 · 2026-10-21)
+
+- Routine.stickerColor는 기존 발자국 자산 sticker-01.png~sticker-18.png에 대응하는 1~18 정수다. 기본값·UNIQUE·추가 인덱스는 없으며 여러 습관이 같은 색상을 가질 수 있다.
+- 기존 테스트 데이터는 null로 보존하고 표시 행 순서로 색상을 계산한다. 신규 API 생성은 필수값으로 검증한다. 수정 시 생략은 현재 값을 유지하고 제공값은 1~18만 허용한다. null로 초기화하지 않는다.
+- CHECK `Routine_sticker_color_range`는 NULL 또는 1~18을 허용한다. nullable은 기존 데이터 호환을 위한 것으로 신규 API의 필수 검증을 대체하지 않는다.
+- RoutineHistory에 색상을 복제하지 않는다. 현재 Routine.stickerColor를 조회해 과거 기록에도 최신 색상을 표시한다. 체크·해제 API 및 날짜별 이력은 그대로 보존한다.
+- migration `20261021000100_routine_sticker_color`는 nullable 컬럼과 CHECK만 추가한다. 기존 행·기록을 삭제하거나 일괄 변환하지 않는다. 신규 컬럼의 실제 적용은 미실행이다.
+- 적용 전 대상 DB와 백업을 확인한다. 복구가 필요하면 먼저 이전 앱으로 되돌리고, 저장한 색상 값은 백업한 뒤 별도 승인된 후속 migration으로 CHECK·컬럼을 제거한다. 이 경우 색상 선택 정보는 소실되며 기존 습관·기록은 유지된다. 기존 migration 이력을 수정하지 않는다.
 - 비밀번호 앱 메모리는 클라이언트 수명 관리다. DB에는 passwordHash만 저장하며 토큰·검증 테이블은 만들지 않는다.
 - 상세·응원 등록의 전체 집계와 ID 다건 조회의 상위 3종은 같은 Reaction의 조회 범위 차이다. DB에 집계 배열을 저장하지 않는다.
 - Header 여백·소개 전체 표시·모달 취소·json-server 도입에는 DB 스키마 변경이 없다. 임시 데이터는 실제 PostgreSQL 검증을 대신하지 않는다.

@@ -23,7 +23,7 @@ routineRouter.use(verifyStudyPassword);
 routineRouter.post("/", async (req, res) => {
   const result = validateCreateRoutine(req.body);
   if (!result.success) throw createApiError("VALIDATION_ERROR");
-  const routine = await createRoutine({ studyId: req.params.studyId, name: result.data.name });
+  const routine = await createRoutine({ studyId: req.params.studyId, ...result.data });
   return sendSuccess(res, routine, 201);
 });
 

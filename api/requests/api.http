@@ -1,5 +1,5 @@
-# 공부의 숲 API v0.14 — docs/API.md / ADR-051~073
-# 명세용 수동 요청 예시. 새 계약의 기대값이며 현재 구현 통과를 보장하지 않는다. 코드·DB 실행 없이 명세만 갱신했다.
+# 공부의 숲 API v0.15 — docs/API.md / ADR-051~074
+# 명세용 수동 요청 예시. 계약 기대값이며 현재 구현 통과를 보장하지 않는다. 실제 요청·DB 실행 결과가 아니다.
 # 아래 비밀번호는 테스트용 가상 값이다. 실제 비밀번호를 커밋하지 않는다.
 # 보호 요청은 X-Study-Password, 진입 검증·삭제·생성은 본문 비밀번호.
 # 비밀번호·확인값은 공백 제거 없이 검사하며 공백 포함 시 400 VALIDATION_ERROR로 거절한다(ADR-066).
@@ -202,7 +202,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "물 2L 마시기"
+      "name": "물 2L 마시기",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -226,6 +227,47 @@ Content-Type: application/json
   ],
   "endIds": []
 }
+
+### API-HB-06 — 스티커 색상 수정
+# 선행: 색상 migration 적용·생성한 활성 routineId 지정. 색상만 바꿔도 현재 name을 함께 보낸다.
+# 기대 200 data.routines의 해당 stickerColor=7. 아래 API-ST-06 색상 변경 확인을 이어서 실행한다.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+Accept: application/json
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{"creates":[],"updates":[{"routineId":"{{routineId}}","name":"물 마시기","stickerColor":7}],"endIds":[]}
+
+### API-ST-06 — 색상 변경 확인
+# 선행: 해당 주에 체크 기록이 있는 습관의 색상을 위 요청으로 변경한다. weekStart는 해당 과거 주의 날짜로 지정 가능.
+# 기대 200 data.routines의 해당 stickerColor=7, 기존 cells.completed는 보존된다.
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{weekStart}}
+Accept: application/json
+
+### API-HB-06 — 동일 색상으로 두 습관 생성
+# 선행: 활성 습관 여유 2개. 기대 200, 두 습관 모두 stickerColor=7. 중복 색상을 거절하지 않는다.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{"creates":[{"name":"코딩 공부하기","stickerColor":7},{"name":"책 읽기","stickerColor":7}],"updates":[],"endIds":[]}
+
+### API-HB-06 — 색상 누락 거절
+# 기대 400 VALIDATION_ERROR. 생성되는 습관 없음.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{"creates":[{"name":"색상 누락"}],"updates":[],"endIds":[]}
+
+### API-HB-06 — 잘못된 색상과 혼합 저장 거절
+# 기대 400 VALIDATION_ERROR. 정상 항목도 함께 저장되지 않으며 기존 색상·이력이 유지된다.
+# 19 대신 0, null, "1", 1.5도 각각 거절한다.
+PATCH {{baseUrl}}/studies/{{studyId}}/routines/batch
+X-Study-Password: {{studyPassword}}
+Content-Type: application/json
+
+{"creates":[{"name":"정상 항목","stickerColor":1}],"updates":[{"routineId":"{{routineId}}","name":"물 마시기","stickerColor":19}],"endIds":[]}
 
 ### API-HB-05 체크
 # 기대 상태 200.
@@ -266,7 +308,7 @@ Content-Type: application/json
 }
 
 ### API-ST-06 주간표
-# 200 월요일 보정·월~일7칸·행 생성일 순. data={weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}. 기간 밖null, dates/exists/행별기간필드 없음.
+# 200 월요일 보정·월~일7칸·행 생성일 순. data={weekStart,routines:[{id,name,stickerColor,cells:[{recordDate,completed}]}]}. 기간 밖null, dates/exists/행별기간필드 없음.
 GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{weekStart}}
 Accept: application/json
 
@@ -386,7 +428,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "가가가가가가가가가가가가가가가가가가가가가"
+      "name": "가가가가가가가가가가가가가가가가가가가가가",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -538,7 +581,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "  👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦  "
+      "name": "  👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦  ",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -555,7 +599,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦"
+      "name": "👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -572,7 +617,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "   "
+      "name": "   ",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -595,7 +641,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "18개 제한 확인"
+      "name": "18개 제한 확인",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -612,7 +659,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "종료 후 새 습관"
+      "name": "종료 후 새 습관",
+      "stickerColor": 1
     }
   ],
   "updates": [],
@@ -1000,8 +1048,9 @@ Accept: application/json
 # Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px.
 # 일반 모달은 배경 클릭 닫기·내부 클릭 유지·Escape 무시. 비밀번호 취소는 이전 화면 또는 홈.
 # 상세 소개는 전체 표시, 카드만 한 줄 말줄임. json-server는 실제 Express API 검증을 대체하지 않는다.
-# 생성일은 1일째, 기록표19행은1번째 색·20행은2번째 색, 시간 변경은 모달.
-# 로딩은 스켈레톤. 빈/실패는 기존 캡처, 완료는 제공 시간 초과 시안. 색상값·반응형/편집 캡처는 추후 수신.
+# 생성일은 1일째. 새 습관은 모달의 발자국 18종에서 필수 선택·중복 색상 허용. 색상 수정 후 과거 기록도 같은 색상.
+# 기존 stickerColor=null 습관만 기록표19행은1번째 색·20행은2번째 색. 시간 변경은 모달.
+# 로딩은 스켈레톤. 빈/실패는 기존 캡처, 완료는 제공 시간 초과 시안. 반응형/편집 캡처는 추후 수신.
 
 
 
@@ -1038,7 +1087,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "새 습관"
+      "name": "새 습관",
+      "stickerColor": 1
     }
   ],
   "updates": [
@@ -1062,7 +1112,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "저장되면 안 되는 습관"
+      "name": "저장되면 안 되는 습관",
+      "stickerColor": 1
     }
   ],
   "updates": [
@@ -1086,7 +1137,8 @@ Content-Type: application/json
 {
   "creates": [
     {
-      "name": "롤백 검증용"
+      "name": "롤백 검증용",
+      "stickerColor": 1
     }
   ],
   "updates": [
