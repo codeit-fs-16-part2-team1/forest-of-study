@@ -1,13 +1,13 @@
+import { studyPastelColors } from "../constants/studyPastelColors.js";
+
 export const isValidBackgroundColor = (value) =>
   typeof value === "string" && value.length === 7 && /^#[0-9a-fA-F]{6}$/.test(value);
 
-export const getStudyTextColor = (backgroundKey, textColor) =>
-  backgroundKey === "custom" && isValidBackgroundColor(textColor)
-    ? textColor.toLowerCase()
-    : undefined;
+export const isValidStudyPatternKey = (value) =>
+  ["dots", "waves", "stripes", "leaves", "paper"].includes(value);
 
 export const isValidStudyPattern = (patternKey, patternColor) =>
-  ["dots", "stripes", "waves"].includes(patternKey) && isValidBackgroundColor(patternColor);
+  isValidStudyPatternKey(patternKey) && isValidBackgroundColor(patternColor);
 
 const getLuminance = (channels) => {
   const [red, green, blue] = channels.map((channel) => {
@@ -28,21 +28,15 @@ export const getCustomBackgroundTheme = (color) => {
     / (Math.min(luminance, darkLuminance) + 0.05);
   const whiteContrast = 1.05 / (luminance + 0.05);
   const useWhiteText = whiteContrast > darkContrast;
+  const textColor = useWhiteText ? "var(--color-white)" : "var(--color-black-dark)";
+  const pastel = studyPastelColors.find((pastel) => pastel.color === color.toLowerCase());
 
   return {
     backgroundColor: color.toLowerCase(),
-    textColor: useWhiteText ? "var(--color-white)" : "var(--color-black-dark)",
+    textColor,
+    // 이전에 저장한 팔레트 밖 색상은 자동 대비 색상으로 표시한다.
+    accentColor: pastel?.accentColor ?? textColor,
     badgeBackground: useWhiteText ? "rgb(0 0 0 / 40%)" : "rgb(255 255 255 / 50%)",
   };
 };
 
-// 지정한 글자색에는 반대 명암의 불투명 배경을 붙여 무늬가 글자 뒤로 비치지 않게 한다.
-export const getPatternTextBackground = (backgroundColor, textColor = null) => {
-  const manualTheme = getCustomBackgroundTheme(textColor);
-  if (manualTheme) return manualTheme.textColor;
-  const theme = getCustomBackgroundTheme(backgroundColor);
-  if (!theme) return undefined;
-  return theme.textColor === "var(--color-white)"
-    ? "var(--color-black-dark)"
-    : "var(--color-white)";
-};

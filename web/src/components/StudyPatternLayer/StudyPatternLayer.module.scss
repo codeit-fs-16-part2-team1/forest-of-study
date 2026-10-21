@@ -4,6 +4,7 @@
   z-index: 0;
   border-radius: inherit;
   background-color: var(--study-pattern-color);
+  opacity: 0.3;
   -webkit-mask-image: var(--study-pattern-image);
   mask-image: var(--study-pattern-image);
   -webkit-mask-size: var(--study-pattern-size);
@@ -14,7 +15,3 @@
   pointer-events: none;
 }
 
-.textStroke {
-  -webkit-text-stroke: 1px var(--study-pattern-stroke-color);
-  paint-order: stroke fill;
-}

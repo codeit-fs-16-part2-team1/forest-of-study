@@ -2,13 +2,12 @@ import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
+import { studyPastelColors } from "../constants/studyPastelColors.js";
 import { studyPatterns } from "../constants/studyPatterns.js";
-import { getCustomBackgroundTheme, getPatternTextBackground, getStudyTextColor, isValidStudyPattern } from "../utils/studyBackground.js";
-import StudyPatternLayer, { StudyPatternText } from "../components/StudyPatternLayer/StudyPatternLayer.jsx";
+import { getCustomBackgroundTheme, isValidStudyPattern } from "../utils/studyBackground.js";
+import StudyPatternLayer from "../components/StudyPatternLayer/StudyPatternLayer.jsx";
 import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
 import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
-import useToast from "../hooks/useToast.js";
-import Toast from "../components/Toast/Toast.jsx";
 import styles from "./RegPage.module.scss";
 import { useEffect, useRef, useState } from "react";
 
@@ -17,11 +16,9 @@ const initialValues = {
   name: "",
   introduction: "",
   backgroundKey: "green",
-  backgroundColor: "#e1edde",
+  backgroundColor: studyPastelColors[0].color,
   patternKey: "",
-  patternColor: "#ff52dc",
-  textColor: "#14151a",
-  useDefaultTextColor: true,
+  patternColor: "#6b8d76",
   password: "",
   passwordConfirm: "",
 };
@@ -80,36 +77,36 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     backgroundColor: study.backgroundColor ?? initialValues.backgroundColor,
     patternKey: study.patternKey ?? initialValues.patternKey,
     patternColor: study.patternColor ?? initialValues.patternColor,
-    textColor: study.textColor ?? initialValues.textColor,
-    useDefaultTextColor: study.textColor == null,
   } : initialValues);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toasts, showToast } = useToast();
   const [visiblePasswords, setVisiblePasswords] = useState({
     password: false,
     passwordConfirm: false,
   });
   const customTheme = getCustomBackgroundTheme(values.backgroundColor);
-  const customTextColor = values.useDefaultTextColor
-    ? undefined
-    : getStudyTextColor(values.backgroundKey, values.textColor);
   const hasPattern = isValidStudyPattern(values.patternKey, values.patternColor);
-  const contentBackground = getPatternTextBackground(values.backgroundColor, customTextColor);
+  const savedBackgroundColor = study?.backgroundKey === "custom"
+    ? study.backgroundColor?.toLowerCase()
+    : null;
+  // 이전에 저장한 팔레트 밖 색상도 유지하거나 다시 선택할 수 있게 한다.
+  const paletteColors = savedBackgroundColor
+    && !studyPastelColors.some(({ color }) => color === savedBackgroundColor)
+    ? [...studyPastelColors, { label: "기존 저장 색상", color: savedBackgroundColor }]
+    : studyPastelColors;
 
   const handleChange = (event) => {
-    const { name, value, type, checked } = event.target;
+    const { name, value } = event.target;
 
     setValues((previous) => ({
       ...previous,
-      [name]: type === "checkbox" ? checked : value,
-      ...(name === "backgroundKey" && value !== "custom" ? { useDefaultTextColor: true, patternKey: "" } : {}),
+      [name]: value,
+      ...(name === "backgroundKey" && value !== "custom" ? { patternKey: "" } : {}),
     }));
     setErrors((previous) => ({
       ...previous,
       [name]: undefined,
-      ...(name === "backgroundKey" || name === "useDefaultTextColor" ? { textColor: undefined } : {}),
       ...(name === "backgroundKey" || name === "patternKey" ? { patternKey: undefined, patternColor: undefined } : {}),
     }));
     setSubmitError("");
@@ -187,9 +184,7 @@ const handlePasswordKeyDown = (event) => {
         backgroundColor: values.backgroundKey === "custom" ? values.backgroundColor : null,
         patternKey: values.backgroundKey === "custom" && values.patternKey ? values.patternKey : null,
         patternColor: values.backgroundKey === "custom" && values.patternKey ? values.patternColor : null,
-        textColor: values.backgroundKey === "custom" && !values.useDefaultTextColor
-          ? values.textColor
-          : null,
+        textColor: null,
       };
       // 비밀번호는 수정 본문에 포함하지 않고 보호 헤더로 전달한다.
       const { data } = isEditing
@@ -313,25 +308,39 @@ const handlePasswordKeyDown = (event) => {
                   checked={values.backgroundKey === "custom"}
                   onChange={handleChange}
                 />
-                직접 색상 선택
+                파스텔 팔레트
               </label>
               {values.backgroundKey === "custom" && (
                 <>
-                  <div className={styles.colorSettings}>
-                    <div className={styles.colorControls}>
-                      <label htmlFor="reg-backgroundColor">배경 색상</label>
-                      <input
-                        id="reg-backgroundColor"
-                        name="backgroundColor"
-                        type="color"
-                        className={styles.colorInput}
-                        value={values.backgroundColor}
-                        onChange={handleChange}
-                        aria-invalid={Boolean(errors.backgroundColor)}
-                        aria-describedby={errors.backgroundColor ? "backgroundColor-error" : undefined}
-                      />
-                      <output htmlFor="reg-backgroundColor">{values.backgroundColor}</output>
+                  <fieldset className={styles.paletteField}>
+                    <legend>배경 색상</legend>
+                    <div className={styles.paletteGrid}>
+                      {paletteColors.map(({ label, color }) => (
+                        <label key={color} className={styles.paletteOption}>
+                          <input
+                            type="radio"
+                            name="backgroundColor"
+                            value={color}
+                            checked={values.backgroundColor.toLowerCase() === color}
+                            onChange={handleChange}
+                            aria-invalid={Boolean(errors.backgroundColor)}
+                            aria-describedby={errors.backgroundColor ? "backgroundColor-error" : undefined}
+                          />
+                          <span
+                            className={styles.paletteSwatch}
+                            style={{ backgroundColor: color }}
+                            aria-hidden="true"
+                          >
+                            {values.backgroundColor.toLowerCase() === color && (
+                              <span className={styles.paletteCheck}>✓</span>
+                            )}
+                          </span>
+                          <span>{label}</span>
+                        </label>
+                      ))}
                     </div>
+                  </fieldset>
+                  <div className={styles.colorSettings}>
                     <div className={styles.colorControls}>
                       <label htmlFor="reg-patternColor">무늬 색상</label>
                       <input
@@ -345,38 +354,6 @@ const handlePasswordKeyDown = (event) => {
                         aria-describedby={errors.patternColor ? "patternColor-error" : undefined}
                       />
                       <output htmlFor="reg-patternColor">{values.patternColor}</output>
-                    </div>
-                    <div className={styles.colorControls}>
-                      <label htmlFor="reg-textColor">글자 색상</label>
-                      {values.useDefaultTextColor ? (
-                        <button
-                          id="reg-textColor"
-                          type="button"
-                          className={`${styles.colorInput} ${styles.colorGuideButton}`}
-                          aria-label="글자 색상 변경 안내"
-                          onClick={() => showToast("기본 글자색 허용체크를 풀어주세요", "warning")}
-                        >
-                          <span
-                            className={styles.colorGuideSwatch}
-                            style={{ backgroundColor: values.textColor }}
-                            aria-hidden="true"
-                          />
-                        </button>
-                      ) : (
-                        <input
-                          id="reg-textColor"
-                          name="textColor"
-                          type="color"
-                          className={styles.colorInput}
-                          value={values.textColor}
-                          onChange={handleChange}
-                          aria-invalid={Boolean(errors.textColor)}
-                          aria-describedby={errors.textColor ? "textColor-error" : undefined}
-                        />
-                      )}
-                      {!values.useDefaultTextColor && (
-                        <output htmlFor="reg-textColor">{values.textColor}</output>
-                      )}
                     </div>
                   </div>
                   <fieldset className={styles.patternField}>
@@ -405,23 +382,9 @@ const handlePasswordKeyDown = (event) => {
                       ))}
                     </div>
                   </fieldset>
-                  <label className={styles.customOption}>
-                    <input
-                      type="checkbox"
-                      name="useDefaultTextColor"
-                      checked={values.useDefaultTextColor}
-                      onChange={handleChange}
-                    />
-                    기본 글자색 사용 (자동 대비)
-                  </label>
                   {errors.backgroundColor && (
                     <p id="backgroundColor-error" className={styles.error} role="alert">
                       {errors.backgroundColor}
-                    </p>
-                  )}
-                  {errors.textColor && (
-                    <p id="textColor-error" className={styles.error} role="alert">
-                      {errors.textColor}
                     </p>
                   )}
                   {errors.patternKey && (
@@ -438,19 +401,16 @@ const handlePasswordKeyDown = (event) => {
                       style={{
                         backgroundColor: customTheme.backgroundColor,
                         color: customTheme.textColor,
-                        "--custom-content-color": customTextColor ?? customTheme.textColor,
+                        "--custom-content-color": customTheme.textColor,
+                        "--custom-accent-color": customTheme.accentColor,
                       }}
                     >
                       {hasPattern && <StudyPatternLayer patternKey={values.patternKey} patternColor={values.patternColor} />}
                       <p className={styles.previewTitle}>
-                        <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
-                          {values.nickname.trim() || "닉네임"}의 {values.name.trim() || "스터디 이름"}
-                        </StudyPatternText>
+                        <span className={styles.previewNickname}>{values.nickname.trim() || "닉네임"}</span>의 {values.name.trim() || "스터디 이름"}
                       </p>
                       <p className={styles.previewIntroduction}>
-                        <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
-                          {values.introduction.trim() || "선택한 색상이 카드 배경에 적용됩니다."}
-                        </StudyPatternText>
+                        {values.introduction.trim() || "선택한 색상이 카드 배경에 적용됩니다."}
                       </p>
                     </div>
                   )}
@@ -531,7 +491,6 @@ const handlePasswordKeyDown = (event) => {
           </button>
         </form>
       </section>
-      <Toast toasts={toasts} />
     </main>
   );
 };

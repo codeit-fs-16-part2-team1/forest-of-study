@@ -90,8 +90,8 @@ try {
   }
   assert.equal(validateCreateStudy({ ...body, textColor: "#123456" }).success, false);
 
-  step = "점·줄·물결 패턴과 두 색상 조합";
-  for (const patternKey of ["dots", "stripes", "waves"]) {
+  step = "씨앗·잔물결·소프트 체크·작은 잎·페이퍼 패턴과 두 색상 조합";
+  for (const patternKey of ["dots", "waves", "stripes", "leaves", "paper"]) {
     const pattern = { patternKey, patternColor: "#FF52DC" };
     const created = validateCreateStudy({ ...body, ...custom, ...pattern });
     assert.equal(created.success, true);

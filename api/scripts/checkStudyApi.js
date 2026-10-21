@@ -5,7 +5,8 @@ import { uuidSchema } from "../src/utils/uuid.js";
 import { assertLocalDatabase } from "./localDatabase.js";
 
 // 로컬 DB·실제 스터디 라우터 검사. --preflight는 주소 확인만 하고 종료한다.
-// 복합 UNIQUE migration 적용 후 실행한다. 이 실행에서 만든 스터디만 삭제한다.
+// 복합 UNIQUE·배경·글자색·패턴 5종 migration 적용 후 실행한다.
+// 이 실행에서 만든 스터디만 삭제한다.
 const fixtureKey = randomBytes(6).toString("hex");
 const marker = `스터디 API 검증 ${randomUUID()}`;
 const fixtureIds = new Set();
@@ -220,12 +221,15 @@ const runChecks = async () => {
   assert.equal(restored.status, 200);
   expectColor(restored.body.data, "custom", "#000000");
 
-  step = "패턴 수정·없음 복귀·다시 선택·잘못된 조합 거절";
-  for (const patternKey of ["stripes", "waves"]) {
+  step = "패턴 5종 수정·재조회·없음 복귀·다시 선택·잘못된 조합 거절";
+  for (const patternKey of ["stripes", "waves", "leaves", "paper"]) {
     const changed = await patch({ patternKey, patternColor: "#F0AB12" });
     assert.equal(changed.status, 200);
     expectColor(changed.body.data, "custom", "#000000");
     expectPattern(changed.body.data, patternKey, "#f0ab12");
+    const detail = await request({ path: "/" + customId });
+    assert.equal(detail.status, 200);
+    expectPattern(detail.body.data, patternKey, "#f0ab12");
   }
   const removed = await patch({ patternKey: null, patternColor: null });
   assert.equal(removed.status, 200);

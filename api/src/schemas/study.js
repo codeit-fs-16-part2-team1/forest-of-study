@@ -15,7 +15,8 @@ const backgroundKeySchema = z.enum([
 const hexColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
   .transform((value) => value.toLowerCase()).nullable();
 
-const patternKeySchema = z.enum(["dots", "stripes", "waves"]).nullable();
+// 첫 3종은 저장 키를 유지하고 프론트에서 씨앗·잔물결·소프트 체크로 표시한다.
+const patternKeySchema = z.enum(["dots", "waves", "stripes", "leaves", "paper"]).nullable();
 
 const checkBackgroundCombination = (data, context) => {
   if (data.backgroundKey === "custom" && data.backgroundColor == null) {
