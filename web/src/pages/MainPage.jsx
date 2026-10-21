@@ -6,6 +6,7 @@ import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import StudyCard from "../components/StudyCard/StudyCard.jsx";
 import BookmarkStudies from "../components/BookmarkStudies/BookmarkStudies.jsx";
+import RecentStudies from "../components/RecentStudies/RecentStudies.jsx";
 import StudySort from "../components/StudySort/StudySort.jsx";
 import styles from "./MainPage.module.scss";
 
@@ -173,6 +174,7 @@ const MainPage = () => {
 
   return (
     <main className={styles.page}>
+      <RecentStudies onShowToast={showToast} />
       <BookmarkStudies onShowToast={showToast} />
       <section
         className={styles.section}
