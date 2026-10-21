@@ -1,6 +1,8 @@
 import { Link } from "react-router";
 import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
+import { getCustomBackgroundTheme, isValidStudyPattern } from "../../utils/studyBackground.js";
+import StudyPatternLayer from "../StudyPatternLayer/StudyPatternLayer.jsx";
 import studyCardPoint from "../../assets/studyCardPoint.svg";
 import styles from "./StudyCard.module.scss";
 import BookmarkButton from "../BookmarkButton/BookmarkButton.jsx";
@@ -11,19 +13,29 @@ const StudyCard = ({ study, onShowToast, onBookmarkRemoved }) => {
   );
 
   const hasImage = Boolean(background?.image);
+  const customTheme = study.backgroundKey === "custom"
+    ? getCustomBackgroundTheme(study.backgroundColor)
+    : null;
+  const hasPattern = customTheme !== null && isValidStudyPattern(study.patternKey, study.patternColor);
 
   return (
     <article
-      className={`${styles.card} ${hasImage ? styles.imageCard : ""}`}
+      className={[styles.card, hasImage && styles.imageCard, customTheme && styles.customCard, hasPattern && styles.patternCard].filter(Boolean).join(" ")}
       style={{
-        "--study-accent": hasImage ? "var(--color-white)" : `var(--color-${background?.key ?? "green"}-text)`,
-        backgroundColor: background?.color,
+        "--study-accent": customTheme?.accentColor ?? (hasImage
+          ? "var(--color-white)"
+          : `var(--color-${background?.key ?? "green"}-text)`),
+        backgroundColor: customTheme?.backgroundColor ?? background?.color,
+        "--custom-text-color": customTheme?.textColor,
+        "--custom-content-color": customTheme?.textColor,
+        "--custom-badge-background": customTheme?.badgeBackground,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
              url("${background.image}")`
           : undefined,
       }}
     >
+      {hasPattern && <StudyPatternLayer patternKey={study.patternKey} patternColor={study.patternColor} />}
       <Link
         to={`/dashboard/${study.id}`}
         className={styles.cardLink}
@@ -57,7 +69,9 @@ const StudyCard = ({ study, onShowToast, onBookmarkRemoved }) => {
         {getStudyDays(study.createdAt)}일째 진행 중
       </p>
 
-      <p className={styles.introduction}>{study.introduction}</p>
+      <p className={styles.introduction}>
+        {study.introduction}
+      </p>
 
       {study.reactions?.length > 0 && (
         <ul className={styles.reactions} aria-label="상위 응원">

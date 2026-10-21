@@ -37,7 +37,6 @@
   --color-background: var(--color-bg);
   --color-surface: var(--color-white);
   --color-text: var(--color-black);
-  --color-text-muted: var(--color-gray);
-  --color-primary: var(--color-brand);
+  --color-text-muted: var(--color-gray);  --color-primary: var(--color-brand);
   --color-error: var(--color-red-error);
 }

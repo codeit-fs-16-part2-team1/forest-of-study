@@ -136,6 +136,238 @@ textarea.input {
   }
 }
 
+.customBackground {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.customOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  cursor: pointer;
+
+  input {
+    accent-color: var(--color-green-text);
+  }
+}
+
+.paletteField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  > legend {
+    margin-bottom: 12px;
+    padding: 0;
+    font-weight: 600;
+  }
+}
+
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+}
+
+.paletteOption {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:checked + .paletteSwatch {
+    border-color: var(--color-green-text);
+    box-shadow: 0 0 0 1px var(--color-green-text);
+  }
+
+  > input:focus-visible + .paletteSwatch {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .paletteSwatch {
+    opacity: 0.65;
+    cursor: default;
+  }
+}
+
+.paletteSwatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 12px;
+}
+
+.paletteCheck {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-green-text);
+  color: var(--color-white);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.colorSettings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.colorControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  output {
+    color: var(--color-text-muted);
+  }
+}
+
+.colorInput {
+  width: 64px;
+  height: 44px;
+  padding: 4px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 8px;
+  background: var(--color-surface);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green-text);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.customPreview {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  min-height: 160px;
+  padding: 24px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.previewTitle {
+  position: relative;
+  z-index: 1;
+  color: var(--custom-content-color);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.previewNickname {
+  color: var(--custom-accent-color);
+}
+
+.previewIntroduction {
+  position: relative;
+  z-index: 1;
+  color: var(--custom-content-color);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.patternField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+}
+
+.patternGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patternOption {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:checked + .patternPreview {
+    border-color: var(--color-green-text);
+    box-shadow: 0 0 0 1px var(--color-green-text);
+  }
+
+  > input:focus-visible + .patternPreview {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .patternPreview {
+    cursor: default;
+    opacity: 0.65;
+  }
+}
+
+.patternPreview {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  min-width: 0;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 12px;
+}
+
 .selectedMark {
   position: absolute;
   top: 50%;
@@ -236,6 +468,14 @@ textarea.input {
 
   .backgroundGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .paletteGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .patternGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .submitButton {

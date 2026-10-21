@@ -1,7 +1,7 @@
 # 공부의 숲 API Docs
 
-- 문서 개정: 0.15 습관 스티커 색상 선택(제품 버전과 별개) · 2026-10-21 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~074; 최신 후속 결정을 우선 적용한다.
+- 문서 개정: 0.16 배경·패턴·습관 색상 병합(제품 버전과 별개) · 2026-10-21 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~076; 최신 후속 결정을 우선 적용한다.
 - 요청 예시: [api.http](../api/requests/api.http). 예시는 계약 기대값이며 실제 실행·검증 결과와 구분한다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
@@ -105,7 +105,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 | DTO | 필드 |
 | --- | --- |
-| Study | id, nickname, name, introduction, backgroundKey, points(Study.points), createdAt, updatedAt |
+| Study | id, nickname, name, introduction, backgroundKey, backgroundColor(null 허용), textColor(null 허용), patternKey(null 허용), patternColor(null 허용), points(Study.points), createdAt, updatedAt |
 | ReactionSummary | emoji, count |
 | Routine | id, studyId, name, stickerColor(1~18 정수, 기존 습관만 null 허용), startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
 | Challenge | id, studyId, goalMinutes, status(RUNNING/PAUSED/COMPLETED/RESET), elapsedMilliseconds, lastStartedAt(null 허용), awardedPoints, createdAt, elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null) |
@@ -188,9 +188,19 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 
 ### API-ST-02 생성 / API-ST-04 수정
 
-생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 원문 검사·공백 포함 거절·불일치 처리를 따른다(ADR-066).
+생성 body: {nickname,name,introduction,backgroundKey?,backgroundColor?,textColor?,patternKey?,patternColor?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?,backgroundColor?,textColor?,patternKey?,patternColor?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 원문 검사·공백 포함 거절·불일치 처리를 따른다(ADR-066).
 
-backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 담당자가 나머지 7종의 임시 키와 표시 자산을 지정해 공유한다. 프론트·서버는 같은 임시 목록으로 표시·검증하며 목록 밖 키는 400 INVALID_BACKGROUND다. 최종 명칭 대기만으로 구현을 보류하지 않는다. 구체 임시 키는 담당자가 공유할 목록을 따르며 여기서 임의로 고정하지 않는다. 추후 키 변경 시 이미 저장된 backgroundKey의 매핑·migration을 함께 검토한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
+backgroundKey는 기존 8종(green/yellow/blue/pink/image1~4)과 사용자 지정 색상인 custom을 허용한다. 생략하면 green이다. 기존 배경은 backgroundColor를 생략하거나 null로 보내며 응답에는 null을 반환한다. custom은 backgroundColor가 필수이며 정확히 7자인 #RRGGBB만 받는다. 대문자 HEX도 허용하고 저장·응답은 #rrggbb 소문자로 통일한다. RGB 함수·색상 이름·축약 HEX·알파 채널·앞뒤 공백은 허용하지 않는다. 배경 키·색상 형식·조합만 잘못된 요청은 400 INVALID_BACKGROUND다(ADR-076).
+
+PATCH에서 배경을 바꿀 때는 backgroundKey를 전달한다. custom을 지정하면 backgroundColor도 함께 전달하며, 기존 8종으로 바꾸면 backgroundColor·textColor·patternKey·patternColor를 null로 비운다. 배경 필드를 모두 생략하면 기존 키·색상을 유지한다. backgroundColor만 단독으로 전달하거나 기존 배경에 null이 아닌 색상을 함께 전달하면 400 INVALID_BACKGROUND다.
+
+textColor는 custom 배경에서만 지정할 수 있는 공통 글자색이다(ADR-075). backgroundColor와 같은 HEX 형식·소문자 저장 기준을 적용한다. 생성에서 생략하거나 null이면 자동 대비를 사용한다. PATCH에서 생략하면 기존 값을 유지하고 null이면 자동 대비로 되돌린다. textColor만 수정하는 PATCH도 허용하되 현재 저장된 배경이 custom이어야 한다. 기존 배경과 null이 아닌 textColor를 함께 전달하거나 저장된 기존 배경에 글자색만 지정하면 400 VALIDATION_ERROR다. textColor 형식 오류도 400 VALIDATION_ERROR로 처리한다.
+
+patternKey·patternColor는 custom 배경의 선택적 패턴 설정이다(ADR-076). patternKey는 dots(점)·stripes(줄)·waves(물결) 중 하나이며 patternColor는 backgroundColor와 같은 HEX 형식·소문자 저장 기준을 따른다. 생성에서 두 값을 생략하면 각각 null로 저장한다. 패턴을 선택하면 유효한 키·무늬색이 모두 필요하고, 패턴 없음은 둘 다 null이다.
+
+PATCH에서 두 필드를 모두 생략하면 기존 패턴을 유지한다. 변경할 때는 patternKey와 patternColor를 함께 전달하며 한 필드만 전달하면 400 INVALID_BACKGROUND다. 두 값을 null로 보내면 패턴을 제거한다. 두 패턴 필드만 수정하는 요청도 허용하되 현재 저장된 배경이 custom이어야 한다. 지원하지 않는 패턴 키·잘못된 무늬색·키/색상 누락·기존 배경과 패턴의 조합 오류만 있는 요청은 400 INVALID_BACKGROUND다. 패턴 크기는 종류별 고정값이며 별도 크기 입력 필드는 받지 않는다.
+
+생성/수정 성공은 {data:Study}이며 목록·상세·ID 다건을 포함한 Study 응답은 backgroundColor·textColor·patternKey·patternColor를 포함한다. 프론트는 색상 선택기로 지정한 값을 저장하고 기존 배경 선택을 유지한다. 사용자 지정 카드의 닉네임·스터디 이름·소개에는 선택한 textColor 하나를 함께 적용한다. textColor가 null이면 배경 대비에 따라 자동으로 표시한다. 진행 일수·포인트·응원 배지 색상은 글자색 선택의 영향을 받지 않는다. 이미지 파일 업로드는 이번 범위에 포함하지 않는다. DB에 비밀번호 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성 성공이 인증 발급을 의미하지 않는다.
 
 스터디 닉네임·이름은 기존 trim 후 저장값의 조합이 같으면 중복이다. 같은 nickname만 또는 같은 name만 있는 것은 허용하며 조합이 같으면 생성은 409 STUDY_CONFLICT다. PATCH도 변경 후 조합이 다른 Study와 같으면 409 STUDY_CONFLICT로 거절한다. Study의 @@unique([nickname,name])와 서버 오류 매핑으로 동시 중복을 방지한다. 이는 기존 문자열 정리 규칙을 유지하는 것이며 검색용 대소문자 무시 정책을 중복 판정에 새로 적용하는 결정은 아니다(ADR-064).
 
@@ -305,9 +315,9 @@ PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 �
 
 | HTTP | code | 조건 |
 | --- | --- | --- |
-| 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 본문/쿼리 필드·목록limit의1~6 범위 위반·활성 습관 18개 초과·비밀번호·확인값의 공백 포함 또는 허용 문자/길이 오류·ST-08 중복 제거 후 ID10개 초과 |
+| 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 본문/쿼리 필드·목록limit의1~6 범위 위반·활성 습관 18개 초과·비밀번호·확인값의 공백 포함 또는 허용 문자/길이 오류·ST-08 중복 제거 후 ID10개 초과·직접 글자색의 형식/배경 조합 오류 |
 | 400 | PASSWORD_CONFIRM_MISMATCH | 생성 비밀번호 확인 불일치 |
-| 400 | INVALID_BACKGROUND | 담당자가 공유한 8종 임시 배경 목록 밖 키; 최종 키 확정 전에도 임시 목록으로 검증 |
+| 400 | INVALID_BACKGROUND | 기존 8종/custom 외의 키, 사용자 지정 HEX 형식 오류, custom 색상 누락, 지원하지 않는 패턴 키·무늬색 누락·패턴 필드 한쪽만 전달 또는 배경·색상·패턴 조합 오류(ADR-076) |
 | 400 | INVALID_EMOJI | 선택기가 제공하는 이모지가 아닌 입력·빈 값 등 유효하지 않은 이모지 표현 |
 | 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
 | 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |
@@ -331,14 +341,14 @@ PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 �
 | API-Q-05 · 확정 | 월~일7칸·주간 겹침·생성일 순 유지. 습관별 기존 18종 발자국을 필수 선택하고 과거 기록에도 최신 색상 반영. 기존 null만 목록순 순환 | 기록표 / ADR-060·074 |
 | API-Q-06 · 확정 | 일반 문자열 trim·그래핌·TEXT·활성 18개·생성일 순 유지. 비밀번호는 공백 제거 없이 포함 시 거절. 별도 입력 바이트 상한은 미정 | ADR-056~057·066 |
 | API-Q-07 · 확정 | 모든 이모지 허용·피부색 제거 후 기본 이모지로 저장/중복/집계. emoji-picker-react 기본 UI | 응원 / ADR-064·065 |
-| API-Q-08 · 자산 수신 대기 | 기존8종 키·기본green 유지, 실제 색상·이미지는 추후 지정. 같은 nickname/name 조합은 409 STUDY_CONFLICT | 생성·수정·DB 복합 UNIQUE |
+| API-Q-08 · 확정 | 기존8종·기본green을 유지하고 custom 배경색·공통 글자색·점/줄/물결 패턴 선택 추가. 이미지 파일 업로드는 보류. 같은 nickname/name 조합은 409 STUDY_CONFLICT | 생성·수정 / ADR-075·076·DB 복합 UNIQUE |
 | API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭·자동 pause 제외 | 미정 아님 |
 | API-Q-12 · 일부 자료 수신 대기 | Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px. 일반 모달은 배경 클릭 닫기·Escape 무시, 비밀번호 취소는 이전 화면 또는 홈. 상세 소개 전체 표시. 반응형·습관 편집 시안은 수신 대기, 스티커는 기존 18종 자산 사용 | ADR-065·067·069·070·074 |
 | API-Q-14 · 확정 | 수정 완료 한 번으로 API-HB-06 일괄 저장. PATCH /routines/batch·creates/updates/endIds·200 오늘 목록·실패 전체 롤백. 개별 생성·수정·종료 폐기 | ADR-071·ISS-013·046 |
 | API-Q-15 · 설계 확인 대기 | 비밀번호 모달 취소는 이전 화면 또는 홈. 대상 선택 조건·배경 클릭 시 이동 적용 범위·스터디별 앱 메모리 구조는 후속 설계 | ADR-070·073 |
 | API-Q-13 · 후속 | 드래그앤드롭 저장·변경 API와 타이머 숫자 직접 입력은 현재 확정 범위 아님 | ISS-031 및 후속 검토 |
 
-기존 응답 필드 이름은 유지하되 응원 배열 범위는 ADR-072, 습관 색상 필드 추가는 ADR-074를 따른다. 진행 일수·최근 조회 순서·Header·모달 동작은 표시·클라이언트 규칙이다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
+기존 응답 필드 이름은 유지하되 응원 배열 범위는 ADR-072, 습관 색상 필드 추가는 ADR-074, 스터디 글자색·배경·패턴 필드는 ADR-075·076을 따른다. 진행 일수·최근 조회 순서·Header·모달 동작은 표시·클라이언트 규칙이다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
 
 ## 11. 기능 ID 대응
 
@@ -413,4 +423,4 @@ Study→Routine 순서의 잠금 안에서 종료 여부·한국 오늘 날짜·
 - batch 라우트·스키마·서비스의 존재는 정적으로 확인했다. 확정된 API-HB-06과의 정합성·실제 실행은 별도로 확인한다.
 - Study 복합 UNIQUE migration 파일이 존재한다. 실제 DB 적용·중복 데이터 정리·피부색 정규화 전환은 확인하지 않았다. 기존 데이터를 임의 삭제하지 않는다.
 - 패키지에는 Sass·json-server가 있으며 Vitest는 사용하지 않는다. 임시 데이터 서버 성공은 실제 API 연동 완료가 아니다.
-- 이번 작업은 문서·요청 예시만 수정한다. 설치·Prisma CLI·migration·서버·API·테스트·배포는 실행하지 않았다. HTTP 주석은 기대값이며 검증 결과가 아니다.
+- 2026-10-21 병합 정리에서는 배경·글자색·패턴과 습관 색상 명세, Prisma 스키마의 충돌 표시, DB 검사 목록을 정리했다. 설치·Prisma CLI·migration·서버·API·테스트·배포는 실행하지 않았다. HTTP 주석은 기대값이며 검증 결과가 아니다.
