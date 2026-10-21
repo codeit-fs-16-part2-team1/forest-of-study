@@ -17,7 +17,7 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
           clientId: `routine-${routine.id}`,
           routineId: routine.id,
           name: routine.name,
-          stickerColor: routine.stickerColor ?? 1,
+          stickerColor: routine.stickerColor ?? null,
         }))
       : [{ clientId: "new-0", routineId: null, name: "", stickerColor: 1 }],
   );
@@ -136,7 +136,9 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
         updates.push({
           routineId: routine.routineId,
           name,
-          stickerColor: routine.stickerColor,
+          ...(routine.stickerColor !== (original.stickerColor ?? null) && {
+            stickerColor: routine.stickerColor,
+          }),
         });
       }
       if (routine.routineId !== null) order.push({ routineId: routine.routineId });

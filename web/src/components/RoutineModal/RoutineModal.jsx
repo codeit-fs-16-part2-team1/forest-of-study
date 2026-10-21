@@ -173,7 +173,7 @@ const RoutineModal = ({
                                   colorTriggerRef.current = event.currentTarget;
                                   setColorRoutineId(routine.clientId);
                                 }}
-                                aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${routine.stickerColor}번`}
+                                aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${routine.stickerColor ?? 1}번`}
                                 aria-haspopup="dialog"
                                 disabled={isSaving || isDragging}
                               >

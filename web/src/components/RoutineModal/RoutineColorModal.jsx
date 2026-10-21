@@ -33,7 +33,7 @@ const RoutineColorModal = ({ stickerColor, isSaving, onSelect, onClose }) => {
               type="button"
               className={styles.option}
               aria-label={`발자국 색상 ${index + 1}`}
-              aria-pressed={stickerColor === index + 1}
+              aria-pressed={(stickerColor ?? 1) === index + 1}
               disabled={isSaving}
               onClick={() => { if (!isSaving) onSelect(index + 1); }}
             >
