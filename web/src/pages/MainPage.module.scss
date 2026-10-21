@@ -73,12 +73,51 @@
   margin-top: 24px;
 }
 
+.recentViewport {
+  position: relative;
+  min-width: 0;
+  display: flow-root;
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    width: 2rem; // 32px
+    opacity: 0;
+    pointer-events: none;
+    content: "";
+  }
+
+  &::before {
+    left: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to right, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &::after {
+    right: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to left, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &.hasMoreLeft::before,
+  &.hasMoreRight::after {
+    opacity: 1;
+  }
+}
+
 .recentGrid {
   grid-template-columns: none;
   grid-auto-flow: column;
   grid-auto-columns: min(240px, 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   // 키보드로 카드에 접근했을 때 포커스 테두리가 잘리지 않도록 공간을 둔다.
   margin: -4px;
   padding: 4px;
@@ -173,6 +212,11 @@
 }
 
 @media (min-width: breakpoints.$desktop) {
+  .recentViewport::before,
+  .recentViewport::after {
+    display: none;
+  }
+
   .section {
     padding: 40px;
   }
