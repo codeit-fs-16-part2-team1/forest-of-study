@@ -8,6 +8,7 @@ const routineSelect = {
   id: true,
   studyId: true,
   name: true,
+  stickerColor: true,
   startsOn: true,
   endsOn: true,
 };
@@ -17,12 +18,13 @@ const toRoutine = (routine) => {
     id: routine.id,
     studyId: routine.studyId,
     name: routine.name,
+    stickerColor: routine.stickerColor,
     startsOn: routine.startsOn.toISOString().slice(0, 10),
     endsOn: routine.endsOn?.toISOString().slice(0, 10) ?? null,
   };
 };
 
-export const createRoutine = async ({ studyId, name }) => {
+export const createRoutine = async ({ studyId, name, stickerColor }) => {
   return prisma.$transaction(async (tx) => {
     // 같은 스터디의 생성 요청을 순서대로 처리해 count → create 경합을 막는다.
     const studies = await tx.$queryRaw`
@@ -45,6 +47,7 @@ export const createRoutine = async ({ studyId, name }) => {
       data: {
         studyId,
         name,
+        stickerColor,
         startsOn: new Date(`${recordDate}T00:00:00.000Z`),
       },
       select: routineSelect,

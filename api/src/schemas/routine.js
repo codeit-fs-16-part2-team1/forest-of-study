@@ -8,8 +8,10 @@ const routineNameSchema = z.string().trim().refine((value) => {
   const length = countGraphemes(value);
   return length >= 1 && length <= 20;
 });
+const stickerColorSchema = z.number().int().min(1).max(18);
 const createRoutineSchema = z.strictObject({
   name: routineNameSchema,
+  stickerColor: stickerColorSchema,
 });
 const routineCheckSchema = z.strictObject({
   recordDate: z.string().refine(isValidRecordDate),
@@ -21,6 +23,7 @@ const routineBatchSchema = z.strictObject({
   updates: z.array(z.strictObject({
     routineId: batchRoutineIdSchema,
     name: routineNameSchema,
+    stickerColor: stickerColorSchema.optional(),
   })).max(18),
   endIds: z.array(batchRoutineIdSchema).max(18),
 }).refine(({ updates, endIds }) => {

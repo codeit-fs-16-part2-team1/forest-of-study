@@ -134,11 +134,17 @@ try {
   assert.equal(validateStudyIdParams({ studyId: "invalid" }).success, false);
 
   step = "습관 입력과 날짜";
-  assert.equal(validateCreateRoutine({ name: ` ${family.repeat(20)} ` }).data.name, family.repeat(20));
+  assert.equal(validateCreateRoutine({ name: ` ${family.repeat(20)} `, stickerColor: 1 }).data.name, family.repeat(20));
   for (const value of [family.repeat(21), " \t", 1234]) {
-    assert.equal(validateCreateRoutine({ name: value }).success, false);
+    assert.equal(validateCreateRoutine({ name: value, stickerColor: 1 }).success, false);
   }
-  assert.equal(validateCreateRoutine({ name: "독서", extra: true }).success, false);
+  assert.equal(validateCreateRoutine({ name: "독서", stickerColor: 1, extra: true }).success, false);
+  for (let stickerColor = 1; stickerColor <= 18; stickerColor += 1) {
+    assert.equal(validateCreateRoutine({ name: "독서", stickerColor }).success, true);
+  }
+  for (const stickerColor of [undefined, null, 0, 19, 1.5, "1", true]) {
+    assert.equal(validateCreateRoutine({ name: "독서", stickerColor }).success, false);
+  }
   assert.equal(validateRoutineCheck({ recordDate: "2028-02-29", completed: false }).success, true);
   for (const value of [
     { recordDate: "2026-02-29", completed: true },
@@ -151,22 +157,40 @@ try {
   const anotherId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const emptyBatch = { creates: [], updates: [], endIds: [] };
   const batch = validateRoutineBatch({
-    creates: [{ name: ` ${family.repeat(20)} ` }],
-    updates: [{ routineId: routineId.toUpperCase(), name: " 독서 " }],
+    creates: [{ name: ` ${family.repeat(20)} `, stickerColor: 18 }],
+    updates: [{ routineId: routineId.toUpperCase(), name: " 독서 ", stickerColor: 1 }],
     endIds: [anotherId],
   });
   assert.equal(batch.success, true);
   assert.equal(batch.data.creates[0].name, family.repeat(20));
-  assert.deepEqual(batch.data.updates[0], { routineId, name: "독서" });
+  assert.equal(batch.data.creates[0].stickerColor, 18);
+  assert.deepEqual(batch.data.updates[0], { routineId, name: "독서", stickerColor: 1 });
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, updates: [{ routineId, name: "기존 습관" }],
+  }).success, true);
+  // 여러 습관에 같은 색상을 지정해도 유효하다.
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: "독서", stickerColor: 3 }, { name: "코딩", stickerColor: 3 }],
+    updates: [{ routineId, name: "운동", stickerColor: 3 }],
+  }).success, true);
+  for (const stickerColor of [null, 0, 19, 1.5, "1", true]) {
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, creates: [{ name: "독서", stickerColor }],
+    }).success, false);
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, updates: [{ routineId, name: "독서", stickerColor }],
+    }).success, false);
+  }
+  assert.equal(validateRoutineBatch({ ...emptyBatch, creates: [{ name: "독서" }] }).success, false);
   assert.equal(validateRoutineBatch({ ...emptyBatch, endIds: [routineId] }).success, true);
   assert.equal(validateRoutineBatch({
-    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서" })),
+    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서", stickerColor: 1 })),
   }).success, true);
   for (const invalidBatch of [
-    { ...emptyBatch, creates: [{ name: family.repeat(21) }] },
-    { ...emptyBatch, creates: [{ name: " \t" }] },
-    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서" })) },
-    { ...emptyBatch, creates: [{ name: "독서", routineId }] },
+    { ...emptyBatch, creates: [{ name: family.repeat(21), stickerColor: 1 }] },
+    { ...emptyBatch, creates: [{ name: " \t", stickerColor: 1 }] },
+    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서", stickerColor: 1 })) },
+    { ...emptyBatch, creates: [{ name: "독서", stickerColor: 1, routineId }] },
     { ...emptyBatch, updates: [{ routineId: "invalid", name: "독서" }] },
     { ...emptyBatch, updates: [{ routineId, name: family.repeat(21) }] },
     { ...emptyBatch, endIds: [routineId, routineId.toUpperCase()] },

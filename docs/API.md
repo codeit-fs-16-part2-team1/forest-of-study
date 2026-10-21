@@ -1,7 +1,7 @@
 # 공부의 숲 API Docs
 
-- 문서 개정: 0.14 킥오프 결정 동기화(제품 버전과 별개) · 2026-10-20 (Asia/Seoul)
-- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~073; 최신 후속 결정을 우선 적용한다.
+- 문서 개정: 0.15 습관 스티커 색상 선택(제품 버전과 별개) · 2026-10-21 (Asia/Seoul)
+- 기준: [README.md](../README.md), [DB.md](DB.md), [ADR.md](ADR.md) ADR-051~074; 최신 후속 결정을 우선 적용한다.
 - 요청 예시: [api.http](../api/requests/api.http). 예시는 계약 기대값이며 실제 실행·검증 결과와 구분한다.
 - 확정 정책과 기술 계약을 구분한다. 남은 제품 결정은 10절에서 관리한다. 리소스·필드·실패 코드는 DB의 Routine·RoutineHistory·Challenge 명칭을 따른다.
 - 용어 통일로 기존 리소스 경로·필드·실패 코드 별칭은 더 이상 지원하지 않는다. 변경 이력은 ADR-054를 따른다.
@@ -107,7 +107,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 | --- | --- |
 | Study | id, nickname, name, introduction, backgroundKey, backgroundColor(null 허용), textColor(null 허용), points(Study.points), createdAt, updatedAt |
 | ReactionSummary | emoji, count |
-| Routine | id, studyId, name, startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
+| Routine | id, studyId, name, stickerColor(1~18 정수, 기존 습관만 null 허용), startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
 | Challenge | id, studyId, goalMinutes, status(RUNNING/PAUSED/COMPLETED/RESET), elapsedMilliseconds, lastStartedAt(null 허용), awardedPoints, createdAt, elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null) |
 | Settlement | challengeId, elapsedPoints, goalPoints, awardedPoints(이번 신규 지급 합계) |
 
@@ -211,7 +211,7 @@ query: weekStart=YYYY-MM-DD는 필수다. 입력한 날짜가 속한 주의 월�
 
 조회 주 첫날 W, 마지막날 E에 대해 Routine.startsOn <= E AND (endsOn IS NULL OR endsOn >= W)인 습관만 조회한다. 행은 createdAt ASC → id ASC다. 날짜 칸은 startsOn <= 날짜 AND (endsOn IS NULL OR 날짜 <= endsOn)이면 유효하며 종료 당일을 포함한다. 기간 밖은 completed=null로 반환해 회색 아이콘으로 표시한다.
 
-응답: {data:{weekStart,routines:[{id,name,cells:[{recordDate,completed}]}]}}. weekStart는 보정된 월요일이고 cells는 월~일 순서의7개다. 유효한 칸에 이력이 없으면 completed=false, 유효 기간 밖은 completed=null이다. 별도 dates 배열·exists 필드·행별 startsOn/endsOn은 보내지 않는다. 종료 당일 체크를 유지하고 이름은 최신 Routine.name을 사용한다. 행은 반환된 목록 순서대로 18개 색상을 배정하고 19번째 행부터 처음 색상으로 반복한다. 구체 색상값은 추후 지정하고 색상은 프론트에서 결정하며 응답 필드·DB 색상 컬럼을 추가하지 않는다(ADR-060·065).
+응답: {data:{weekStart,routines:[{id,name,stickerColor,cells:[{recordDate,completed}]}]}}. weekStart는 보정된 월요일이고 cells는 월~일 순서의7개다. 유효한 칸에 이력이 없으면 completed=false, 유효 기간 밖은 completed=null이다. 별도 dates 배열·exists 필드·행별 startsOn/endsOn은 보내지 않는다. 종료 당일 체크를 유지하고 이름과 색상은 최신 Routine.name·stickerColor를 사용하므로 과거 기록에도 수정값을 반영한다. stickerColor는 기존 발자국 18종의 번호(1~18)이며 여러 습관이 같은 번호를 사용할 수 있다. 기존 습관의 null만 반환된 행의 0 기준 index % 18로 표시하고 19번째부터 반복한다. 미완료·기간 밖 칸은 기존 빈 스티커 표시를 유지한다(ADR-060·074).
 
 ### API-ST-07 응원
 
@@ -247,7 +247,7 @@ body {password}. 원문 형식 검사·Study 존재 확인·bcrypt 검증 후 20
 
 ### API-HB-01 오늘 목록
 
-200 {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 한국 오늘인 습관을 createdAt ASC → id ASC로 반환한다. 이름 변경은 과거 표에도 반영된다.
+200 {data:{recordDate,serverTime,routines:[Routine]}}. endsOn IS NULL AND startsOn <= 한국 오늘인 습관을 createdAt ASC → id ASC로 반환한다. 이름·스티커 색상 변경은 과거 표에도 반영된다. 기존 습관의 stickerColor=null은 유지하고 새 습관은 반드시 1~18 정수로 저장한다.
 
 ### API-HB-05 체크·해제
 
@@ -262,13 +262,15 @@ PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 �
 | 추적 ID | API-HB-06(기존 폐기 ID 재사용 없음) |
 | Method·Path | PATCH /studies/{studyId}/routines/batch |
 | 인증 | X-Study-Password, 요청마다 bcrypt 검증 |
-| 본문 | {creates:[{name}],updates:[{routineId,name}],endIds:[UUID]} |
+| 본문 | {creates:[{name,stickerColor}],updates:[{routineId,name,stickerColor?}],endIds:[UUID]} |
 | 성공 | 200, HB-01과 같은 오늘 목록 응답 |
 | 검증 | 세 배열 필수, 각 최대 18개. updates와 endIds 합계 최대 18개·ID 중복 및 수정/종료 겹침 거절. UUID는 소문자로 정규화 |
 | 빈 변경 | 세 배열이 모두 비어 있으면 변경 없이 오늘 목록 반환 |
 | 실패 | 기존 VALIDATION_ERROR·STUDY_NOT_FOUND·ROUTINE_NOT_FOUND·ROUTINE_ENDED 적용. 전체 롤백 |
 
 공통 저장 기준: 이름은 trim 후 그래핌 1~20, 빈 값·공백만 있는 이름은 거절한다. 종료일은 서버 한국 오늘이며 재종료로 최초 종료일을 덮어쓰지 않는다. 미종료 습관만 최대 18개이고 종료로 확보한 자리에 같은 저장의 생성을 반영한다. Study→Routine 순서의 잠금과 같은 트랜잭션에서 변경한다. 요청 형식·대상 소속·종료 상태·활성 개수 검사에 실패하면 일부 변경도 저장하지 않는다.
+
+스티커 색상(ADR-074): creates의 stickerColor는 필수이며 1~18 정수만 허용한다. 누락·null·문자열·소수·범위 밖 값은 400 VALIDATION_ERROR다. updates의 stickerColor는 생략하면 현재 값(null 포함)을 유지하고, 제공하면 같은 1~18 검증을 적용한다. null로 되돌리는 요청은 거절한다. 색상만 수정해도 name은 현재 이름으로 전달한다. 동일 색상의 중복 지정은 허용하며 색상별 UNIQUE는 두지 않는다. Routine의 현재 색상만 변경하고 RoutineHistory는 수정하지 않는다. 과거 주간 조회에서도 최신 색상을 반환한다. 생성·수정 모달은 기존 18종 발자국을 처음부터 표시하고 신규 항목을 자동 선택하지 않는다. 이름이 있는 신규 항목은 색상을 직접 선택하기 전 저장하지 않는다.
 
 드래그 정렬은 ISS-031 후속 범위이며 position/order 필드·순서 컬럼·변경 API는 추가하지 않는다.
 
@@ -332,17 +334,17 @@ PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 �
 | ID | 상태·내용 | 영향 |
 | --- | --- | --- |
 | API-Q-04 · 확정 | 목록 기본/최대6·최신순, 최근 조회 중복 없는 3개·재방문 맨 앞으로, 생성 당일 1일째. 다건 상한 10개는 별도 유지 | 목록·최근·진행 일수 / ADR-064 |
-| API-Q-05 · 색상값 수신 대기 | 월~일7칸·주간 겹침·생성일 순·축소 응답 유지. 목록 순서대로 18개 색상을 순환 배정, 값은 추후 지정 | 기록표 / ADR-060·065 |
+| API-Q-05 · 확정 | 월~일7칸·주간 겹침·생성일 순 유지. 습관별 기존 18종 발자국을 필수 선택하고 과거 기록에도 최신 색상 반영. 기존 null만 목록순 순환 | 기록표 / ADR-060·074 |
 | API-Q-06 · 확정 | 일반 문자열 trim·그래핌·TEXT·활성 18개·생성일 순 유지. 비밀번호는 공백 제거 없이 포함 시 거절. 별도 입력 바이트 상한은 미정 | ADR-056~057·066 |
 | API-Q-07 · 확정 | 모든 이모지 허용·피부색 제거 후 기본 이모지로 저장/중복/집계. emoji-picker-react 기본 UI | 응원 / ADR-064·065 |
 | API-Q-08 · 자산 수신 대기 | 기존8종 키·기본green 유지, 실제 색상·이미지는 추후 지정. 같은 nickname/name 조합은 409 STUDY_CONFLICT | 생성·수정·DB 복합 UNIQUE |
 | API-Q-09 · 제외 | 연결 확인·연결 만료·담당 탭·자동 pause 제외 | 미정 아님 |
-| API-Q-12 · 일부 자료 수신 대기 | Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px. 일반 모달은 배경 클릭 닫기·Escape 무시, 비밀번호 취소는 이전 화면 또는 홈. 상세 소개 전체 표시. 반응형·습관 편집 시안·18색 값은 수신 대기 | ADR-065·067·069·070 |
+| API-Q-12 · 일부 자료 수신 대기 | Header는 fixed·홈 전용 생성 버튼. 적용 페이지 최상단 main에 margin-top:100px. 일반 모달은 배경 클릭 닫기·Escape 무시, 비밀번호 취소는 이전 화면 또는 홈. 상세 소개 전체 표시. 반응형·습관 편집 시안은 수신 대기, 스티커는 기존 18종 자산 사용 | ADR-065·067·069·070·074 |
 | API-Q-14 · 확정 | 수정 완료 한 번으로 API-HB-06 일괄 저장. PATCH /routines/batch·creates/updates/endIds·200 오늘 목록·실패 전체 롤백. 개별 생성·수정·종료 폐기 | ADR-071·ISS-013·046 |
 | API-Q-15 · 설계 확인 대기 | 비밀번호 모달 취소는 이전 화면 또는 홈. 대상 선택 조건·배경 클릭 시 이동 적용 범위·스터디별 앱 메모리 구조는 후속 설계 | ADR-070·073 |
 | API-Q-13 · 후속 | 드래그앤드롭 저장·변경 API와 타이머 숫자 직접 입력은 현재 확정 범위 아님 | ISS-031 및 후속 검토 |
 
-기존 응답 필드 이름은 유지하되 응원 배열 범위는 ADR-072를 따른다. 진행 일수·최근 조회 순서·색상·Header·모달 동작은 표시·클라이언트 규칙이며 새 API나 DTO 필드를 추가하지 않는다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
+기존 응답 필드 이름은 유지하되 응원 배열 범위는 ADR-072, 습관 색상 필드 추가는 ADR-074를 따른다. 진행 일수·최근 조회 순서·Header·모달 동작은 표시·클라이언트 규칙이다. 생성일 기준 1일째 표시에서 사용하는 한국 날짜 기준은 기존 날짜 규칙을 따른다. 오류 문구는 ADR-058의 임시 구현 허용을 유지한다.
 
 ## 11. 기능 ID 대응
 

@@ -3,7 +3,7 @@ import { studyApi } from "../../api/api.js";
 import { getApiError } from "../../api/apiError.js";
 import {
   emptySticker,
-  routineStickers,
+  getRoutineSticker,
 } from "../../constants/routineStickers.js";
 import { getKoreanDate } from "../../utils/studyDate.js";
 import styles from "./RoutineHistoryTable.module.scss";
@@ -159,9 +159,7 @@ const RoutineHistoryTable = ({ studyId }) => {
                         <img
                           src={
                             completed === true
-                              ? routineStickers[
-                                  rowIndex % routineStickers.length
-                                ]
+                              ? getRoutineSticker(routine.stickerColor, rowIndex)
                               : emptySticker
                           }
                           width="36"

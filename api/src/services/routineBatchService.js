@@ -51,16 +51,16 @@ export const saveRoutineBatch = async ({ studyId, creates, updates, endIds }) =>
         data: { endsOn: today },
       });
     }
-    // 항목마다 이름이 다르므로 개별 update를 같은 트랜잭션에서 실행한다.
-    for (const { routineId, name } of updates) {
+    // 현재 습관의 색상을 조회하므로 과거 기록에도 변경된 색상이 반영된다.
+    for (const { routineId, name, stickerColor } of updates) {
       await tx.routine.update({
         where: { id: routineId, studyId, endsOn: null },
-        data: { name },
+        data: { name, ...(stickerColor !== undefined && { stickerColor }) },
       });
     }
     if (creates.length > 0) {
       await tx.routine.createMany({
-        data: creates.map(({ name }) => ({ studyId, name, startsOn: today })),
+        data: creates.map(({ name, stickerColor }) => ({ studyId, name, stickerColor, startsOn: today })),
       });
     }
 

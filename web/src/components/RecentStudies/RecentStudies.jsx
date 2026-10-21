@@ -2,7 +2,7 @@ import useRecentStudies from "../../hooks/useRecentStudies.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
 import styles from "../../pages/MainPage.module.scss";
 
-const RecentStudies = () => {
+const RecentStudies = ({ onShowToast }) => {
   const { studies, isLoading, error, retry } = useRecentStudies();
 
   return (
@@ -24,7 +24,7 @@ const RecentStudies = () => {
         <p className={styles.empty} role="status">최근 조회한 스터디가 없어요</p>
       ) : (
         <div className={`${styles.grid} ${styles.recentGrid}`}>
-          {studies.map((study) => <StudyCard key={study.id} study={study} />)}
+          {studies.map((study) => <StudyCard key={study.id} study={study} onShowToast={onShowToast} />)}
         </div>
       )}
     </section>
