@@ -38,6 +38,10 @@
     line-height: 1.2;
   }
 
+  &__nickname {
+    color: var(--color-green-text);
+  }
+
   &__navigation {
     display: flex;
     flex-shrink: 0;
