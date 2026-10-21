@@ -3,10 +3,10 @@ import Header from '../components/Header/Header.jsx';
 
 const RootLayout = () => {
   return (
-    <>
+    <div className="appLayout">
       <Header />
       <Outlet />
-    </>
+    </div>
   );
 };
 
