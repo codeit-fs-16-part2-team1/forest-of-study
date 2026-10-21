@@ -14,6 +14,7 @@ const foreignKeys = [
 const checks = [
   'Study_points_nonnegative', 'Routine_period', 'Routine_name_nonempty',
   'Routine_sticker_color_range',
+  'Study_background_color_check', 'Study_text_color_check', 'Study_pattern_check',
   'Challenge_goal_range', 'Challenge_elapsed_range',
   'Challenge_running_time', 'Challenge_award_state',
 ];
@@ -50,7 +51,7 @@ try {
     throw new Error('Routine sticker color mismatch');
   }
 
-  step = '4개 Cascade FK·8개 CHECK';
+  step = `4개 Cascade FK·${checks.length}개 CHECK`;
   const constraints = await prisma.$queryRaw`
     SELECT c.conname::text AS name, c.contype::text AS type,
            t.relname::text AS table_name, parent.relname::text AS parent_table,
