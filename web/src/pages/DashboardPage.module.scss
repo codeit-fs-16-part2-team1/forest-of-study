@@ -84,7 +84,8 @@
   margin-top: 1rem; // 16px
   flex-shrink: 0;
 }
-.links > a {
+.links > a,
+.links > .skeletonLink {
   display: inline-flex;
   align-items: center;
   padding-left: 0.625rem; // 10px
@@ -166,19 +167,46 @@
   color: var(--color-green-text);
 }
 
+.skeletonManagement,
+.skeletonReaction,
 .skeletonTitle,
-.skeletonBody {
+.skeletonLabel,
+.skeletonIntroduction,
+.skeletonPoints,
+.skeletonHistory {
   border-radius: 12px;
   background: var(--color-gray-lighter);
 }
 
+.skeletonManagement { width: 220px; max-width: 100%; height: 20px; }
+.skeletonReactions { display: flex; gap: 4px; }
+.skeletonReaction { width: 52px; height: 31px; border-radius: 50px; }
+.links > .skeletonLink { width: 144px; background: var(--color-gray-lighter); border: 0; }
+
 .skeletonTitle {
-  width: 60%;
-  height: 40px;
+  width: min(100%, 240px);
+  height: 1.8rem;
 }
 
-.skeletonBody {
-  height: 180px;
+.skeletonLabel {
+  width: 120px;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.skeletonIntroduction {
+  width: 100%;
+  height: 48px;
+}
+
+.skeletonPoints {
+  width: min(100%, 120px);
+  height: 33px;
+  border-radius: 20px;
+}
+
+.skeletonHistory {
+  height: 240px;
   margin-top: 24px;
 }
 
@@ -192,6 +220,10 @@
 }
 
 @media (min-width: breakpoints.$tablet) {
+  .skeletonTitle {
+    height: 38px;
+  }
+
   .panel {
     padding: 24px;
   }
@@ -232,7 +264,8 @@
     gap: 1rem; // 16px
     margin-top: 0;
   }
-  .links > a {
+  .links > a,
+  .links > .skeletonLink {
     height: 3rem; // 48px
     padding-left: 1.5rem; // 24px
     padding-right: 2.75rem; // 44px
@@ -241,6 +274,10 @@
 }
 
 @media (min-width: breakpoints.$desktop) {
+  .skeletonHistory {
+    margin-top: 40px;
+  }
+
   .panel {
     padding: 40px;
   }

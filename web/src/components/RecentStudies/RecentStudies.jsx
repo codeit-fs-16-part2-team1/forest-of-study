@@ -1,3 +1,4 @@
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useEffect, useRef, useState } from "react";
 import useRecentStudies from "../../hooks/useRecentStudies.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
@@ -5,6 +6,7 @@ import styles from "../../pages/MainPage.module.scss";
 
 const RecentStudies = () => {
   const { studies, isLoading, error, retry } = useRecentStudies();
+  const showSkeleton = useMinimumLoading(isLoading);
   const gridRef = useRef(null);
   const [scrollEdges, setScrollEdges] = useState({ left: false, right: false });
 
@@ -41,12 +43,14 @@ const RecentStudies = () => {
       window.removeEventListener("resize", updateScrollEdges);
       observer?.disconnect();
     };
-  }, [studies, isLoading, error]);
+  }, [studies, showSkeleton, error]);
 
   return (
-    <section className={styles.section} aria-labelledby="recent-title" aria-busy={isLoading}>
-      <h2 id="recent-title" className={styles.title}>최근 조회한 스터디</h2>
-      {isLoading ? (
+    <section className={styles.section} aria-labelledby="recent-title" aria-busy={showSkeleton}>
+      <h2 id="recent-title" className={styles.title}>
+        {showSkeleton ? <span className={styles.skeletonHeading} aria-label="최근 조회한 스터디" /> : "최근 조회한 스터디"}
+      </h2>
+      {showSkeleton ? (
         <>
           <p className={styles.srOnly} role="status">스터디를 불러오는 중입니다.</p>
           <div className={`${styles.grid} ${styles.recentGrid}`} aria-hidden="true">

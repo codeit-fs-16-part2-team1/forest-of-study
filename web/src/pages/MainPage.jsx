@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import Toast from "../components/Toast/Toast.jsx";
@@ -44,6 +45,7 @@ const MainPage = () => {
     isLoading: true,
     error: "",
   });
+  const showSkeleton = useMinimumLoading(result.isLoading);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState("");
 
@@ -200,10 +202,16 @@ const MainPage = () => {
         aria-labelledby="browse-title"
       >
         <h2 id="browse-title" className={styles.title}>
-          스터디 둘러보기
+          {showSkeleton ? <span className={styles.skeletonHeading} aria-label="스터디 둘러보기" /> : "스터디 둘러보기"}
         </h2>
 
-        <div className={styles.controls}>
+        {showSkeleton && (
+          <div className={styles.controls} aria-hidden="true">
+            <div className={`${styles.search} ${styles.skeletonControl}`} />
+            <div className={styles.skeletonSort} />
+          </div>
+        )}
+        <div className={styles.controls} hidden={showSkeleton}>
           <form
             className={styles.search}
             onSubmit={handleSearch}
@@ -243,8 +251,8 @@ const MainPage = () => {
           <StudySort value={query.sort} onChange={handleSortChange} />
         </div>
 
-        <div aria-busy={result.isLoading || isLoadingMore}>
-          {result.isLoading ? (
+        <div aria-busy={showSkeleton || isLoadingMore}>
+          {showSkeleton ? (
             <>
               <p className={styles.srOnly} role="status">
                 스터디를 불러오는 중입니다.
@@ -287,7 +295,7 @@ const MainPage = () => {
             </p>
           )}
 
-          {!result.isLoading && result.hasMore && (
+          {!showSkeleton && result.hasMore && (
             <button
               type="button"
               className={styles.moreButton}

@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import ChallengeTimer from "../components/challenge/ChallengeTimer.jsx";
@@ -34,7 +35,9 @@ const ChallengePage = ({
   const isActive = status === "RUNNING" || status === "PAUSED";
   const isCompleted = status === "COMPLETED";
   const canConfirmCompletion = isActive && countdownSeconds === 0 && Boolean(onComplete);
+  const showSkeleton = useMinimumLoading(isLoading);
   const loading = isLoading || !study;
+  const displayLoading = showSkeleton || loading;
   const canEditGoal = !loading && !isPending && !isActive && !isCompleted
     && Boolean(onGoalMinutesChange);
   const currentGoalMinutes = isActive || isCompleted
@@ -73,11 +76,11 @@ const ChallengePage = ({
   return (
     <main>
       <section className="challengePage" aria-labelledby={headingId}>
-        <div className="challengePage__body" aria-busy={loading || isPending}>
+        <div className="challengePage__body" aria-busy={displayLoading || isPending}>
           <div className="challengePage__summary">
             <div className="challengePage__headingRow">
               <h1 id={headingId} className="challengePage__heading">
-                {loading ? (
+                {displayLoading ? (
                   <span
                     className="challengePage__skeleton challengePage__skeleton--heading"
                     aria-label="스터디 정보 불러오는 중"
@@ -91,36 +94,47 @@ const ChallengePage = ({
               </h1>
 
               <nav className="challengePage__navigation" aria-label="스터디 페이지">
-                {study?.id ? (
-                  <Link
-                    className="challengePage__link"
-                    to={`/routines?id=${encodeURIComponent(study.id)}`}
-                  >
-                    오늘의 습관
-                  </Link>
+                {displayLoading ? (
+                  <>
+                    <span className="challengePage__link challengePage__skeleton" aria-hidden="true" />
+                    <span className="challengePage__link challengePage__skeleton" aria-hidden="true" />
+                  </>
                 ) : (
-                  <span className="challengePage__link" aria-disabled="true">
-                    오늘의 습관
-                  </span>
-                )}
-                {study?.id ? (
-                  <Link
-                    className="challengePage__link"
-                    to={`/dashboard/${encodeURIComponent(study.id)}`}
-                  >
-                    스터디 상세
-                  </Link>
-                ) : (
-                  <span className="challengePage__link" aria-disabled="true">
-                    스터디 상세
-                  </span>
+                      <>
+                    {study?.id ? (
+                      <Link
+                        className="challengePage__link"
+                        to={`/routines?id=${encodeURIComponent(study.id)}`}
+                      >
+                        오늘의 습관
+                      </Link>
+                    ) : (
+                      <span className="challengePage__link" aria-disabled="true">
+                        오늘의 습관
+                      </span>
+                    )}
+                    {study?.id ? (
+                      <Link
+                        className="challengePage__link"
+                        to={`/dashboard/${encodeURIComponent(study.id)}`}
+                      >
+                        스터디 상세
+                      </Link>
+                    ) : (
+                      <span className="challengePage__link" aria-disabled="true">
+                        스터디 상세
+                      </span>
+                    )}
+                  </>
                 )}
               </nav>
             </div>
 
             <div className="challengePage__points">
-              <p className="challengePage__pointsLabel">현재까지 획득한 포인트</p>
-              {loading || currentPoints == null ? (
+              <p className="challengePage__pointsLabel">
+                {displayLoading ? <span className="challengePage__skeleton challengePage__skeleton--label" aria-hidden="true" /> : "현재까지 획득한 포인트"}
+              </p>
+              {displayLoading || currentPoints == null ? (
                 <span
                   className="challengePage__skeleton challengePage__skeleton--points"
                   aria-label="포인트 불러오는 중"
@@ -166,7 +180,7 @@ const ChallengePage = ({
             status={status}
             goalMinutes={currentGoalMinutes}
             remainingSeconds={currentRemainingSeconds}
-            isLoading={loading}
+            isLoading={displayLoading}
             isPending={isPending}
             canEditGoal={canEditGoal}
             onEditGoal={() => setIsGoalTimeOpen(true)}

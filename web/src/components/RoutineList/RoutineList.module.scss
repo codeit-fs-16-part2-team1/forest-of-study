@@ -34,7 +34,6 @@
 
 .skeletonRow {
   flex-shrink: 0;
-  animation: skeletonPulse 1.2s ease-in-out infinite alternate;
 }
 
 .emptyState,
@@ -95,15 +94,6 @@
     cursor: not-allowed;
     opacity: 0.5;
   }
-}
-
-@keyframes skeletonPulse {
-  from { opacity: 0.5; }
-  to { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeletonRow { animation: none; }
 }
 
 @media (min-width: breakpoints.$tablet) {

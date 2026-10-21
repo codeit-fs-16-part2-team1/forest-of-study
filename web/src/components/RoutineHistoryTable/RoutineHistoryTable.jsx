@@ -1,3 +1,4 @@
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useEffect, useId, useState } from "react";
 import { studyApi } from "../../api/api.js";
 import { getApiError } from "../../api/apiError.js";
@@ -79,7 +80,7 @@ const RoutineHistoryTable = ({ studyId }) => {
     };
   }, [studyId, today, requestKey]);
 
-  const isLoading = result?.requestKey !== requestKey;
+  const isLoading = useMinimumLoading(result?.requestKey !== requestKey, requestKey);
   const data = isLoading ? null : result.data;
   const error = isLoading ? null : result.error;
   const dates = data ? getWeekDates(data.weekStart) : [];

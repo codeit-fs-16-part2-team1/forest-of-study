@@ -204,12 +204,23 @@ textarea.input {
   }
 }
 
-.skeleton {
-  height: 240px;
-  margin-bottom: 24px;
-  border-radius: 16px;
+.skeletonTitle,
+.skeletonLabel,
+.skeletonInput,
+.skeletonIntroduction,
+.skeletonBackground,
+.skeletonSubmit {
+  display: block;
+  border-radius: 12px;
   background: var(--color-gray-lighter);
 }
+
+.skeletonTitle { width: min(100%, 180px); height: 1.2em; }
+.skeletonLabel { width: min(100%, 160px); height: 1.3em; }
+.skeletonInput { height: 48px; }
+.skeletonIntroduction { height: 98px; }
+.skeletonBackground { aspect-ratio: 1; border-radius: 16px; }
+.skeletonSubmit { min-height: 55px; margin-top: 6px; }
 
 .srOnly {
   position: absolute;
@@ -245,7 +256,8 @@ textarea.input {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .submitButton {
+  .submitButton,
+  .skeletonSubmit {
     margin-top: 16px;
   }
 }
