@@ -20,7 +20,7 @@ const StudyPatternLayer = ({ patternKey, patternColor }) => {
 };
 
 export const StudyPatternText = ({ active, backgroundColor, children }) => active ? (
-  <span className={styles.textBadge} style={{ backgroundColor }}>
+  <span className={styles.textStroke} style={{ "--study-pattern-stroke-color": backgroundColor }}>
     {children}
   </span>
 ) : children;

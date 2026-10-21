@@ -192,6 +192,14 @@
     position: relative;
     z-index: 1;
   }
+
+  // 배지는 일반 카드의 줄 높이를 따르고, 배경의 좌우 여백만 유지한다.
+  .title > span,
+  .days > span,
+  .introduction > span {
+    padding: 0 8px;
+    line-height: inherit;
+  }
 }
 
 @media (min-width: breakpoints.$tablet) {

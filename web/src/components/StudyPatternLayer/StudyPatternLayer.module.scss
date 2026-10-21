@@ -14,10 +14,7 @@
   pointer-events: none;
 }
 
-.textBadge {
-  padding: 4px 8px;
-  border-radius: 20px;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
-  line-height: 1.9;
+.textStroke {
+  -webkit-text-stroke: 1px var(--study-pattern-stroke-color);
+  paint-order: stroke fill;
 }
