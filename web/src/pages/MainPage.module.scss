@@ -1,8 +1,7 @@
+@use "../styles/breakpoints";
+
 .page {
-  width: 100%;
-  max-width: 1248px;
-  margin-inline: auto;
-  padding: 20px 16px 40px;
+  min-width: 0;
 }
 
 .section {
@@ -40,8 +39,7 @@
   border-radius: 15px;
 
   &:focus-within {
-    outline: 2px solid var(--color-text);
-    outline-offset: 3px;
+    border-color: var(--color-green-text);
   }
 
   > input {
@@ -68,30 +66,22 @@
   }
 }
 
-.sort {
-  width: 180px;
-  height: 42px;
-  margin-left: auto;
-  padding: 8px 12px;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 15px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-}
-
-.searchHelp {
-  margin-top: 8px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: 24px;
+}
+
+.recentGrid {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: min(240px, 100%);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  // 키보드로 카드에 접근했을 때 포커스 테두리가 잘리지 않도록 공간을 둔다.
+  margin: -4px;
+  padding: 4px;
 }
 
 .empty {
@@ -149,11 +139,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 744px) {
-  .page {
-    padding: 20px 24px 60px;
-  }
-
+@media (min-width: breakpoints.$tablet) {
   .section {
     padding: 24px;
   }
@@ -172,6 +158,11 @@
     gap: 24px;
   }
 
+  .recentGrid {
+    grid-template-columns: none;
+    grid-auto-columns: 358px;
+  }
+
   .skeleton {
     min-height: 243px;
   }
@@ -181,17 +172,18 @@
   }
 }
 
-@media (min-width: 1200px) {
-  .page {
-    max-width: 1280px;
-    padding: 40px 40px 80px;
-  }
-
+@media (min-width: breakpoints.$desktop) {
   .section {
     padding: 40px;
   }
 
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .recentGrid {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: visible;
   }
 }

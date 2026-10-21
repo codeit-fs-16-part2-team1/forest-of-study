@@ -107,7 +107,7 @@
 
 .popover {
   position: absolute;
-  z-index: 30;
+  z-index: var(--z-popover);
   inset-block-start: calc(100% + 8px);
   inset-inline-start: var(--popover-offset, 0px);
   inline-size: max-content;

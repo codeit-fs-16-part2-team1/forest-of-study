@@ -3,9 +3,11 @@ import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
 import { getCustomBackgroundTheme, getPatternTextBackground, getStudyTextColor, isValidStudyPattern } from "../../utils/studyBackground.js";
 import StudyPatternLayer, { StudyPatternText } from "../StudyPatternLayer/StudyPatternLayer.jsx";
+import studyCardPoint from "../../assets/studyCardPoint.svg";
 import styles from "./StudyCard.module.scss";
+import BookmarkButton from "../BookmarkButton/BookmarkButton.jsx";
 
-const StudyCard = ({ study }) => {
+const StudyCard = ({ study, onShowToast, onBookmarkRemoved }) => {
   const background = studyBackgrounds.find(
     ({ key }) => key === study.backgroundKey
   );
@@ -20,10 +22,12 @@ const StudyCard = ({ study }) => {
   const daysBackground = getPatternTextBackground(study.backgroundColor);
 
   return (
-    <Link
-      to={`/dashboard/${study.id}`}
+    <article
       className={[styles.card, hasImage && styles.imageCard, customTheme && styles.customCard, hasPattern && styles.patternCard].filter(Boolean).join(" ")}
       style={{
+        "--study-accent": customTheme?.textColor ?? (hasImage
+          ? "var(--color-white)"
+          : `var(--color-${background?.key ?? "green"}-text)`),
         backgroundColor: customTheme?.backgroundColor ?? background?.color,
         "--custom-text-color": customTheme?.textColor,
         "--custom-content-color": manualTextColor ?? customTheme?.textColor,
@@ -35,15 +39,33 @@ const StudyCard = ({ study }) => {
       }}
     >
       {hasPattern && <StudyPatternLayer patternKey={study.patternKey} patternColor={study.patternColor} />}
+      <Link
+        to={`/dashboard/${study.id}`}
+        className={styles.cardLink}
+        aria-label={`${study.nickname}의 ${study.name} 상세 보기`}
+      />
       <div className={styles.header}>
-        <h3 className={styles.title}>
-          <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
-            <span className={styles.nickname}>{study.nickname}</span>
-            의 {study.name}
-          </StudyPatternText>
-        </h3>
+        <div className={styles.titleGroup}>
+          <BookmarkButton
+            studyId={study.id}
+            onShowToast={onShowToast}
+            onRemoved={onBookmarkRemoved}
+            className={styles.bookmarkButton}
+            activeClassName={styles.isBookmarked}
+          />
+
+          <h3 className={styles.title}>
+            <StudyPatternText active={hasPattern} backgroundColor={contentBackground}>
+              <span className={styles.nickname}>{study.nickname}</span>
+              의 {study.name}
+            </StudyPatternText>
+          </h3>
+        </div>
 
         <span className={styles.points}>
+          <span className={styles.pointIcon} aria-hidden="true">
+            <img src={studyCardPoint} alt="" />
+          </span>
           {study.points.toLocaleString("ko-KR")}P 획득
         </span>
       </div>
@@ -70,7 +92,7 @@ const StudyCard = ({ study }) => {
           ))}
         </ul>
       )}
-    </Link>
+    </article>
   );
 };
 

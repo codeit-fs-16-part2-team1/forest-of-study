@@ -84,7 +84,10 @@ const ChallengePage = ({
                     aria-label="스터디 정보 불러오는 중"
                   />
                 ) : (
-                  `${study.nickname}의 ${study.name}`
+                  <>
+                    <span className="challengePage__nickname">{study.nickname}</span>
+                    의 {study.name}
+                  </>
                 )}
               </h1>
 

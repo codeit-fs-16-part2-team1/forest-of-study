@@ -5,17 +5,11 @@ import useToast from "../hooks/useToast.js";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import StudyCard from "../components/StudyCard/StudyCard.jsx";
-import RecentStudies from "../components/RecentStudies/RecentStudies.jsx";
+import BookmarkStudies from "../components/BookmarkStudies/BookmarkStudies.jsx";
+import StudySort from "../components/StudySort/StudySort.jsx";
 import styles from "./MainPage.module.scss";
 
 const PAGE_SIZE = 6;
-
-const sortOptions = [
-  { value: "latest", label: "최근 순" },
-  { value: "oldest", label: "오래된 순" },
-  { value: "points_desc", label: "많은 포인트 순" },
-  { value: "points_asc", label: "적은 포인트 순" },
-];
 
 const MainPage = () => {
   const location = useLocation();
@@ -119,8 +113,8 @@ const MainPage = () => {
     changeQuery({ ...query, keyword });
   };
 
-  const handleSortChange = (event) => {
-    changeQuery({ ...query, sort: event.target.value });
+  const handleSortChange = (sort) => {
+    changeQuery({ ...query, sort });
   };
 
   const handleLoadMore = async () => {
@@ -179,7 +173,7 @@ const MainPage = () => {
 
   return (
     <main className={styles.page}>
-      <RecentStudies />
+      <BookmarkStudies onShowToast={showToast} />
       <section
         className={styles.section}
         aria-labelledby="browse-title"
@@ -209,27 +203,8 @@ const MainPage = () => {
             <button type="submit">검색</button>
           </form>
 
-          <label htmlFor="study-sort" className={styles.srOnly}>
-            스터디 정렬
-          </label>
-
-          <select
-            id="study-sort"
-            className={styles.sort}
-            value={query.sort}
-            onChange={handleSortChange}
-          >
-            {sortOptions.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <StudySort value={query.sort} onChange={handleSortChange} />
         </div>
-
-        <p className={styles.searchHelp}>
-          앞뒤 공백을 제외하고 검색하며, 영문 대소문자를 구분하지 않습니다.
-        </p>
 
         <div aria-busy={result.isLoading || isLoadingMore}>
           {result.isLoading ? (
@@ -264,7 +239,7 @@ const MainPage = () => {
           ) : (
             <div className={styles.grid}>
               {result.studies.map((study) => (
-                <StudyCard key={study.id} study={study} />
+                <StudyCard key={study.id} study={study} onShowToast={showToast} />
               ))}
             </div>
           )}

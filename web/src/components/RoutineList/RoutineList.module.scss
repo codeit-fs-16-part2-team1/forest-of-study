@@ -1,3 +1,5 @@
+@use "../../styles/breakpoints";
+
 .list {
   display: flex;
   flex-direction: column;
@@ -99,7 +101,7 @@
   .skeletonRow { animation: none; }
 }
 
-@media (min-width: 48rem) { // 768px
+@media (min-width: breakpoints.$tablet) {
   .list { gap: 1.25rem; } // 20px
   .emptyState,
   .errorState { min-height: 30.9375rem; } // 495px: 바깥 여백·제목을 포함한 빈 영역 631px

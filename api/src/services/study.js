@@ -51,40 +51,57 @@ export const getStudies = async (query) => {
           ) > 0
       `;
 
-  const [studies, counts] = await prisma.$transaction([
-    prisma.$queryRaw`
-      SELECT
-        "id",
-        "nickname",
-        "name",
-        "introduction",
-        "backgroundKey",
-        "backgroundColor",
-        "textColor",
-        "patternKey",
-        "patternColor",
-        "points",
-        "createdAt",
-        "updatedAt"
-      FROM "Study"
-      ${where}
-      ORDER BY ${orderByMap[sort]}
-      LIMIT ${limit}
-      OFFSET ${offset}
-    `,
-    prisma.$queryRaw`
-      SELECT COUNT(*)::integer AS "total"
-      FROM "Study"
-      ${where}
-    `,
-  ], {
+  const [studies, counts, reactions] = await prisma.$transaction(async (tx) => {
+    const [studies, counts] = await Promise.all([
+      tx.$queryRaw`
+        SELECT
+          "id",
+          "nickname",
+          "name",
+          "introduction",
+          "backgroundKey",
+          "backgroundColor",
+          "textColor",
+          "patternKey",
+          "patternColor",
+          "points",
+          "createdAt",
+          "updatedAt"
+        FROM "Study"
+        ${where}
+        ORDER BY ${orderByMap[sort]}
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `,
+      tx.$queryRaw`
+        SELECT COUNT(*)::integer AS "total"
+        FROM "Study"
+        ${where}
+      `,
+    ]);
+    // 현재 페이지의 스터디만 한 번에 집계한다. 카드마다 개별 조회하지 않는다.
+    const reactions = studies.length === 0
+      ? []
+      : await getTopReactionsForStudies(studies.map(({ id }) => id), tx);
+    return [studies, counts, reactions];
+  }, {
     isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
-  }); // 목록과 전체 개수는 같은 스냅샷에서 조회한다.
+  }); // 목록·전체 개수·응원을 같은 스냅샷에서 조회한다.
 
   const total = counts[0].total;
+  const reactionsByStudy = new Map();
+  for (const { studyId, emoji, count } of reactions) {
+    if (!reactionsByStudy.has(studyId)) {
+      reactionsByStudy.set(studyId, []);
+    }
+    reactionsByStudy.get(studyId).push({ emoji, count });
+  }
 
   return {
-    studies,
+    studies: studies.map((study) => ({
+      ...study,
+      reactions: reactionsByStudy.get(study.id) ?? [],
+    })),
     pagination: {
       offset,
       limit,

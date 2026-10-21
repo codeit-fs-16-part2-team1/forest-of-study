@@ -7,7 +7,7 @@ import smile from "../../assets/reaction/smile.svg";
 import plus from "../../assets/reaction/plus.svg";
 import styles from "./StudyReactions.module.scss";
 
-const desktopQuery = "(min-width: 1200px)";
+const desktopQuery = "(min-width: 1024px)";
 
 const ReactionBadges = ({ reactions, label }) => (
   <ul className={styles.list} aria-label={label}>
