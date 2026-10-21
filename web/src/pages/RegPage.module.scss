@@ -1,10 +1,12 @@
+@use "../styles/breakpoints";
+
 .page {
-  padding: 120px 16px 40px;
+  min-width: 0;
 }
 
 .card {
   width: 100%;
-  max-width: 696px;
+  max-width: var(--layout-form-max-width);
   margin: 0 auto;
   padding: 16px 16px 20px;
   border-radius: 20px;
@@ -50,6 +52,11 @@
 
   &::placeholder {
     color: var(--color-text-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green-text);
   }
 
   &[aria-invalid="true"] {
@@ -206,11 +213,7 @@ textarea.input {
   white-space: nowrap;
 }
 
-@media (min-width: 744px) {
-  .page {
-    padding: 120px 24px 80px;
-  }
-
+@media (min-width: breakpoints.$tablet) {
   .card {
     padding: 24px 24px 40px;
   }
@@ -239,11 +242,4 @@ textarea.input {
     margin-top: 16px;
   }
 }
-
-@media (min-width: 1200px) {
-  .page {
-    padding-top: 140px;
-  }
-}
-
 

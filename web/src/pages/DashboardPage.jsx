@@ -131,11 +131,18 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
-        <nav className={styles.management} aria-label="스터디 관리">
-          <Link to={`/reg?id=${study.id}`}>수정하기</Link>
-          <button type="button" onClick={openDelete}>삭제하기</button>
-        </nav>
         <div className={styles.toolbar}>
+          <nav className={styles.management} aria-label="스터디 관리">
+            <button type="button" onClick={handleShare}>
+              공유하기
+            </button>
+            <span className={styles.managementDivider} aria-hidden="true">|</span>
+            <Link to={`/reg?id=${study.id}`}>수정하기</Link>
+            <span className={styles.deleteDivider} aria-hidden="true">|</span>
+            <button type="button" className={styles.deleteButton} onClick={openDelete}>
+              스터디 삭제하기
+            </button>
+          </nav>
           <div className={styles.reactions}>
             <StudyReactions
               studyId={study.id}
@@ -144,9 +151,6 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
               onShowToast={showToast}
             />
           </div>
-          <button type="button" className={styles.shareButton} onClick={handleShare}>
-            공유하기
-          </button>
         </div>
 
         <div className={styles.heading}>

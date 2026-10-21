@@ -1,3 +1,5 @@
+@use "../../styles/breakpoints";
+
 .card {
   display: flex;
   flex-direction: column;
@@ -33,6 +35,9 @@
 }
 
 .points {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   flex-shrink: 0;
   padding: 4px 8px;
   border: 1px solid rgba(0, 0, 0, 0.1);
@@ -40,6 +45,19 @@
   background: rgba(255, 255, 255, 0.5);
   font-size: 12px;
   line-height: 1.4;
+  white-space: nowrap;
+}
+
+.pointIcon {
+  display: grid;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+
+  img {
+    display: block;
+  }
 }
 
 .days {
@@ -90,7 +108,7 @@
   }
 }
 
-@media (min-width: 744px) {
+@media (min-width: breakpoints.$tablet) {
   .card {
     min-height: 243px;
     padding: 24px;

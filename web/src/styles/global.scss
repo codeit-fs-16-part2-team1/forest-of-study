@@ -5,12 +5,27 @@ html {
 }
 
 body {
+  min-inline-size: var(--layout-min-width);
   min-block-size: 100vh;
   min-block-size: 100dvh;
 }
 
-main {
-  margin-top: 100px;
+.appLayout {
+  // 첫 main의 위쪽 margin이 레이아웃 바깥으로 합쳐지지 않게 한다.
+  display: flow-root;
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+}
+
+// Header를 사용하는 실제 페이지에만 공통 바깥 레이아웃을 적용한다.
+.appLayout > main {
+  width: 100%;
+  max-width: var(--layout-container-max-width);
+  min-height: calc(100vh - var(--layout-header-height));
+  min-height: calc(100dvh - var(--layout-header-height));
+  margin-block: var(--layout-header-height) 0;
+  margin-inline: auto;
+  padding: var(--layout-page-top) var(--layout-page-gutter) var(--layout-page-bottom);
 }
 
 #root {

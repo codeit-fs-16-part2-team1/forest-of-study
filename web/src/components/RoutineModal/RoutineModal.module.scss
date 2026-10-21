@@ -1,8 +1,10 @@
+@use "../../styles/breakpoints";
+
 // 모바일
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -113,7 +115,7 @@
   width: 100%;
   height: 3.375rem; // 54px
   outline: none;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 1.25rem; // 20px
   background: var(--color-gray-lighter);
   color: var(--color-gray);
@@ -126,8 +128,12 @@
     font-weight: 400;
   }
 
+  &:focus {
+    border-color: var(--color-green-text);
+  }
+
   &[aria-invalid="true"] {
-    box-shadow: inset 0 0 0 0.0625rem var(--color-red-error); // 1px
+    border-color: var(--color-red-error);
   }
 }
 .inputError {
@@ -259,7 +265,7 @@
 }
 
 // 태블릿, 데스크톱
-@media (min-width: 48rem) { // 768px
+@media (min-width: breakpoints.$tablet) {
   .dialog {
     padding: 2.5rem 1.5rem; // 40px 24px
     max-height: calc(100dvh - 11.25rem); // 180px
