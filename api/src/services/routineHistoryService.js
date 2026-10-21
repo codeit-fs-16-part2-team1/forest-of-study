@@ -24,6 +24,7 @@ export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
     select: {
       id: true,
       name: true,
+      stickerColor: true,
       startsOn: true,
       endsOn: true,
       history: {
@@ -48,6 +49,7 @@ export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
       return {
         id: routine.id,
         name: routine.name,
+        stickerColor: routine.stickerColor,
         cells: weekDates.map((recordDate) => {
           const isWithinPeriod =
             startsOn <= recordDate && (endsOn === null || recordDate <= endsOn);

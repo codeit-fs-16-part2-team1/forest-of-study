@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import useDialog from "../../hooks/useDialog.js";
 import useRoutineEditor from "../../hooks/useRoutineEditor.js";
+import { routineStickers } from "../../constants/routineStickers.js";
 import styles from "./RoutineModal.module.scss";
 
 const RoutineModal = ({
@@ -19,11 +20,13 @@ const RoutineModal = ({
     draftRoutines,
     pendingFocusIdRef,
     errors,
+    colorErrors,
     isSaving,
     canSubmit,
     canAddRoutine,
     canRemoveRoutine,
     handleChangeRoutine,
+    handleChangeColor,
     handleAddRoutine,
     handleRemoveRoutine,
     handleClose,
@@ -152,6 +155,43 @@ const RoutineModal = ({
                             {errors[routine.clientId]}
                           </p>
                         )}
+                        <fieldset
+                          className={styles.colorPicker}
+                          disabled={isSaving}
+                          aria-describedby={colorErrors[routine.clientId]
+                            ? `${id}-${routine.clientId}-color-error`
+                            : undefined}
+                        >
+                          <legend className={styles.colorLegend}>
+                            스티커 색상 {routine.routineId === null && "(필수)"}
+                          </legend>
+                          {routine.routineId !== null && routine.stickerColor === null && (
+                            <p className={styles.legacyColor}>
+                              기존 순서 색상 사용 중
+                            </p>
+                          )}
+                          <div className={styles.colorOptions}>
+                            {routineStickers.map((sticker, colorIndex) => (
+                              <label key={sticker} className={styles.colorOption}>
+                                <input
+                                  type="radio"
+                                  name={`${id}-${routine.clientId}-color`}
+                                  value={colorIndex + 1}
+                                  checked={routine.stickerColor === colorIndex + 1}
+                                  onChange={() => handleChangeColor(routine.clientId, colorIndex + 1)}
+                                  aria-label={`${index + 1}번째 습관 스티커 색상 ${colorIndex + 1}`}
+                                  aria-invalid={Boolean(colorErrors[routine.clientId])}
+                                />
+                                <img src={sticker} width="32" height="32" alt="" />
+                              </label>
+                            ))}
+                          </div>
+                          {colorErrors[routine.clientId] && (
+                            <p id={`${id}-${routine.clientId}-color-error`} className={styles.inputError} aria-live="polite">
+                              {colorErrors[routine.clientId]}
+                            </p>
+                          )}
+                        </fieldset>
                       </div>
                       <button
                         type="button"

@@ -1,4 +1,4 @@
-// 공부의 숲 DB 설계 — docs/DB.md / ADR-051~073
+// 공부의 숲 DB 설계 — docs/DB.md / ADR-051~074
 // 스키마·migration 파일 존재와 실제 DB 적용 여부는 구분한다. 문서 작업에서 DB 실행은 확인하지 않았다.
 // 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
 // CHECK·RUNNING/PAUSED 부분 UNIQUE는 기존 migration SQL에 정의돼 있다. 실제 적용은 migration 상태로 확인한다.
@@ -45,6 +45,8 @@ model Routine {
   studyId   String    @db.Uuid
   // trim 후 그래핌 기준 1~20개를 서버에서 검사한다.
   name      String    @db.Text
+  // 기존 테스트 습관만 null 허용. 신규 생성은 1~18 필수, CHECK는 migration에서 관리한다.
+  stickerColor Int?
   // 서버가 한국 날짜를 지정한다. UTC 날짜를 기본값으로 쓰지 않는다.
   startsOn  DateTime  @db.Date
   // 종료일은 기록 표시에 포함한다. endsOn이 있으면 목록에서 숨기고 조작을 막는다.
