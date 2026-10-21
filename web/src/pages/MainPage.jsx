@@ -245,7 +245,7 @@ const MainPage = () => {
               placeholder="검색"
             />
 
-            <button type="submit">검색</button>
+            <button type="submit" hidden>검색</button>
           </form>
 
           <StudySort value={query.sort} onChange={handleSortChange} />
