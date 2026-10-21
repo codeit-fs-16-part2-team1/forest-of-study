@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import ChallengeTimer from "../components/challenge/ChallengeTimer.jsx";
 import GoalTimeModal from "../components/challenge/GoalTimeModal.jsx";
 import useChallengeCountdown from "../hooks/useChallengeCountdown.js";
-import arrowRight from "../assets/challenge/arrowRight.svg";
 import point from "../assets/challenge/point.svg";
 import "./challengePage.scss";
 
@@ -98,12 +97,10 @@ const ChallengePage = ({
                     to={`/routines?id=${encodeURIComponent(study.id)}`}
                   >
                     오늘의 습관
-                    <img src={arrowRight} alt="" />
                   </Link>
                 ) : (
                   <span className="challengePage__link" aria-disabled="true">
                     오늘의 습관
-                    <img src={arrowRight} alt="" />
                   </span>
                 )}
                 {study?.id ? (
@@ -112,12 +109,10 @@ const ChallengePage = ({
                     to={`/dashboard/${encodeURIComponent(study.id)}`}
                   >
                     스터디 상세
-                    <img src={arrowRight} alt="" />
                   </Link>
                 ) : (
                   <span className="challengePage__link" aria-disabled="true">
                     스터디 상세
-                    <img src={arrowRight} alt="" />
                   </span>
                 )}
               </nav>

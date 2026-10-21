@@ -161,11 +161,11 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
 
           <nav className={styles.links} aria-label="스터디 활동">
             <Link to={`/routines?id=${study.id}`} state={{ from: currentPath }}>
-              오늘의 습관 <span aria-hidden="true">›</span>
+              오늘의 습관
             </Link>
 
             <Link to={`/challenge?id=${study.id}`}>
-              오늘의 집중 <span aria-hidden="true">›</span>
+              오늘의 집중
             </Link>
           </nav>
         </div>
