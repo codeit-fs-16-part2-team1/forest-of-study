@@ -5,7 +5,7 @@ import useToast from "../hooks/useToast.js";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import StudyCard from "../components/StudyCard/StudyCard.jsx";
-import RecentStudies from "../components/RecentStudies/RecentStudies.jsx";
+import BookmarkStudies from "../components/BookmarkStudies/BookmarkStudies.jsx";
 import StudySort from "../components/StudySort/StudySort.jsx";
 import styles from "./MainPage.module.scss";
 
@@ -173,7 +173,7 @@ const MainPage = () => {
 
   return (
     <main className={styles.page}>
-      <RecentStudies />
+      <BookmarkStudies />
       <section
         className={styles.section}
         aria-labelledby="browse-title"

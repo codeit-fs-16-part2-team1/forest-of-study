@@ -3,8 +3,9 @@ import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
 import studyCardPoint from "../../assets/studyCardPoint.svg";
 import styles from "./StudyCard.module.scss";
+import BookmarkButton from "../BookmarkButton/BookmarkButton.jsx";
 
-const StudyCard = ({ study }) => {
+const StudyCard = ({ study, onShowToast, onBookmarkRemoved }) => {
   const background = studyBackgrounds.find(
     ({ key }) => key === study.backgroundKey
   );
@@ -12,10 +13,10 @@ const StudyCard = ({ study }) => {
   const hasImage = Boolean(background?.image);
 
   return (
-    <Link
-      to={`/dashboard/${study.id}`}
+    <article
       className={`${styles.card} ${hasImage ? styles.imageCard : ""}`}
       style={{
+        "--study-accent": hasImage ? "var(--color-white)" : `var(--color-${background?.key ?? "green"}-text)`,
         backgroundColor: background?.color,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
@@ -23,11 +24,26 @@ const StudyCard = ({ study }) => {
           : undefined,
       }}
     >
+      <Link
+        to={`/dashboard/${study.id}`}
+        className={styles.cardLink}
+        aria-label={`${study.nickname}의 ${study.name} 상세 보기`}
+      />
       <div className={styles.header}>
-        <h3 className={styles.title}>
-          <span className={styles.nickname}>{study.nickname}</span>
-          의 {study.name}
-        </h3>
+        <div className={styles.titleGroup}>
+          <BookmarkButton
+            studyId={study.id}
+            onShowToast={onShowToast}
+            onRemoved={onBookmarkRemoved}
+            className={styles.bookmarkButton}
+            activeClassName={styles.isBookmarked}
+          />
+
+          <h3 className={styles.title}>
+            <span className={styles.nickname}>{study.nickname}</span>
+            의 {study.name}
+          </h3>
+        </div>
 
         <span className={styles.points}>
           <span className={styles.pointIcon} aria-hidden="true">
@@ -53,7 +69,7 @@ const StudyCard = ({ study }) => {
           ))}
         </ul>
       )}
-    </Link>
+    </article>
   );
 };
 

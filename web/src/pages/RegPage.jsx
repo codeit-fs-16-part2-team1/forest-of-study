@@ -163,7 +163,9 @@ const handlePasswordKeyDown = (event) => {
 
       if (activeRequestRef.current !== requestId) return;
 
-      navigate(`/dashboard/${data.id}`);
+      navigate(`/dashboard/${data.id}`, {
+        state: isEditing ? null : { createdStudyId: data.id },
+      });
     } catch (error) {
       if (activeRequestRef.current !== requestId) return;
 
