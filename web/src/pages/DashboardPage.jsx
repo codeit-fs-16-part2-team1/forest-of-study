@@ -11,10 +11,16 @@ import StudyReactions from "../components/reaction/StudyReactions.jsx";
 import Toast from "../components/Toast/Toast.jsx";
 import useToast from "../hooks/useToast.js";
 import studyPoint from "../assets/studyPoint.svg";
+import Popup from "../components/Popup/Popup.jsx";
+import { addBookmarkStudy, removeBookmarkStudy } from "../utils/bookmarkStudies.js";
+import BookmarkButton from "../components/BookmarkButton/BookmarkButton.jsx";
 
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [bookmarkPromptId, setBookmarkPromptId] = useState(null);
+  const [isBookmarkLimitOpen, setIsBookmarkLimitOpen] = useState(false);
+  const consumedCreationRef = useRef(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -29,6 +35,25 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   }, [visitedId]);
 
   useEffect(() => () => { deleteRequestRef.current = null; }, []);
+
+  // 표시 상태는 메모리로 옮기고 이력에서 즉시 지워 새로고침·재방문 시 반복하지 않는다.
+  useEffect(() => {
+    if (!location.state?.createdStudyId || consumedCreationRef.current) return;
+    consumedCreationRef.current = true;
+    setBookmarkPromptId(location.state.createdStudyId);
+    const remainingState = { ...location.state };
+    delete remainingState.createdStudyId;
+    navigate(currentPath, { replace: true, state: remainingState });
+  }, [location.state, currentPath, navigate]);
+
+  const confirmCreatedStudyBookmark = () => {
+    if (bookmarkPromptId !== study?.id) return;
+    const result = addBookmarkStudy(study.id);
+    setBookmarkPromptId(null);
+    if (result === "limit") setIsBookmarkLimitOpen(true);
+    else if (result === "error") showToast("북마크를 저장하지 못했습니다. 다시 시도해주세요.", "warning");
+    else showToast(result === "existing" ? "이미 북마크에 등록된 스터디입니다." : "북마크에 등록했습니다.");
+  };
 
   const openDelete = () => {
     deleteFormVersionRef.current += 1;
@@ -60,6 +85,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       await studyApi.remove(study.id, password);
       // 이탈 후에도 삭제된 ID는 정리하되 이전 페이지의 UI는 갱신하지 않는다.
       removeRecentStudy(study.id);
+      removeBookmarkStudy(study.id);
       if (deleteRequestRef.current !== request) return;
 
       setIsDeleteOpen(false);
@@ -131,11 +157,18 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   return (
     <main className={styles.page}>
       <section className={styles.panel} aria-labelledby="study-title">
-        <nav className={styles.management} aria-label="스터디 관리">
-          <Link to={`/reg?id=${study.id}`}>수정하기</Link>
-          <button type="button" onClick={openDelete}>삭제하기</button>
-        </nav>
         <div className={styles.toolbar}>
+          <nav className={styles.management} aria-label="스터디 관리">
+            <button type="button" onClick={handleShare}>
+              공유하기
+            </button>
+            <span className={styles.managementDivider} aria-hidden="true">|</span>
+            <Link to={`/reg?id=${study.id}`}>수정하기</Link>
+            <span className={styles.deleteDivider} aria-hidden="true">|</span>
+            <button type="button" className={styles.deleteButton} onClick={openDelete}>
+              스터디 삭제하기
+            </button>
+          </nav>
           <div className={styles.reactions}>
             <StudyReactions
               studyId={study.id}
@@ -144,16 +177,21 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
               onShowToast={showToast}
             />
           </div>
-          <button type="button" className={styles.shareButton} onClick={handleShare}>
-            공유하기
-          </button>
         </div>
 
         <div className={styles.heading}>
-          <h1 id="study-title" className={styles.title}>
-            <span className={styles.nickname}>{study.nickname}</span>
-            의 {study.name}
-          </h1>
+          <div className={styles.titleGroup}>
+            <BookmarkButton
+              onShowToast={showToast}
+              studyId={study.id}
+              className={styles.bookmarkButton}
+              activeClassName={styles.isBookmarked}
+            />
+            <h1 id="study-title" className={styles.title}>
+              <span className={styles.nickname}>{study.nickname}</span>
+              의 {study.name}
+            </h1>
+          </div>
 
           <nav className={styles.links} aria-label="스터디 활동">
             <Link to={`/routines?id=${study.id}`} state={{ from: currentPath }}>
@@ -198,6 +236,22 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
           errorMessage={deleteError}
           onSubmit={handleDelete}
           onClose={closeDelete}
+        />
+      )}
+      {bookmarkPromptId === study.id && (
+        <Popup
+          mode="confirm"
+          message="스터디 등록에 성공했습니다! 북마크에 등록할까요?"
+          cancelLabel="아니오"
+          confirmLabel="예"
+          onClose={() => setBookmarkPromptId(null)}
+          onConfirm={confirmCreatedStudyBookmark}
+        />
+      )}
+      {isBookmarkLimitOpen && (
+        <Popup
+          message="북마크는 3개만 등록할 수 있습니다"
+          onClose={() => setIsBookmarkLimitOpen(false)}
         />
       )}
       <Toast toasts={toasts} />

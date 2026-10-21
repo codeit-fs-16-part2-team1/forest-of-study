@@ -1,8 +1,10 @@
+@use "../../styles/breakpoints";
+
 // 모바일
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -92,7 +94,7 @@
 }
 
 // 태블릿, 데스크톱
-@media (min-width: 768px) {
+@media (min-width: breakpoints.$tablet) {
   .popup {
     padding: 4.75rem 1.5rem 2.5rem; // 76px 24px 40px
     max-width: 40.5rem; // 648px

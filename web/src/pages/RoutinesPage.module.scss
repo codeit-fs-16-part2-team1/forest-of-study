@@ -1,10 +1,11 @@
+@use "../styles/breakpoints";
+
 // 모바일
 .main {
-  margin-top: 7.5rem; // 120px
-  margin-bottom: 6.25rem; // 100px
+  min-width: 0;
 }
 .container {
-  margin: 0 1rem; // 16px
+  width: 100%;
   padding: 1rem 1rem 1.5625rem 1rem; // 16px 16px 25px 16px
   border-radius: 1.25rem; // 20px
   background: var(--color-white);
@@ -106,12 +107,8 @@
 }
 
 // 태블릿
-@media (min-width: 48rem) { // 768px
-  .main {
-    margin-top: 7.25rem; // 116px
-  }
+@media (min-width: breakpoints.$tablet) {
   .container {
-    margin: 0 1.5rem; // 24px
     padding: 1.5rem; // 24px
   }
 
@@ -149,13 +146,8 @@
 }
 
 // 데스크톱
-@media (min-width: 64rem) { // 1024px
-  .main {
-    margin-top: 8.75rem; // 140px
-  }
+@media (min-width: breakpoints.$desktop) {
   .container {
-    max-width: 78rem; // 1248px
-    margin: 0 auto;
     padding: 2.5rem; // 40px
   }
 
