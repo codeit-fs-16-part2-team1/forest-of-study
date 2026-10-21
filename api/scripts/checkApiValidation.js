@@ -156,6 +156,23 @@ try {
   const routineId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const anotherId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const emptyBatch = { creates: [], updates: [], endIds: [] };
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, order: [{ routineId }, { createIndex: 0 }],
+    creates: [{ name: "신규", stickerColor: 1 }],
+  }).success, true);
+  for (const order of [
+    [{ routineId }, { routineId: routineId.toUpperCase() }],
+    [{ createIndex: 0 }],
+    [{ routineId, createIndex: 0 }],
+    [{ createIndex: -1 }],
+    [{ createIndex: "0" }],
+  ]) assert.equal(validateRoutineBatch({ ...emptyBatch, order }).success, false);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, endIds: [routineId], order: [{ routineId }],
+  }).success, false);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: "누락", stickerColor: 1 }], order: [],
+  }).success, false);
   const batch = validateRoutineBatch({
     creates: [{ name: ` ${family.repeat(20)} `, stickerColor: 18 }],
     updates: [{ routineId: routineId.toUpperCase(), name: " 독서 ", stickerColor: 1 }],
@@ -184,12 +201,12 @@ try {
   assert.equal(validateRoutineBatch({ ...emptyBatch, creates: [{ name: "독서" }] }).success, false);
   assert.equal(validateRoutineBatch({ ...emptyBatch, endIds: [routineId] }).success, true);
   assert.equal(validateRoutineBatch({
-    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서", stickerColor: 1 })),
+    ...emptyBatch, creates: Array.from({ length: 10 }, () => ({ name: "독서", stickerColor: 1 })),
   }).success, true);
   for (const invalidBatch of [
     { ...emptyBatch, creates: [{ name: family.repeat(21), stickerColor: 1 }] },
     { ...emptyBatch, creates: [{ name: " \t", stickerColor: 1 }] },
-    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서", stickerColor: 1 })) },
+    { ...emptyBatch, creates: Array.from({ length: 11 }, () => ({ name: "독서", stickerColor: 1 })) },
     { ...emptyBatch, creates: [{ name: "독서", stickerColor: 1, routineId }] },
     { ...emptyBatch, updates: [{ routineId: "invalid", name: "독서" }] },
     { ...emptyBatch, updates: [{ routineId, name: family.repeat(21) }] },

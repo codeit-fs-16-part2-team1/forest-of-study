@@ -25,6 +25,7 @@ export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
       id: true,
       name: true,
       stickerColor: true,
+      position: true,
       startsOn: true,
       endsOn: true,
       history: {
@@ -36,7 +37,12 @@ export const getWeeklyRoutineHistories = async ({ studyId, weekDates }) => {
 
   return {
     weekStart,
-    routines: routines.map((routine) => {
+    routines: routines.sort((a, b) => {
+      if (a.endsOn === null && b.endsOn !== null) return -1;
+      if (a.endsOn !== null && b.endsOn === null) return 1;
+      // 동률은 위 조회의 createdAt → id 순서를 유지한다.
+      return a.endsOn === null ? a.position - b.position : b.endsOn - a.endsOn;
+    }).map((routine) => {
       const startsOn = routine.startsOn.toISOString().slice(0, 10);
       const endsOn = routine.endsOn?.toISOString().slice(0, 10) ?? null;
       const historyByDate = new Map(

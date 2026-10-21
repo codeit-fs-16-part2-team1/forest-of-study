@@ -4,9 +4,9 @@ import { getKoreanDate } from "../utils/date.js";
 import { createApiError } from "../utils/apiError.js";
 import { getTodayRoutines } from "./routineService.js";
 
-const MAX_ACTIVE_ROUTINES = 18;
+const MAX_ACTIVE_ROUTINES = 10;
 
-export const saveRoutineBatch = async ({ studyId, creates, updates, endIds }) =>
+export const saveRoutineBatch = async ({ studyId, creates, updates, endIds, order }) =>
   prisma.$transaction(async (tx) => {
     // 생성·체크와 같은 Study → Routine 순서로 잠근다.
     const studies = await tx.$queryRaw`
@@ -40,8 +40,24 @@ export const saveRoutineBatch = async ({ studyId, creates, updates, endIds }) =>
     }
     const activeEndIds = endIds.filter((id) => byId.get(id).endsOn === null);
     const activeCount = await tx.routine.count({ where: { studyId, endsOn: null } });
-    if (activeCount - activeEndIds.length + creates.length > MAX_ACTIVE_ROUTINES) {
+    const nextActiveCount = activeCount - activeEndIds.length + creates.length;
+    // 기존 초과 데이터의 편집·종료는 허용하되, 초과 상태에서 개수를 늘리지 않는다.
+    if (nextActiveCount > MAX_ACTIVE_ROUTINES && nextActiveCount > activeCount) {
       throw createApiError("VALIDATION_ERROR");
+    }
+
+    const active = await tx.routine.findMany({
+      where: { studyId, endsOn: null },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      select: { id: true, position: true },
+    });
+    const remainingIds = active.filter((item) => !activeEndIds.includes(item.id)).map((item) => item.id);
+    if (order) {
+      const orderedIds = order.filter((item) => item.routineId).map((item) => item.routineId);
+      if (orderedIds.length !== remainingIds.length ||
+          remainingIds.some((id) => !orderedIds.includes(id))) {
+        throw createApiError("VALIDATION_ERROR");
+      }
     }
 
     // 종료는 이력을 보존한다. 재종료 시 최초 종료일을 덮어쓰지 않는다.
@@ -58,9 +74,21 @@ export const saveRoutineBatch = async ({ studyId, creates, updates, endIds }) =>
         data: { name, ...(stickerColor !== undefined && { stickerColor }) },
       });
     }
-    if (creates.length > 0) {
-      await tx.routine.createMany({
-        data: creates.map(({ name, stickerColor }) => ({ studyId, name, stickerColor, startsOn: today })),
+    const createdIds = [];
+    const lastPosition = Math.max(0, ...active.map((item) => item.position));
+    for (const [index, { name, stickerColor }] of creates.entries()) {
+      const created = await tx.routine.create({
+        data: { studyId, name, stickerColor, startsOn: today, position: lastPosition + index + 1 },
+        select: { id: true },
+      });
+      createdIds.push(created.id);
+    }
+    const orderedIds = order
+      ? order.map((item) => item.routineId ?? createdIds[item.createIndex])
+      : [...remainingIds, ...createdIds];
+    for (const [index, id] of orderedIds.entries()) {
+      await tx.routine.update({
+        where: { id, studyId, endsOn: null }, data: { position: index + 1 },
       });
     }
 
