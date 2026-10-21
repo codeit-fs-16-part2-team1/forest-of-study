@@ -182,6 +182,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
         <div className={styles.heading}>
           <div className={styles.titleGroup}>
             <BookmarkButton
+              onShowToast={showToast}
               studyId={study.id}
               className={styles.bookmarkButton}
               activeClassName={styles.isBookmarked}

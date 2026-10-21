@@ -1,16 +1,12 @@
 import { useRef } from "react";
 import useBookmarkStudyList from "../../hooks/useBookmarkStudyList.js";
-import Toast from "../Toast/Toast.jsx";
-import useToast from "../../hooks/useToast.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
 import styles from "../../pages/MainPage.module.scss";
 
-const BookmarkStudies = () => {
+const BookmarkStudies = ({ onShowToast }) => {
   const sectionRef = useRef(null);
   const titleRef = useRef(null);
   const { studies, isLoading, error, retry } = useBookmarkStudyList();
-
-  const { toasts, showToast } = useToast();
 
   const handleBookmarkRemoved = (studyId, button) => {
     if (document.activeElement !== button) return;
@@ -41,10 +37,9 @@ const BookmarkStudies = () => {
         <p className={styles.empty} role="status">북마크한 스터디가 없어요</p>
       ) : (
         <div className={`${styles.grid} ${styles.recentGrid}`}>
-          {studies.map((study) => <StudyCard key={study.id} study={study} onShowToast={showToast} onBookmarkRemoved={handleBookmarkRemoved} />)}
+          {studies.map((study) => <StudyCard key={study.id} study={study} onShowToast={onShowToast} onBookmarkRemoved={handleBookmarkRemoved} />)}
         </div>
       )}
-      <Toast toasts={toasts} />
     </section>
   );
 };

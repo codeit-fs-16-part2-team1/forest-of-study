@@ -173,7 +173,7 @@ const MainPage = () => {
 
   return (
     <main className={styles.page}>
-      <BookmarkStudies />
+      <BookmarkStudies onShowToast={showToast} />
       <section
         className={styles.section}
         aria-labelledby="browse-title"
@@ -239,7 +239,7 @@ const MainPage = () => {
           ) : (
             <div className={styles.grid}>
               {result.studies.map((study) => (
-                <StudyCard key={study.id} study={study} />
+                <StudyCard key={study.id} study={study} onShowToast={showToast} />
               ))}
             </div>
           )}
