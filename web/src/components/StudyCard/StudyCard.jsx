@@ -16,6 +16,9 @@ const StudyCard = ({ study }) => {
       to={`/dashboard/${study.id}`}
       className={`${styles.card} ${hasImage ? styles.imageCard : ""}`}
       style={{
+        "--nickname-color": background?.color
+          ? `var(--color-${background.key}-text)`
+          : undefined,
         backgroundColor: background?.color,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
