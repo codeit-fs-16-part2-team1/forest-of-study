@@ -2,9 +2,11 @@ import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
-import { getCustomBackgroundTheme } from "../utils/studyBackground.js";
+import { getCustomBackgroundTheme, getStudyTextColor } from "../utils/studyBackground.js";
 import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
 import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
+import useToast from "../hooks/useToast.js";
+import Toast from "../components/Toast/Toast.jsx";
 import styles from "./RegPage.module.scss";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,6 +16,8 @@ const initialValues = {
   introduction: "",
   backgroundKey: "green",
   backgroundColor: "#e1edde",
+  textColor: "#14151a",
+  useDefaultTextColor: true,
   password: "",
   passwordConfirm: "",
 };
@@ -70,21 +74,35 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     introduction: study.introduction,
     backgroundKey: study.backgroundKey,
     backgroundColor: study.backgroundColor ?? initialValues.backgroundColor,
+    textColor: study.textColor ?? initialValues.textColor,
+    useDefaultTextColor: study.textColor == null,
   } : initialValues);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toasts, showToast } = useToast();
   const [visiblePasswords, setVisiblePasswords] = useState({
     password: false,
     passwordConfirm: false,
   });
   const customTheme = getCustomBackgroundTheme(values.backgroundColor);
+  const customTextColor = values.useDefaultTextColor
+    ? undefined
+    : getStudyTextColor(values.backgroundKey, values.textColor);
 
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const { name, value, type, checked } = event.target;
 
-    setValues((previous) => ({ ...previous, [name]: value }));
-    setErrors((previous) => ({ ...previous, [name]: undefined }));
+    setValues((previous) => ({
+      ...previous,
+      [name]: type === "checkbox" ? checked : value,
+      ...(name === "backgroundKey" && value !== "custom" ? { useDefaultTextColor: true } : {}),
+    }));
+    setErrors((previous) => ({
+      ...previous,
+      [name]: undefined,
+      ...(name === "backgroundKey" || name === "useDefaultTextColor" ? { textColor: undefined } : {}),
+    }));
     setSubmitError("");
   };
 
@@ -156,6 +174,9 @@ const handlePasswordKeyDown = (event) => {
         introduction: values.introduction.trim(),
         backgroundKey: values.backgroundKey,
         backgroundColor: values.backgroundKey === "custom" ? values.backgroundColor : null,
+        textColor: values.backgroundKey === "custom" && !values.useDefaultTextColor
+          ? values.textColor
+          : null,
       };
       // 비밀번호는 수정 본문에 포함하지 않고 보호 헤더로 전달한다.
       const { data } = isEditing
@@ -281,23 +302,71 @@ const handlePasswordKeyDown = (event) => {
               </label>
               {values.backgroundKey === "custom" && (
                 <>
-                  <div className={styles.colorControls}>
-                    <label htmlFor="reg-backgroundColor">배경 색상</label>
-                    <input
-                      id="reg-backgroundColor"
-                      name="backgroundColor"
-                      type="color"
-                      className={styles.colorInput}
-                      value={values.backgroundColor}
-                      onChange={handleChange}
-                      aria-invalid={Boolean(errors.backgroundColor)}
-                      aria-describedby={errors.backgroundColor ? "backgroundColor-error" : undefined}
-                    />
-                    <output htmlFor="reg-backgroundColor">{values.backgroundColor}</output>
+                  <div className={styles.colorSettings}>
+                    <div className={styles.colorControls}>
+                      <label htmlFor="reg-backgroundColor">배경 색상</label>
+                      <input
+                        id="reg-backgroundColor"
+                        name="backgroundColor"
+                        type="color"
+                        className={styles.colorInput}
+                        value={values.backgroundColor}
+                        onChange={handleChange}
+                        aria-invalid={Boolean(errors.backgroundColor)}
+                        aria-describedby={errors.backgroundColor ? "backgroundColor-error" : undefined}
+                      />
+                      <output htmlFor="reg-backgroundColor">{values.backgroundColor}</output>
+                    </div>
+                    <div className={styles.colorControls}>
+                      <label htmlFor="reg-textColor">글자 색상</label>
+                      {values.useDefaultTextColor ? (
+                        <button
+                          id="reg-textColor"
+                          type="button"
+                          className={`${styles.colorInput} ${styles.colorGuideButton}`}
+                          aria-label="글자 색상 변경 안내"
+                          onClick={() => showToast("기본 글자색 허용체크를 풀어주세요", "warning")}
+                        >
+                          <span
+                            className={styles.colorGuideSwatch}
+                            style={{ backgroundColor: values.textColor }}
+                            aria-hidden="true"
+                          />
+                        </button>
+                      ) : (
+                        <input
+                          id="reg-textColor"
+                          name="textColor"
+                          type="color"
+                          className={styles.colorInput}
+                          value={values.textColor}
+                          onChange={handleChange}
+                          aria-invalid={Boolean(errors.textColor)}
+                          aria-describedby={errors.textColor ? "textColor-error" : undefined}
+                        />
+                      )}
+                      {!values.useDefaultTextColor && (
+                        <output htmlFor="reg-textColor">{values.textColor}</output>
+                      )}
+                    </div>
                   </div>
+                  <label className={styles.customOption}>
+                    <input
+                      type="checkbox"
+                      name="useDefaultTextColor"
+                      checked={values.useDefaultTextColor}
+                      onChange={handleChange}
+                    />
+                    기본 글자색 사용 (자동 대비)
+                  </label>
                   {errors.backgroundColor && (
                     <p id="backgroundColor-error" className={styles.error} role="alert">
                       {errors.backgroundColor}
+                    </p>
+                  )}
+                  {errors.textColor && (
+                    <p id="textColor-error" className={styles.error} role="alert">
+                      {errors.textColor}
                     </p>
                   )}
                   {customTheme && (
@@ -305,7 +374,11 @@ const handlePasswordKeyDown = (event) => {
                       className={styles.customPreview}
                       role="group"
                       aria-label="사용자 지정 배경 미리보기"
-                      style={{ backgroundColor: customTheme.backgroundColor, color: customTheme.textColor }}
+                      style={{
+                        backgroundColor: customTheme.backgroundColor,
+                        color: customTheme.textColor,
+                        "--custom-content-color": customTextColor ?? customTheme.textColor,
+                      }}
                     >
                       <p className={styles.previewTitle}>
                         {values.nickname.trim() || "닉네임"}의 {values.name.trim() || "스터디 이름"}
@@ -392,6 +465,7 @@ const handlePasswordKeyDown = (event) => {
           </button>
         </form>
       </section>
+      <Toast toasts={toasts} />
     </main>
   );
 };

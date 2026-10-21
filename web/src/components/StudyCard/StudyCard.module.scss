@@ -93,6 +93,11 @@
 .customCard {
   color: var(--custom-text-color);
 
+  .title,
+  .introduction {
+    color: var(--custom-content-color);
+  }
+
   .nickname,
   .days {
     color: inherit;

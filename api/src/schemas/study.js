@@ -12,7 +12,7 @@ const backgroundKeySchema = z.enum([
   "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4", "custom",
 ]);
 
-const backgroundColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
+const hexColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
   .transform((value) => value.toLowerCase()).nullable();
 
 const checkBackgroundCombination = (data, context) => {
@@ -24,6 +24,10 @@ const checkBackgroundCombination = (data, context) => {
   } else if (data.backgroundKey !== "custom" && data.backgroundColor != null) {
     context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
   }
+
+  if (data.backgroundKey !== undefined && data.backgroundKey !== "custom" && data.textColor != null) {
+    context.addIssue({ code: "custom", path: ["textColor"], message: "" });
+  }
 };
 
 const createStudySchema = z.strictObject({
@@ -31,7 +35,8 @@ const createStudySchema = z.strictObject({
   name: createTextSchema(15),
   introduction: createTextSchema(100),
   backgroundKey: backgroundKeySchema.default("green"),
-  backgroundColor: backgroundColorSchema.default(null),
+  backgroundColor: hexColorSchema.default(null),
+  textColor: hexColorSchema.default(null),
   password: studyPasswordSchema,
   passwordConfirm: studyPasswordSchema,
 }).superRefine(checkBackgroundCombination).refine((data) => data.password === data.passwordConfirm, {
@@ -66,11 +71,12 @@ const updateStudySchema = z.strictObject({
   name: createTextSchema(15).optional(),
   introduction: createTextSchema(100).optional(),
   backgroundKey: backgroundKeySchema.optional(),
-  backgroundColor: backgroundColorSchema.optional(),
+  backgroundColor: hexColorSchema.optional(),
+  textColor: hexColorSchema.optional(),
 }).superRefine(checkBackgroundCombination)
   .refine((data) => Object.values(data).some((value) => value !== undefined))
   .transform((data) => data.backgroundKey !== undefined && data.backgroundKey !== "custom"
-    ? { ...data, backgroundColor: null }
+    ? { ...data, backgroundColor: null, textColor: null }
     : data);
 
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);

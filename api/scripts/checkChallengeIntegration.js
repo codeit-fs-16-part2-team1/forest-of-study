@@ -150,7 +150,7 @@ const runChecks = async () => {
   assert.equal(ownedStudy.points, 0);
   assert.deepEqual(Object.keys(created.body), ["data"]);
   assert.deepEqual(Object.keys(created.body.data).sort(), [
-    "backgroundColor", "backgroundKey", "createdAt", "id", "introduction", "name", "nickname", "points", "updatedAt",
+    "backgroundColor", "backgroundKey", "createdAt", "id", "introduction", "name", "nickname", "points", "textColor", "updatedAt",
   ].sort());
   assert.equal(created.body.data.points, 0);
 

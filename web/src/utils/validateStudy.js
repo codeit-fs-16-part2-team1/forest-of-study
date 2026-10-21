@@ -32,6 +32,11 @@ export const validateStudyFields = (values) => {
     errors.backgroundColor = "배경 색상을 선택해주세요.";
   }
 
+  if (values.backgroundKey === "custom" && values.useDefaultTextColor === false
+    && !isValidBackgroundColor(values.textColor)) {
+    errors.textColor = "글자 색상을 선택해주세요.";
+  }
+
   return errors;
 };
 

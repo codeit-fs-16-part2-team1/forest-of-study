@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { getCustomBackgroundTheme, isValidBackgroundColor } from "../src/utils/studyBackground.js";
+import { getCustomBackgroundTheme, getStudyTextColor, isValidBackgroundColor } from "../src/utils/studyBackground.js";
 import { validateStudy, validateStudyFields } from "../src/utils/validateStudy.js";
 
 // DB·API·브라우저 없이 사용자 지정 색상의 입력과 글자 대비를 검사한다.
@@ -21,6 +21,18 @@ for (const color of [undefined, null, "", "#abc", "#12345678", "rgb(1,2,3)", "re
 }
 assert.deepEqual(validateStudyFields({ ...form, backgroundKey: "green", backgroundColor: null }), {});
 
+const manualForm = { ...form, useDefaultTextColor: false, textColor: "#ABCDEF" };
+assert.deepEqual(validateStudy(manualForm), {});
+assert.equal(getStudyTextColor("custom", manualForm.textColor), "#abcdef");
+for (const textColor of [undefined, null, "", "#abc", "#12345678", "red", "#123456\n", 123456]) {
+  assert.equal(getStudyTextColor("custom", textColor), undefined);
+  assert.equal(typeof validateStudyFields({ ...manualForm, textColor }).textColor, "string");
+}
+assert.equal(getStudyTextColor("green", "#abcdef"), undefined);
+assert.equal(getStudyTextColor("image1", "#abcdef"), undefined);
+assert.deepEqual(validateStudyFields({ ...manualForm, useDefaultTextColor: true, textColor: null }), {});
+assert.deepEqual(validateStudyFields({ ...manualForm, backgroundKey: "pink", textColor: null }), {});
+
 // 카드 글자색의 실제 토큰 값과 배경의 명암비가 4.5 이상인지 확인한다.
 const luminance = (hex) => {
   const [r, g, b] = hex.match(/[0-9a-f]{2}/gi).map((channel) => {
@@ -35,4 +47,4 @@ for (const color of ["#000000", "#ffffff", "#808080", "#ff0000", "#00ff00", "#00
   const [lighter, darker] = [luminance(color), luminance(textColor)].sort((a, b) => b - a);
   assert.equal((lighter + 0.05) / (darker + 0.05) >= 4.5, true);
 }
-console.log("사용자 지정 배경 검사 성공: HEX 입력·기존 배경 호환·밝은/어두운 배경의 글자 대비");
+console.log("사용자 지정 배경 검사 성공: HEX 입력·공통 글자색·기본색 복귀·기존 배경 호환·자동 대비");

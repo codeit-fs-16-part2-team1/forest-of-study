@@ -1,6 +1,11 @@
 export const isValidBackgroundColor = (value) =>
   typeof value === "string" && value.length === 7 && /^#[0-9a-fA-F]{6}$/.test(value);
 
+export const getStudyTextColor = (backgroundKey, textColor) =>
+  backgroundKey === "custom" && isValidBackgroundColor(textColor)
+    ? textColor.toLowerCase()
+    : undefined;
+
 const getLuminance = (channels) => {
   const [red, green, blue] = channels.map((channel) => {
     const value = channel / 255;
