@@ -182,7 +182,9 @@ textarea.input {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 58px;
+  min-height: 55px;
+  box-shadow: 0 3px 0 var(--color-green-text);
+  text-shadow: 0 -2px 0 var(--color-green-text);
   padding: 12px 20px;
   border-radius: 16px;
   background: var(--color-brand);
@@ -191,9 +193,14 @@ textarea.input {
   font-size: 18px;
   margin-top: 6px;
 
+  &:active:enabled {
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.65;
+    opacity: 0.5;
   }
 }
 
