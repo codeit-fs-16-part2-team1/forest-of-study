@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
+import { validateCreateStudy, validateUpdateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
 import { validateCreateRoutine, validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
 import { validateStudyPassword, validatePasswordVerificationBody } from "../src/schemas/studyPassword.js";
 import { assertLocalSeedDatabase } from "../seedData.js";
@@ -46,6 +46,26 @@ try {
   assert.equal(validateCreateStudy(body).data.backgroundKey, "green");
   assert.equal(validateCreateStudy({ ...body, backgroundKey: "unknown" }).success, false);
   assert.equal(validateCreateStudy({ ...body, points: 100 }).success, false);
+
+  step = "기존 배경과 사용자 지정 색상 조합";
+  for (const backgroundKey of ["green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4"]) {
+    const created = validateCreateStudy({ ...body, backgroundKey });
+    assert.equal(created.success, true);
+    assert.equal(created.data.backgroundColor, null);
+    assert.deepEqual(validateUpdateStudy({ backgroundKey }).data, { backgroundKey, backgroundColor: null });
+  }
+  const custom = { backgroundKey: "custom", backgroundColor: "#3A8F72" };
+  assert.equal(validateCreateStudy({ ...body, ...custom }).data.backgroundColor, "#3a8f72");
+  assert.deepEqual(validateUpdateStudy(custom).data, { ...custom, backgroundColor: "#3a8f72" });
+  assert.deepEqual(validateUpdateStudy({ name: "새 이름" }).data, { name: "새 이름" });
+  for (const color of [undefined, null, "", "#abc", "#12345678", "rgb(1, 2, 3)", "red", " #123456", "#123456\n", 123456]) {
+    assert.equal(validateCreateStudy({ ...body, backgroundKey: "custom", backgroundColor: color }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "custom", backgroundColor: color }).success, false);
+  }
+  assert.equal(validateCreateStudy({ ...body, backgroundKey: "green", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundKey: "pink", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: null }).success, false);
 
   step = "목록 기본값·정규화·미등록 쿼리";
   assert.deepEqual(validateStudyListQuery({}).data, { keyword: "", offset: 0, limit: 6, sort: "latest" });

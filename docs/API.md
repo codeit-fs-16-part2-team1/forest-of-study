@@ -105,7 +105,7 @@ Base URL은 서버 주소 + /api. JSON 요청·응답, UUID ID, ISO 8601 UTC 일
 
 | DTO | 필드 |
 | --- | --- |
-| Study | id, nickname, name, introduction, backgroundKey, points(Study.points), createdAt, updatedAt |
+| Study | id, nickname, name, introduction, backgroundKey, backgroundColor(null 허용), points(Study.points), createdAt, updatedAt |
 | ReactionSummary | emoji, count |
 | Routine | id, studyId, name, startsOn, endsOn(null 허용), completed(오늘 목록에서만) |
 | Challenge | id, studyId, goalMinutes, status(RUNNING/PAUSED/COMPLETED/RESET), elapsedMilliseconds, lastStartedAt(null 허용), awardedPoints, createdAt, elapsedSeconds, remainingSeconds, serverTime, endsAt(RUNNING 파생값 또는 null) |
@@ -188,9 +188,13 @@ offset 도중 다른 사용자가 데이터를 추가·삭제·포인트 변경�
 
 ### API-ST-02 생성 / API-ST-04 수정
 
-생성 body: {nickname,name,introduction,backgroundKey?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 원문 검사·공백 포함 거절·불일치 처리를 따른다(ADR-066).
+생성 body: {nickname,name,introduction,backgroundKey?,backgroundColor?,password,passwordConfirm}. 수정 body: {nickname?,name?,introduction?,backgroundKey?,backgroundColor?}; 최소 한 필드 필요, password 변경 필드 거절. 닉네임1~10, 이름1~15, 소개1~100그래핌이며 trim 후 검사·저장한다. 비밀번호·확인값은 공통 입력 기준의 원문 검사·공백 포함 거절·불일치 처리를 따른다(ADR-066).
 
-backgroundKey는 원색4·이미지4 중 선택, 생략하면 첫 초록색(green). 담당자가 나머지 7종의 임시 키와 표시 자산을 지정해 공유한다. 프론트·서버는 같은 임시 목록으로 표시·검증하며 목록 밖 키는 400 INVALID_BACKGROUND다. 최종 명칭 대기만으로 구현을 보류하지 않는다. 구체 임시 키는 담당자가 공유할 목록을 따르며 여기서 임의로 고정하지 않는다. 추후 키 변경 시 이미 저장된 backgroundKey의 매핑·migration을 함께 검토한다. DB에 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성/수정 성공은 {data:Study}, 프론트가 해당 상세로 이동한다. 생성 성공이 인증 발급을 의미하지 않는다.
+backgroundKey는 기존 8종(green/yellow/blue/pink/image1~4)과 사용자 지정 색상인 custom을 허용한다. 생략하면 green이다. 기존 배경은 backgroundColor를 생략하거나 null로 보내며 응답에는 null을 반환한다. custom은 backgroundColor가 필수이며 정확히 7자인 #RRGGBB만 받는다. 대문자 HEX도 허용하고 저장·응답은 #rrggbb 소문자로 통일한다. RGB 함수·색상 이름·축약 HEX·알파 채널·앞뒤 공백은 허용하지 않는다. 배경 키·색상 형식·조합만 잘못된 요청은 400 INVALID_BACKGROUND다(ADR-074).
+
+PATCH에서 배경을 바꿀 때는 backgroundKey를 전달한다. custom을 지정하면 backgroundColor도 함께 전달하며, 기존 8종으로 바꾸면 색상을 null로 비운다. 배경 필드를 모두 생략하면 기존 키·색상을 유지한다. backgroundColor만 단독으로 전달하거나 기존 배경에 null이 아닌 색상을 함께 전달하면 400 INVALID_BACKGROUND다.
+
+생성/수정 성공은 {data:Study}이며 목록·상세·ID 다건을 포함한 Study 응답은 backgroundColor를 포함한다. 프론트는 색상 선택기로 지정한 값을 저장하고 기존 배경 선택을 유지한다. 사용자 지정 카드의 글자는 배경과 대비되는 색으로 표시한다. 이미지 파일 업로드는 이번 범위에 포함하지 않는다. DB에 비밀번호 해시만 저장하고 응답에서 원문·해시를 제외한다. 생성 성공이 인증 발급을 의미하지 않는다.
 
 스터디 닉네임·이름은 기존 trim 후 저장값의 조합이 같으면 중복이다. 같은 nickname만 또는 같은 name만 있는 것은 허용하며 조합이 같으면 생성은 409 STUDY_CONFLICT다. PATCH도 변경 후 조합이 다른 Study와 같으면 409 STUDY_CONFLICT로 거절한다. Study의 @@unique([nickname,name])와 서버 오류 매핑으로 동시 중복을 방지한다. 이는 기존 문자열 정리 규칙을 유지하는 것이며 검색용 대소문자 무시 정책을 중복 판정에 새로 적용하는 결정은 아니다(ADR-064).
 
@@ -305,7 +309,7 @@ PUT body {recordDate,completed:boolean}. 서버 한국 오늘과 일치하며 �
 | --- | --- | --- |
 | 400 | VALIDATION_ERROR | UUID·타입·그래핌 범위·공백만 있는 필수값·지원하지 않는 본문/쿼리 필드·목록limit의1~6 범위 위반·활성 습관 18개 초과·비밀번호·확인값의 공백 포함 또는 허용 문자/길이 오류·ST-08 중복 제거 후 ID10개 초과 |
 | 400 | PASSWORD_CONFIRM_MISMATCH | 생성 비밀번호 확인 불일치 |
-| 400 | INVALID_BACKGROUND | 담당자가 공유한 8종 임시 배경 목록 밖 키; 최종 키 확정 전에도 임시 목록으로 검증 |
+| 400 | INVALID_BACKGROUND | 기존 8종/custom 외의 키, 사용자 지정 HEX 형식 오류, custom 색상 누락 또는 배경 키·색상 조합 오류(ADR-074) |
 | 400 | INVALID_EMOJI | 선택기가 제공하는 이모지가 아닌 입력·빈 값 등 유효하지 않은 이모지 표현 |
 | 401 | PASSWORD_MISMATCH | 페이지 진입·보호 요청·삭제의 비밀번호 오류 |
 | 401 | VERIFICATION_REQUIRED | 보호 요청 비밀번호 헤더 또는 진입 검증·삭제 본문의 비밀번호 누락 |

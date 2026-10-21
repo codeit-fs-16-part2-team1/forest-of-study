@@ -2,6 +2,7 @@ import { useNavigate } from "react-router";
 import { studyApi } from "../api/api.js";
 import { getApiError } from "../api/apiError.js";
 import { studyBackgrounds } from "../constants/studyBackgrounds.js";
+import { getCustomBackgroundTheme } from "../utils/studyBackground.js";
 import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
 import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
 import styles from "./RegPage.module.scss";
@@ -12,6 +13,7 @@ const initialValues = {
   name: "",
   introduction: "",
   backgroundKey: "green",
+  backgroundColor: "#e1edde",
   password: "",
   passwordConfirm: "",
 };
@@ -67,6 +69,7 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     name: study.name,
     introduction: study.introduction,
     backgroundKey: study.backgroundKey,
+    backgroundColor: study.backgroundColor ?? initialValues.backgroundColor,
   } : initialValues);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
@@ -75,6 +78,7 @@ const RegPage = ({ study = null, verifiedPassword = null }) => {
     password: false,
     passwordConfirm: false,
   });
+  const customTheme = getCustomBackgroundTheme(values.backgroundColor);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -151,8 +155,9 @@ const handlePasswordKeyDown = (event) => {
         name: values.name.trim(),
         introduction: values.introduction.trim(),
         backgroundKey: values.backgroundKey,
+        backgroundColor: values.backgroundKey === "custom" ? values.backgroundColor : null,
       };
-      // 수정 본문에는 변경 가능한 네 필드만 보내고 비밀번호는 보호 헤더로 전달한다.
+      // 비밀번호는 수정 본문에 포함하지 않고 보호 헤더로 전달한다.
       const { data } = isEditing
         ? await studyApi.update(study.id, fields, verifiedPassword)
         : await studyApi.create({
@@ -262,6 +267,56 @@ const handlePasswordKeyDown = (event) => {
             </span>
            </label>
           ))}
+            </div>
+            <div className={styles.customBackground}>
+              <label className={styles.customOption}>
+                <input
+                  type="radio"
+                  name="backgroundKey"
+                  value="custom"
+                  checked={values.backgroundKey === "custom"}
+                  onChange={handleChange}
+                />
+                직접 색상 선택
+              </label>
+              {values.backgroundKey === "custom" && (
+                <>
+                  <div className={styles.colorControls}>
+                    <label htmlFor="reg-backgroundColor">배경 색상</label>
+                    <input
+                      id="reg-backgroundColor"
+                      name="backgroundColor"
+                      type="color"
+                      className={styles.colorInput}
+                      value={values.backgroundColor}
+                      onChange={handleChange}
+                      aria-invalid={Boolean(errors.backgroundColor)}
+                      aria-describedby={errors.backgroundColor ? "backgroundColor-error" : undefined}
+                    />
+                    <output htmlFor="reg-backgroundColor">{values.backgroundColor}</output>
+                  </div>
+                  {errors.backgroundColor && (
+                    <p id="backgroundColor-error" className={styles.error} role="alert">
+                      {errors.backgroundColor}
+                    </p>
+                  )}
+                  {customTheme && (
+                    <div
+                      className={styles.customPreview}
+                      role="group"
+                      aria-label="사용자 지정 배경 미리보기"
+                      style={{ backgroundColor: customTheme.backgroundColor, color: customTheme.textColor }}
+                    >
+                      <p className={styles.previewTitle}>
+                        {values.nickname.trim() || "닉네임"}의 {values.name.trim() || "스터디 이름"}
+                      </p>
+                      <p className={styles.previewIntroduction}>
+                        {values.introduction.trim() || "선택한 색상이 카드 배경에 적용됩니다."}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </fieldset>
 

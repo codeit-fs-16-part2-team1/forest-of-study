@@ -9,17 +9,32 @@ const createTextSchema = (maxLength) => z.string().trim().refine((value) => {
 });
 
 const backgroundKeySchema = z.enum([
-  "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4",
+  "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4", "custom",
 ]);
+
+const backgroundColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
+  .transform((value) => value.toLowerCase()).nullable();
+
+const checkBackgroundCombination = (data, context) => {
+  if (data.backgroundKey === "custom" && data.backgroundColor == null) {
+    context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
+  } else if (data.backgroundKey === undefined && data.backgroundColor !== undefined) {
+    // PATCH의 색상 변경은 키와 함께 전달해 의도한 배경 종류를 명시한다.
+    context.addIssue({ code: "custom", path: ["backgroundKey"], message: "" });
+  } else if (data.backgroundKey !== "custom" && data.backgroundColor != null) {
+    context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
+  }
+};
 
 const createStudySchema = z.strictObject({
   nickname: createTextSchema(10),
   name: createTextSchema(15),
   introduction: createTextSchema(100),
   backgroundKey: backgroundKeySchema.default("green"),
+  backgroundColor: backgroundColorSchema.default(null),
   password: studyPasswordSchema,
   passwordConfirm: studyPasswordSchema,
-}).refine((data) => data.password === data.passwordConfirm, {
+}).superRefine(checkBackgroundCombination).refine((data) => data.password === data.passwordConfirm, {
   path: ["passwordConfirm"],
   message: "",
 });
@@ -51,7 +66,12 @@ const updateStudySchema = z.strictObject({
   name: createTextSchema(15).optional(),
   introduction: createTextSchema(100).optional(),
   backgroundKey: backgroundKeySchema.optional(),
-}).refine((data) => Object.values(data).some((value) => value !== undefined));
+  backgroundColor: backgroundColorSchema.optional(),
+}).superRefine(checkBackgroundCombination)
+  .refine((data) => Object.values(data).some((value) => value !== undefined))
+  .transform((data) => data.backgroundKey !== undefined && data.backgroundKey !== "custom"
+    ? { ...data, backgroundColor: null }
+    : data);
 
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);
 export const validateUpdateStudy = (body) => updateStudySchema.safeParse(body);

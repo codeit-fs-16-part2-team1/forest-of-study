@@ -62,10 +62,13 @@ const runChecks = async () => {
     nickname: "생성검증", name: "검증" + fixtureKey, introduction: marker,
     password, passwordConfirm: password,
   };
-  const request = async ({ path = "", method = "GET", body: input } = {}) => {
+  const request = async ({ path = "", method = "GET", body: input, withPassword = false } = {}) => {
     const response = await fetch(baseUrl + path, {
       method,
-      headers: input === undefined ? {} : { "Content-Type": "application/json" },
+      headers: {
+        ...(input === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(withPassword ? { "X-Study-Password": password } : {}),
+      },
       body: input === undefined ? undefined : JSON.stringify(input),
       redirect: "error", signal: AbortSignal.timeout(10000),
     });
@@ -104,10 +107,11 @@ const runChecks = async () => {
   assert.equal(created.status, 201);
   const studyId = created.body.data.id;
   assert.deepEqual(Object.keys(created.body.data).sort(), [
-    "backgroundKey", "createdAt", "id", "introduction", "name", "nickname", "points", "updatedAt",
+    "backgroundColor", "backgroundKey", "createdAt", "id", "introduction", "name", "nickname", "points", "updatedAt",
   ]);
   assert.equal(created.body.data.points, 0);
   assert.equal(created.body.data.backgroundKey, "green");
+  assert.equal(created.body.data.backgroundColor, null);
   const detail = await request({ path: "/" + studyId });
   assert.equal(detail.status, 200);
   assert.equal(detail.body.data.id, studyId);
@@ -160,7 +164,60 @@ const runChecks = async () => {
   expectError(await request({ path: "/invalid-id" }), 400, "VALIDATION_ERROR");
   expectError(await request({ path: "/" + randomUUID() }), 404, "STUDY_NOT_FOUND");
 
-  console.log("스터디 API 검증 성공: 공백 거절·생성201·상세200·중복/동시409·DB UNIQUE·목록 최대6·비밀값 미노출");
+  step = "사용자 지정 배경 생성·상세·목록·다건 재조회";
+  const custom = await create({
+    ...body, nickname: "색상검증", backgroundKey: "custom", backgroundColor: "#3A8F72",
+  });
+  assert.equal(custom.status, 201);
+  const customId = custom.body.data.id;
+  const expectColor = (study, key, color) => {
+    assert.equal(study.backgroundKey, key);
+    assert.equal(study.backgroundColor, color);
+  };
+  expectColor(custom.body.data, "custom", "#3a8f72");
+  expectColor((await request({ path: "/" + customId })).body.data, "custom", "#3a8f72");
+  const customList = await request({ path: "?keyword=" + encodeURIComponent(marker) });
+  assert.equal(customList.status, 200);
+  expectColor(customList.body.data.find(({ id }) => id === customId), "custom", "#3a8f72");
+  const batch = await request({ path: "/batch?ids=" + customId });
+  assert.equal(batch.status, 200);
+  expectColor(batch.body.data[0], "custom", "#3a8f72");
+
+  const patch = (changes) => request({
+    path: "/" + customId, method: "PATCH", body: changes, withPassword: true,
+  });
+  step = "사용자 지정 배경 수정·미전달 유지·기본 배경 복귀";
+  const renamed = await patch({ name: "색상" + fixtureKey });
+  assert.equal(renamed.status, 200);
+  expectColor(renamed.body.data, "custom", "#3a8f72");
+  const recolored = await patch({ backgroundKey: "custom", backgroundColor: "#000000" });
+  assert.equal(recolored.status, 200);
+  expectColor(recolored.body.data, "custom", "#000000");
+  for (const changes of [
+    { backgroundKey: "custom" },
+    { backgroundKey: "custom", backgroundColor: "#abc" },
+    { backgroundKey: "custom", backgroundColor: null },
+    { backgroundKey: "green", backgroundColor: "#ffffff" },
+    { backgroundColor: "#ffffff" },
+  ]) expectError(await patch(changes), 400, "INVALID_BACKGROUND");
+  for (const changes of [
+    { backgroundKey: "custom" },
+    { backgroundKey: "custom", backgroundColor: "rgb(1,2,3)" },
+    { backgroundKey: "blue", backgroundColor: "#ffffff" },
+  ]) expectError(await create({ ...body, ...changes }), 400, "INVALID_BACKGROUND");
+  expectColor(await prisma.study.findUniqueOrThrow({ where: { id: customId } }), "custom", "#000000");
+
+  step = "DB의 잘못된 배경 조합 직접 저장 거절";
+  await assert.rejects(prisma.study.update({ where: { id: customId }, data: { backgroundColor: null } }));
+  expectColor(await prisma.study.findUniqueOrThrow({ where: { id: customId } }), "custom", "#000000");
+  const preset = await patch({ backgroundKey: "pink" });
+  assert.equal(preset.status, 200);
+  expectColor(preset.body.data, "pink", null);
+  expectColor((await request({ path: "/" + customId })).body.data, "pink", null);
+  await assert.rejects(prisma.study.update({ where: { id: customId }, data: { backgroundColor: "#ffffff" } }));
+  expectColor(await prisma.study.findUniqueOrThrow({ where: { id: customId } }), "pink", null);
+
+  console.log("스터디 API 검증 성공: 기존 배경·사용자 색상 생성/수정·목록/다건 재조회·잘못된 조합400·DB CHECK·기존 중복/입력 검사");
 };
 
 try {

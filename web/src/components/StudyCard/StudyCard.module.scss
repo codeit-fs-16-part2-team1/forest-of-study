@@ -90,6 +90,20 @@
   }
 }
 
+.customCard {
+  color: var(--custom-text-color);
+
+  .nickname,
+  .days {
+    color: inherit;
+  }
+
+  .points {
+    color: inherit;
+    background: var(--custom-badge-background);
+  }
+}
+
 @media (min-width: 744px) {
   .card {
     min-height: 243px;

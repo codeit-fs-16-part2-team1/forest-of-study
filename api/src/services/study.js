@@ -12,6 +12,7 @@ const studySelect = {
   name: true,
   introduction: true,
   backgroundKey: true,
+  backgroundColor: true,
   points: true,
   createdAt: true,
   updatedAt: true,
@@ -55,6 +56,7 @@ export const getStudies = async (query) => {
         "name",
         "introduction",
         "backgroundKey",
+        "backgroundColor",
         "points",
         "createdAt",
         "updatedAt"
@@ -123,6 +125,7 @@ export const createStudy = async (data) => {
     name,
     introduction,
     backgroundKey,
+    backgroundColor,
     password,
   } = data;
 
@@ -136,7 +139,7 @@ export const createStudy = async (data) => {
   const passwordHash = await bcrypt.hash(password, 10);
   try {
     return await prisma.study.create({
-      data: { nickname, name, introduction, backgroundKey, passwordHash },
+      data: { nickname, name, introduction, backgroundKey, backgroundColor, passwordHash },
       select: studySelect,
     });
   } catch (error) {

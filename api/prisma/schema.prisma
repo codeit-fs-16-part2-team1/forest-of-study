@@ -1,4 +1,4 @@
-// 공부의 숲 DB 설계 — docs/DB.md / ADR-051~073
+// 공부의 숲 DB 설계 — docs/DB.md / ADR-051~074
 // 스키마·migration 파일 존재와 실제 DB 적용 여부는 구분한다. 문서 작업에서 DB 실행은 확인하지 않았다.
 // 비밀번호는 보호 요청마다 bcrypt 검증. 토큰·타이머 키·PointHistory 테이블 없음.
 // CHECK·RUNNING/PAUSED 부분 UNIQUE는 기존 migration SQL에 정의돼 있다. 실제 적용은 migration 상태로 확인한다.
@@ -18,16 +18,18 @@ enum ChallengeStatus {
 }
 
 model Study {
-  id            String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(uuid()) @db.Uuid
   // trim 후 그래핌 기준 1~10 / 1~15 / 1~100개를 서버에서 검사한다.
-  nickname      String   @db.Text
-  name          String   @db.Text
-  introduction  String   @db.Text
-  backgroundKey String   @default("green") @db.Text
-  passwordHash  String   @db.Text
-  points        Int      @default(0)
-  createdAt     DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+  nickname        String   @db.Text
+  name            String   @db.Text
+  introduction    String   @db.Text
+  backgroundKey   String   @default("green") @db.Text
+  // custom에서만 사용한다. 소문자 #rrggbb와 키/색상 조합은 migration CHECK로 보장한다.
+  backgroundColor String? @db.Text
+  passwordHash    String   @db.Text
+  points          Int      @default(0)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
 
   routines   Routine[]
   challenges Challenge[]

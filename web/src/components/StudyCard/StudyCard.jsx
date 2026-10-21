@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
 import { getStudyDays } from "../../utils/studyDate.js";
+import { getCustomBackgroundTheme } from "../../utils/studyBackground.js";
 import styles from "./StudyCard.module.scss";
 
 const StudyCard = ({ study }) => {
@@ -9,13 +10,18 @@ const StudyCard = ({ study }) => {
   );
 
   const hasImage = Boolean(background?.image);
+  const customTheme = study.backgroundKey === "custom"
+    ? getCustomBackgroundTheme(study.backgroundColor)
+    : null;
 
   return (
     <Link
       to={`/dashboard/${study.id}`}
-      className={`${styles.card} ${hasImage ? styles.imageCard : ""}`}
+      className={[styles.card, hasImage && styles.imageCard, customTheme && styles.customCard].filter(Boolean).join(" ")}
       style={{
-        backgroundColor: background?.color,
+        backgroundColor: customTheme?.backgroundColor ?? background?.color,
+        "--custom-text-color": customTheme?.textColor,
+        "--custom-badge-background": customTheme?.badgeBackground,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
              url("${background.image}")`
