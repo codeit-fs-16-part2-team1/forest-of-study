@@ -1,4 +1,4 @@
-@use "../styles/breakpoints";
+@use "../../styles/breakpoints";
 
 .challengePage {
   container-type: inline-size;
@@ -59,7 +59,7 @@
     border: 0.0625rem solid var(--color-gray-light); // 1px
     border-radius: 0.9375rem; // 15px
     background: var(--color-white);
-    background-image: url(../assets/ic_arrow_right.svg);
+    background-image: url(../../assets/ic_arrow_right.svg);
     background-repeat: no-repeat;
     background-position: right 0.375rem center; // 6px
     color: var(--color-gray);

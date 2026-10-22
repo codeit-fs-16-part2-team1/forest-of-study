@@ -2,7 +2,7 @@ import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useEffect, useRef, useState } from "react";
 import useRecentStudies from "../../hooks/useRecentStudies.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
-import styles from "../../pages/MainPage.module.scss";
+import styles from "../../pages/MainPage/MainPage.module.scss";
 
 const RecentStudies = ({ onShowToast }) => {
   const { studies, isLoading, error, retry } = useRecentStudies();

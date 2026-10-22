@@ -1,10 +1,10 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { Link, useNavigate } from "react-router";
-import { goBackOrHome } from "../utils/studyNavigation.js";
-import useStudyPassword from "../hooks/useStudyPassword.js";
-import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
-import RegPage from "./RegPage.jsx";
-import styles from "./RegPage.module.scss";
+import { goBackOrHome } from "../../utils/studyNavigation.js";
+import useStudyPassword from "../../hooks/useStudyPassword.js";
+import StudyPasswordVerification from "../../components/PasswordModal/StudyPasswordVerification.jsx";
+import RegPage from "../RegPage/RegPage.jsx";
+import styles from "../RegPage/RegPage.module.scss";
 
 const EditStudyPage = ({ studyId, studyState }) => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import { useId } from "react";
-import ChallengeControls from "./ChallengeControls.jsx";
+import ChallengeControls from "../ChallengeControls/ChallengeControls.jsx";
 import timer from "../../assets/challenge/timer.svg";
-import "./challengeTimer.scss";
+import "./ChallengeTimer.scss";
 
 const formatTime = (seconds) => {
   const totalSeconds = Math.max(0, Math.ceil(seconds));

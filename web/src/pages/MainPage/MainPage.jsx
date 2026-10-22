@@ -1,13 +1,13 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import Toast from "../components/Toast/Toast.jsx";
-import useToast from "../hooks/useToast.js";
-import { studyApi } from "../api/api.js";
-import { getApiError } from "../api/apiError.js";
-import StudyCard from "../components/StudyCard/StudyCard.jsx";
-import BookmarkStudies from "../components/BookmarkStudies/BookmarkStudies.jsx";
-import StudySort from "../components/StudySort/StudySort.jsx";
+import Toast from "../../components/Toast/Toast.jsx";
+import useToast from "../../hooks/useToast.js";
+import { studyApi } from "../../api/api.js";
+import { getApiError } from "../../api/apiError.js";
+import StudyCard from "../../components/StudyCard/StudyCard.jsx";
+import BookmarkStudies from "../../components/BookmarkStudies/BookmarkStudies.jsx";
+import StudySort from "../../components/StudySort/StudySort.jsx";
 import styles from "./MainPage.module.scss";
 
 const PAGE_SIZE = 6;

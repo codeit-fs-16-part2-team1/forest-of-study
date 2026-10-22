@@ -1,7 +1,7 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Link, MemoryRouter, Route, Routes } from "react-router";
-import ChallengePage from "../pages/ChallengePage.jsx";
+import ChallengePage from "../pages/ChallengePage/ChallengePage.jsx";
 import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
 import "../styles/index.scss";
 import "./challengePreview.scss";

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import useChallengeSession from "../hooks/useChallengeSession.js";
-import useToast from "../hooks/useToast.js";
-import Toast from "../components/Toast/Toast.jsx";
+import useChallengeSession from "../../hooks/useChallengeSession.js";
+import useToast from "../../hooks/useToast.js";
+import Toast from "../../components/Toast/Toast.jsx";
 import ChallengePage from "./ChallengePage.jsx";
-import { isValidChallengeGoalMinutes } from "../utils/challengeGoal.js";
+import { isValidChallengeGoalMinutes } from "../../utils/challengeGoal.js";
 
 const VerifiedChallengeSession = ({
   study,

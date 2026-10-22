@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import Modal from "../Modal/Modal.jsx";
 import { parseChallengeGoalMinutes } from "../../utils/challengeGoal.js";
-import "./goalTimeModal.scss";
+import "./GoalTimeModal.scss";
 
 const GoalTimeForm = ({ goalMinutes, onSave, onClose, disabled }) => {
   const id = useId();

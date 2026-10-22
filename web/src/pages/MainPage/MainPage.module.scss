@@ -1,4 +1,4 @@
-@use "../styles/breakpoints";
+@use "../../styles/breakpoints";
 
 .page {
   min-width: 0;
@@ -58,7 +58,7 @@
     padding: 0 20px 0 48px; // 아이콘 왼쪽 20px + 18px + 간격 10px
     border: 0;
     background: transparent;
-    background-image: url("../assets/ic_search.svg");
+    background-image: url("../../assets/ic_search.svg");
     background-repeat: no-repeat;
     background-position: 20px center;
     background-size: 18px 18px;

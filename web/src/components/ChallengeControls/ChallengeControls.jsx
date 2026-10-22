@@ -10,7 +10,7 @@ import pauseDesktop from "../../assets/challenge/pauseDesktop.svg";
 import pauseMobile from "../../assets/challenge/pauseMobile.svg";
 import resetDesktop from "../../assets/challenge/resetDesktop.svg";
 import resetMobile from "../../assets/challenge/resetMobile.svg";
-import "./challengeControls.scss";
+import "./ChallengeControls.scss";
 
 const ChallengeControls = ({
   status = null,

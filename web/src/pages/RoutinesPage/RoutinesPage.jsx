@@ -1,16 +1,16 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import CurrentTime from "../components/CurrentTime/CurrentTime.jsx";
-import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
-import Popup from "../components/Popup/Popup.jsx";
-import RoutineModal from "../components/RoutineModal/RoutineModal.jsx";
-import RoutineList from "../components/RoutineList/RoutineList.jsx";
-import Toast from "../components/Toast/Toast.jsx";
-import useRoutines from "../hooks/useRoutines.js";
-import useStudyPassword from "../hooks/useStudyPassword.js";
-import useToast from "../hooks/useToast.js";
-import { getStudyReturnPath, goBackOrHome, isValidStudyId } from "../utils/studyNavigation.js";
+import CurrentTime from "../../components/CurrentTime/CurrentTime.jsx";
+import StudyPasswordVerification from "../../components/PasswordModal/StudyPasswordVerification.jsx";
+import Popup from "../../components/Popup/Popup.jsx";
+import RoutineModal from "../../components/RoutineModal/RoutineModal.jsx";
+import RoutineList from "../../components/RoutineList/RoutineList.jsx";
+import Toast from "../../components/Toast/Toast.jsx";
+import useRoutines from "../../hooks/useRoutines.js";
+import useStudyPassword from "../../hooks/useStudyPassword.js";
+import useToast from "../../hooks/useToast.js";
+import { getStudyReturnPath, goBackOrHome, isValidStudyId } from "../../utils/studyNavigation.js";
 import styles from "./RoutinesPage.module.scss";
 
 const RoutinesPage = ({ studyState }) => {

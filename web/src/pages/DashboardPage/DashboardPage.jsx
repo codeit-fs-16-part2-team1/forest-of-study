@@ -1,20 +1,20 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
-import { recordRecentStudy, removeRecentStudy } from "../utils/recentStudies.js";
-import { studyApi } from "../api/api.js";
-import { getApiError } from "../api/apiError.js";
-import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
-import PasswordModal from "../components/PasswordModal/PasswordModal.jsx";
+import { recordRecentStudy, removeRecentStudy } from "../../utils/recentStudies.js";
+import { studyApi } from "../../api/api.js";
+import { getApiError } from "../../api/apiError.js";
+import { isValidStudyPassword, studyPasswordMessages } from "../../utils/studyPassword.js";
+import PasswordModal from "../../components/PasswordModal/PasswordModal.jsx";
 import styles from "./DashboardPage.module.scss";
-import RoutineHistoryTable from "../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
-import StudyReactions from "../components/reaction/StudyReactions.jsx";
-import Toast from "../components/Toast/Toast.jsx";
-import useToast from "../hooks/useToast.js";
-import studyPoint from "../assets/studyPoint.svg";
-import Popup from "../components/Popup/Popup.jsx";
-import { addBookmarkStudy, removeBookmarkStudy } from "../utils/bookmarkStudies.js";
-import BookmarkButton from "../components/BookmarkButton/BookmarkButton.jsx";
+import RoutineHistoryTable from "../../components/RoutineHistoryTable/RoutineHistoryTable.jsx";
+import StudyReactions from "../../components/StudyReactions/StudyReactions.jsx";
+import Toast from "../../components/Toast/Toast.jsx";
+import useToast from "../../hooks/useToast.js";
+import studyPoint from "../../assets/studyPoint.svg";
+import Popup from "../../components/Popup/Popup.jsx";
+import { addBookmarkStudy, removeBookmarkStudy } from "../../utils/bookmarkStudies.js";
+import BookmarkButton from "../../components/BookmarkButton/BookmarkButton.jsx";
 
 const DashboardSkeleton = () => (
   <section className={styles.panel} aria-busy="true" aria-label="스터디 상세 불러오는 중">

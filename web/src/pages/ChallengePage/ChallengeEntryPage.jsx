@@ -1,11 +1,11 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { Link, useNavigate } from "react-router";
-import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
-import useStudyPassword from "../hooks/useStudyPassword.js";
-import { goBackOrHome } from "../utils/studyNavigation.js";
+import StudyPasswordVerification from "../../components/PasswordModal/StudyPasswordVerification.jsx";
+import useStudyPassword from "../../hooks/useStudyPassword.js";
+import { goBackOrHome } from "../../utils/studyNavigation.js";
 import ChallengeSessionPage from "./ChallengeSessionPage.jsx";
 import ChallengePage from "./ChallengePage.jsx";
-import "./challengePage.scss";
+import "./ChallengePage.scss";
 
 // 공개 스터디 정보는 App의 기존 조회 결과를 받는다.
 // 보호된 집중 컴포넌트는 진입 확인 성공 후에만 마운트한다.

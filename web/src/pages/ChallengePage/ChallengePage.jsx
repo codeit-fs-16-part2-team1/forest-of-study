@@ -1,11 +1,11 @@
-import useMinimumLoading from "../hooks/useMinimumLoading.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
-import ChallengeTimer from "../components/challenge/ChallengeTimer.jsx";
-import GoalTimeModal from "../components/challenge/GoalTimeModal.jsx";
-import useChallengeCountdown from "../hooks/useChallengeCountdown.js";
-import point from "../assets/challenge/point.svg";
-import "./challengePage.scss";
+import ChallengeTimer from "../../components/ChallengeTimer/ChallengeTimer.jsx";
+import GoalTimeModal from "../../components/GoalTimeModal/GoalTimeModal.jsx";
+import useChallengeCountdown from "../../hooks/useChallengeCountdown.js";
+import point from "../../assets/challenge/point.svg";
+import "./ChallengePage.scss";
 
 // 인증·조회는 연결 단계에서 처리하고, 본문은 서버 데이터와 동작을 전달받는다.
 // receivedAt은 해당 응답을 받은 시점의 performance.now() 값이다.

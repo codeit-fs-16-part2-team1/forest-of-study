@@ -1,6 +1,6 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import StudyReactions from "../components/reaction/StudyReactions.jsx";
+import StudyReactions from "../components/StudyReactions/StudyReactions.jsx";
 import { useStudyTitleData } from "../hooks/useStudyTitleData.js";
 import "../styles/index.scss";
 

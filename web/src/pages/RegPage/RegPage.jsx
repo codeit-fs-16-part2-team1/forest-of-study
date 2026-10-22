@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router";
-import { studyApi } from "../api/api.js";
-import { getApiError } from "../api/apiError.js";
-import { studyBackgrounds } from "../constants/studyBackgrounds.js";
-import { studyPastelColors } from "../constants/studyPastelColors.js";
-import { studyPatterns } from "../constants/studyPatterns.js";
-import { getCustomBackgroundTheme, isValidStudyPattern } from "../utils/studyBackground.js";
-import StudyPatternLayer from "../components/StudyPatternLayer/StudyPatternLayer.jsx";
-import { validateStudy, validateStudyFields } from "../utils/validateStudy.js";
-import { isValidStudyPassword, studyPasswordMessages } from "../utils/studyPassword.js";
+import { studyApi } from "../../api/api.js";
+import { getApiError } from "../../api/apiError.js";
+import { studyBackgrounds } from "../../constants/studyBackgrounds.js";
+import { studyPastelColors } from "../../constants/studyPastelColors.js";
+import { studyPatterns } from "../../constants/studyPatterns.js";
+import { getCustomBackgroundTheme, isValidStudyPattern } from "../../utils/studyBackground.js";
+import StudyPatternLayer from "../../components/StudyPatternLayer/StudyPatternLayer.jsx";
+import { validateStudy, validateStudyFields } from "../../utils/validateStudy.js";
+import { isValidStudyPassword, studyPasswordMessages } from "../../utils/studyPassword.js";
 import styles from "./RegPage.module.scss";
 import { useEffect, useRef, useState } from "react";
 

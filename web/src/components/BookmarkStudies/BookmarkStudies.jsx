@@ -2,7 +2,7 @@ import { useRef } from "react";
 import useBookmarkStudyList from "../../hooks/useBookmarkStudyList.js";
 import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
-import styles from "../../pages/MainPage.module.scss";
+import styles from "../../pages/MainPage/MainPage.module.scss";
 
 const BookmarkStudies = ({ onShowToast }) => {
   const sectionRef = useRef(null);
