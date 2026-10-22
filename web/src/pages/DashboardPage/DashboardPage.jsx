@@ -1,7 +1,6 @@
 import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
-import { recordRecentStudy, removeRecentStudy } from "../../utils/recentStudies.js";
 import { studyApi } from "../../api/api.js";
 import { getApiError } from "../../api/apiError.js";
 import { isValidStudyPassword, studyPasswordMessages } from "../../utils/studyPassword.js";
@@ -53,11 +52,6 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const deleteFormVersionRef = useRef(0);
   const currentPath = location.pathname + location.search + location.hash;
   const { toasts, showToast } = useToast();
-  const visitedId = !isLoading && !error ? study?.id : null;
-
-  useEffect(() => {
-    if (visitedId) recordRecentStudy(visitedId);
-  }, [visitedId]);
 
   useEffect(() => () => { deleteRequestRef.current = null; }, []);
 
@@ -109,7 +103,6 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
     try {
       await studyApi.remove(study.id, password);
       // 이탈 후에도 삭제된 ID는 정리하되 이전 페이지의 UI는 갱신하지 않는다.
-      removeRecentStudy(study.id);
       removeBookmarkStudy(study.id);
       if (deleteRequestRef.current !== request) return;
 

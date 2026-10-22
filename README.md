@@ -97,12 +97,15 @@ TypeScript는 사용하지 않습니다. 의존성은 `api/`와 `web/`에서 각
 │   ├── API.md
 │   ├── DB.md
 │   └── issues.md
-├── images/
 ├── AGENTS.md
 ├── CONTRIBUTING.md
 ├── compose.yaml
 └── README.md
 ```
+
+페이지는 이름별 폴더에 JSX와 스타일을 함께 둡니다. 예: `web/src/pages/MainPage/MainPage.jsx`와 `MainPage.module.scss`. 집중 화면의 진입·세션·표시 파일은 `pages/ChallengePage/`에 함께 둡니다.
+
+컴포넌트는 `components/StudyCard/StudyCard.jsx`처럼 이름과 폴더를 맞춥니다. 해당 컴포넌트의 전용 보조 파일은 같은 폴더에 둘 수 있습니다. 배경 사진은 `web/src/assets/backgrounds/`에서 관리하며 루트의 중복 이미지 폴더는 제거했습니다.
 
 ---
 
@@ -259,6 +262,8 @@ API 서버·DB를 실행하고 요청 변수와 비밀번호를 로컬에서 준
 
 - [api.http](api/requests/api.http): 전체 API 요청 예시
 - [API.md](docs/API.md): 요청·응답·실패 계약
+
+`midterm.http`·`routine.http`·`routineError.http`는 과거 시연·검증 자료로 보관합니다. 폐기된 개별 습관 생성 경로와 예전 개수 제한이 포함되어 있으므로 현재 API 검증에는 사용하지 않습니다. 현재 요청 순서·예상 응답은 `api/requests/api.http`를 따릅니다.
 
 `api/`에서 실행하는 검사 명령입니다.
 
