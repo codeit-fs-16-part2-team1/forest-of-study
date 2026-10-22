@@ -86,10 +86,10 @@ const RoutinesPage = ({ studyState }) => {
   const showRoutineSkeleton = useMinimumLoading(
     verifiedPassword !== null && isLoadingRoutines, studyId,
   );
-  const isLoading = showStudySkeleton || showRoutineSkeleton ||
-    (!studyError && (verifiedPassword === null
-      ? !verification.error : isLoadingRoutines));
-  const showPageSkeleton = isLoading || verification.isOpen || verification.isPending;
+  const isLoading = !studyError && (showStudySkeleton || showRoutineSkeleton ||
+    (verifiedPassword === null ? !verification.error : isLoadingRoutines));
+  const showPageSkeleton = !studyError &&
+    (isLoading || verification.isOpen || verification.isPending);
   const errorMessage = studyError?.message || verification.error?.message || routineError;
 
   if (entryErrorMessage) {
