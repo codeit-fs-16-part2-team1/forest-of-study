@@ -2,9 +2,9 @@ import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import { useEffect, useRef, useState } from "react";
 import useRecentStudies from "../../hooks/useRecentStudies.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
-import styles from "../../pages/MainPage.module.scss";
+import styles from "../../pages/MainPage/MainPage.module.scss";
 
-const RecentStudies = () => {
+const RecentStudies = ({ onShowToast }) => {
   const { studies, isLoading, error, retry } = useRecentStudies();
   const showSkeleton = useMinimumLoading(isLoading);
   const gridRef = useRef(null);
@@ -71,7 +71,7 @@ const RecentStudies = () => {
           scrollEdges.right && styles.hasMoreRight,
         ].filter(Boolean).join(" ")}>
           <div ref={gridRef} className={`${styles.grid} ${styles.recentGrid}`}>
-            {studies.map((study) => <StudyCard key={study.id} study={study} />)}
+            {studies.map((study) => <StudyCard key={study.id} study={study} onShowToast={onShowToast} />)}
           </div>
         </div>
       )}

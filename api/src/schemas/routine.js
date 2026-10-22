@@ -8,8 +8,10 @@ const routineNameSchema = z.string().trim().refine((value) => {
   const length = countGraphemes(value);
   return length >= 1 && length <= 20;
 });
+const stickerColorSchema = z.number().int().min(1).max(18);
 const createRoutineSchema = z.strictObject({
   name: routineNameSchema,
+  stickerColor: stickerColorSchema,
 });
 const routineCheckSchema = z.strictObject({
   recordDate: z.string().refine(isValidRecordDate),
@@ -17,19 +19,30 @@ const routineCheckSchema = z.strictObject({
 });
 const batchRoutineIdSchema = uuidSchema.transform((value) => value.toLowerCase());
 const routineBatchSchema = z.strictObject({
-  creates: z.array(createRoutineSchema).max(18),
+  creates: z.array(createRoutineSchema).max(10),
+  // 기존 11~18개 스터디도 편집·종료·재정렬할 수 있도록 기존 대상 상한은 유지한다.
   updates: z.array(z.strictObject({
     routineId: batchRoutineIdSchema,
     name: routineNameSchema,
+    stickerColor: stickerColorSchema.optional(),
   })).max(18),
   endIds: z.array(batchRoutineIdSchema).max(18),
-}).refine(({ updates, endIds }) => {
+  order: z.array(z.union([
+    z.strictObject({ routineId: batchRoutineIdSchema }),
+    z.strictObject({ createIndex: z.number().int().min(0).max(9) }),
+  ])).max(18).optional(),
+}).refine(({ creates, updates, endIds, order }) => {
+  if (order) {
+    const keys = order.map((item) => item.routineId ?? `new-${item.createIndex}`);
+    if (new Set(keys).size !== keys.length || order.some((item) =>
+      item.routineId ? endIds.includes(item.routineId) : item.createIndex >= creates.length)) return false;
+    if (order.filter((item) => item.createIndex !== undefined).length !== creates.length) return false;
+  }
   const ids = [...updates.map((routine) => routine.routineId), ...endIds];
   // 같은 ID의 중복 변경과 수정·종료 충돌을 모두 거절한다.
   return ids.length <= 18 && new Set(ids).size === ids.length;
 });
 
-export const validateCreateRoutine = (body) => createRoutineSchema.safeParse(body);
 export const validateRoutineId = (routineId) => routineIdSchema.safeParse({ routineId });
 export const validateRoutineCheck = (body) => routineCheckSchema.safeParse(body);
 export const validateRoutineBatch = (body) => routineBatchSchema.safeParse(body);

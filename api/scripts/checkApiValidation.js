@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { validateCreateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
-import { validateCreateRoutine, validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
+import { validateCreateStudy, validateUpdateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
+import { validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
 import { validateStudyPassword, validatePasswordVerificationBody } from "../src/schemas/studyPassword.js";
 import { assertLocalSeedDatabase } from "../seedData.js";
 
@@ -47,6 +47,77 @@ try {
   assert.equal(validateCreateStudy({ ...body, backgroundKey: "unknown" }).success, false);
   assert.equal(validateCreateStudy({ ...body, points: 100 }).success, false);
 
+  step = "기존 배경과 사용자 지정 색상 조합";
+  for (const backgroundKey of ["green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4"]) {
+    const created = validateCreateStudy({ ...body, backgroundKey });
+    assert.equal(created.success, true);
+    assert.equal(created.data.backgroundColor, null);
+    assert.equal(created.data.textColor, null);
+    assert.equal(created.data.patternKey, null);
+    assert.equal(created.data.patternColor, null);
+    assert.deepEqual(validateUpdateStudy({ backgroundKey }).data, {
+      backgroundKey, backgroundColor: null, textColor: null, patternKey: null, patternColor: null,
+    });
+  }
+  const custom = { backgroundKey: "custom", backgroundColor: "#3A8F72" };
+  assert.equal(validateCreateStudy({ ...body, ...custom }).data.backgroundColor, "#3a8f72");
+  assert.deepEqual(validateUpdateStudy(custom).data, { ...custom, backgroundColor: "#3a8f72" });
+  assert.deepEqual(validateUpdateStudy({ name: "새 이름" }).data, { name: "새 이름" });
+  for (const color of [undefined, null, "", "#abc", "#12345678", "rgb(1, 2, 3)", "red", " #123456", "#123456\n", 123456]) {
+    assert.equal(validateCreateStudy({ ...body, backgroundKey: "custom", backgroundColor: color }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "custom", backgroundColor: color }).success, false);
+  }
+  assert.equal(validateCreateStudy({ ...body, backgroundKey: "green", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundKey: "pink", backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: "#123456" }).success, false);
+  assert.equal(validateUpdateStudy({ backgroundColor: null }).success, false);
+
+  step = "사용자 지정 배경의 공통 글자색·자동 대비 복귀";
+  assert.equal(validateCreateStudy({ ...body, ...custom, textColor: "#ABCDEF" }).data.textColor, "#abcdef");
+  assert.equal(validateCreateStudy({ ...body, ...custom }).data.textColor, null);
+  assert.deepEqual(validateUpdateStudy({ textColor: "#ABCDEF" }).data, { textColor: "#abcdef" });
+  assert.deepEqual(validateUpdateStudy({ textColor: null }).data, { textColor: null });
+  assert.deepEqual(validateUpdateStudy({ ...custom, textColor: null }).data, {
+    backgroundKey: "custom", backgroundColor: "#3a8f72", textColor: null,
+  });
+  for (const textColor of ["", "#abc", "#12345678", "rgb(1,2,3)", "red", " #123456", "#123456\n", 123456]) {
+    assert.equal(validateCreateStudy({ ...body, ...custom, textColor }).success, false);
+    assert.equal(validateUpdateStudy({ textColor }).success, false);
+  }
+  for (const backgroundKey of ["green", "image1"]) {
+    assert.equal(validateCreateStudy({ ...body, backgroundKey, textColor: "#123456" }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey, textColor: "#123456" }).success, false);
+  }
+  assert.equal(validateCreateStudy({ ...body, textColor: "#123456" }).success, false);
+
+  step = "씨앗·잔물결·소프트 체크·작은 잎·페이퍼 패턴과 두 색상 조합";
+  for (const patternKey of ["dots", "waves", "stripes", "leaves", "paper"]) {
+    const pattern = { patternKey, patternColor: "#FF52DC" };
+    const created = validateCreateStudy({ ...body, ...custom, ...pattern });
+    assert.equal(created.success, true);
+    assert.equal(created.data.patternKey, patternKey);
+    assert.equal(created.data.patternColor, "#ff52dc");
+    assert.deepEqual(validateUpdateStudy(pattern).data, { patternKey, patternColor: "#ff52dc" });
+    assert.equal(validateCreateStudy({ ...body, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy({ backgroundKey: "green", ...pattern }).success, false);
+  }
+  assert.deepEqual(validateUpdateStudy({ patternKey: null, patternColor: null }).data, {
+    patternKey: null, patternColor: null,
+  });
+  for (const pattern of [
+    { patternKey: "dots" }, { patternColor: "#123456" },
+    { patternKey: "dots", patternColor: null }, { patternKey: null, patternColor: "#123456" },
+    { patternKey: "unknown", patternColor: "#123456" },
+    { patternKey: "dots", patternColor: "#abc" },
+    { patternKey: "dots", patternColor: "#123456\n" },
+    { patternKey: ["dots"], patternColor: "#123456" },
+  ]) {
+    assert.equal(validateCreateStudy({ ...body, ...custom, ...pattern }).success, false);
+    assert.equal(validateUpdateStudy(pattern).success, false);
+  }
+  assert.equal(validateUpdateStudy({ patternKey: null }).success, false);
+  assert.equal(validateUpdateStudy({ patternColor: null }).success, false);
+
   step = "목록 기본값·정규화·미등록 쿼리";
   assert.deepEqual(validateStudyListQuery({}).data, { keyword: "", offset: 0, limit: 6, sort: "latest" });
   assert.equal(validateStudyListQuery({ keyword: " e\u0301 " }).data.keyword, "é");
@@ -62,12 +133,32 @@ try {
   assert.equal(validateStudyIdParams({ studyId: "11111111-1111-4111-8111-111111111111" }).success, true);
   assert.equal(validateStudyIdParams({ studyId: "invalid" }).success, false);
 
-  step = "습관 입력과 날짜";
-  assert.equal(validateCreateRoutine({ name: ` ${family.repeat(20)} ` }).data.name, family.repeat(20));
+  const emptyBatch = { creates: [], updates: [], endIds: [] };
+  step = "습관 일괄 생성 입력과 날짜";
+  const createdRoutine = validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: ` ${family.repeat(20)} `, stickerColor: 1 }],
+  });
+  assert.equal(createdRoutine.success, true);
+  assert.equal(createdRoutine.data.creates[0].name, family.repeat(20));
+  assert.equal(createdRoutine.data.creates[0].stickerColor, 1);
   for (const value of [family.repeat(21), " \t", 1234]) {
-    assert.equal(validateCreateRoutine({ name: value }).success, false);
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, creates: [{ name: value, stickerColor: 1 }],
+    }).success, false);
   }
-  assert.equal(validateCreateRoutine({ name: "독서", extra: true }).success, false);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: "독서", stickerColor: 1, extra: true }],
+  }).success, false);
+  for (let stickerColor = 1; stickerColor <= 18; stickerColor += 1) {
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, creates: [{ name: "독서", stickerColor }],
+    }).success, true);
+  }
+  for (const stickerColor of [undefined, null, 0, 19, 1.5, "1", true]) {
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, creates: [{ name: "독서", stickerColor }],
+    }).success, false);
+  }
   assert.equal(validateRoutineCheck({ recordDate: "2028-02-29", completed: false }).success, true);
   for (const value of [
     { recordDate: "2026-02-29", completed: true },
@@ -78,24 +169,58 @@ try {
   step = "습관 일괄 저장 입력·중복 대상·그래핌 경계";
   const routineId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const anotherId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-  const emptyBatch = { creates: [], updates: [], endIds: [] };
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, order: [{ routineId }, { createIndex: 0 }],
+    creates: [{ name: "신규", stickerColor: 1 }],
+  }).success, true);
+  for (const order of [
+    [{ routineId }, { routineId: routineId.toUpperCase() }],
+    [{ createIndex: 0 }],
+    [{ routineId, createIndex: 0 }],
+    [{ createIndex: -1 }],
+    [{ createIndex: "0" }],
+  ]) assert.equal(validateRoutineBatch({ ...emptyBatch, order }).success, false);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, endIds: [routineId], order: [{ routineId }],
+  }).success, false);
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: "누락", stickerColor: 1 }], order: [],
+  }).success, false);
   const batch = validateRoutineBatch({
-    creates: [{ name: ` ${family.repeat(20)} ` }],
-    updates: [{ routineId: routineId.toUpperCase(), name: " 독서 " }],
+    creates: [{ name: ` ${family.repeat(20)} `, stickerColor: 18 }],
+    updates: [{ routineId: routineId.toUpperCase(), name: " 독서 ", stickerColor: 1 }],
     endIds: [anotherId],
   });
   assert.equal(batch.success, true);
   assert.equal(batch.data.creates[0].name, family.repeat(20));
-  assert.deepEqual(batch.data.updates[0], { routineId, name: "독서" });
+  assert.equal(batch.data.creates[0].stickerColor, 18);
+  assert.deepEqual(batch.data.updates[0], { routineId, name: "독서", stickerColor: 1 });
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, updates: [{ routineId, name: "기존 습관" }],
+  }).success, true);
+  // 여러 습관에 같은 색상을 지정해도 유효하다.
+  assert.equal(validateRoutineBatch({
+    ...emptyBatch, creates: [{ name: "독서", stickerColor: 3 }, { name: "코딩", stickerColor: 3 }],
+    updates: [{ routineId, name: "운동", stickerColor: 3 }],
+  }).success, true);
+  for (const stickerColor of [null, 0, 19, 1.5, "1", true]) {
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, creates: [{ name: "독서", stickerColor }],
+    }).success, false);
+    assert.equal(validateRoutineBatch({
+      ...emptyBatch, updates: [{ routineId, name: "독서", stickerColor }],
+    }).success, false);
+  }
+  assert.equal(validateRoutineBatch({ ...emptyBatch, creates: [{ name: "독서" }] }).success, false);
   assert.equal(validateRoutineBatch({ ...emptyBatch, endIds: [routineId] }).success, true);
   assert.equal(validateRoutineBatch({
-    ...emptyBatch, creates: Array.from({ length: 18 }, () => ({ name: "독서" })),
+    ...emptyBatch, creates: Array.from({ length: 10 }, () => ({ name: "독서", stickerColor: 1 })),
   }).success, true);
   for (const invalidBatch of [
-    { ...emptyBatch, creates: [{ name: family.repeat(21) }] },
-    { ...emptyBatch, creates: [{ name: " \t" }] },
-    { ...emptyBatch, creates: Array.from({ length: 19 }, () => ({ name: "독서" })) },
-    { ...emptyBatch, creates: [{ name: "독서", routineId }] },
+    { ...emptyBatch, creates: [{ name: family.repeat(21), stickerColor: 1 }] },
+    { ...emptyBatch, creates: [{ name: " \t", stickerColor: 1 }] },
+    { ...emptyBatch, creates: Array.from({ length: 11 }, () => ({ name: "독서", stickerColor: 1 })) },
+    { ...emptyBatch, creates: [{ name: "독서", stickerColor: 1, routineId }] },
     { ...emptyBatch, updates: [{ routineId: "invalid", name: "독서" }] },
     { ...emptyBatch, updates: [{ routineId, name: family.repeat(21) }] },
     { ...emptyBatch, endIds: [routineId, routineId.toUpperCase()] },

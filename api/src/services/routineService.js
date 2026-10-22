@@ -2,12 +2,11 @@ import { prisma } from "../lib/prisma.js";
 import { getKoreanDate } from "../utils/date.js";
 import { createApiError } from "../utils/apiError.js";
 
-const MAX_ACTIVE_ROUTINES = 18;
-
 const routineSelect = {
   id: true,
   studyId: true,
   name: true,
+  stickerColor: true,
   startsOn: true,
   endsOn: true,
 };
@@ -17,40 +16,10 @@ const toRoutine = (routine) => {
     id: routine.id,
     studyId: routine.studyId,
     name: routine.name,
+    stickerColor: routine.stickerColor,
     startsOn: routine.startsOn.toISOString().slice(0, 10),
     endsOn: routine.endsOn?.toISOString().slice(0, 10) ?? null,
   };
-};
-
-export const createRoutine = async ({ studyId, name }) => {
-  return prisma.$transaction(async (tx) => {
-    // 같은 스터디의 생성 요청을 순서대로 처리해 count → create 경합을 막는다.
-    const studies = await tx.$queryRaw`
-      SELECT "id" FROM "Study" WHERE "id" = ${studyId}::uuid FOR UPDATE
-    `;
-    if (studies.length === 0) {
-      throw createApiError("STUDY_NOT_FOUND");
-    }
-
-    const count = await tx.routine.count({
-      where: { studyId, endsOn: null },
-    });
-    if (count >= MAX_ACTIVE_ROUTINES) {
-      throw createApiError("VALIDATION_ERROR");
-    }
-
-    // 잠금 대기 중 자정을 넘었을 수 있으므로 저장 직전에 오늘 날짜를 정한다.
-    const recordDate = getKoreanDate(new Date());
-    const routine = await tx.routine.create({
-      data: {
-        studyId,
-        name,
-        startsOn: new Date(`${recordDate}T00:00:00.000Z`),
-      },
-      select: routineSelect,
-    });
-    return toRoutine(routine);
-  });
 };
 
 export const getTodayRoutines = async ({ studyId, client = prisma, now = new Date() }) => {
@@ -66,7 +35,7 @@ export const getTodayRoutines = async ({ studyId, client = prisma, now = new Dat
   const today = new Date(`${recordDate}T00:00:00.000Z`);
   const routines = await client.routine.findMany({
     where: { studyId, endsOn: null, startsOn: { lte: today } },
-    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
     select: {
       ...routineSelect,
       history: {

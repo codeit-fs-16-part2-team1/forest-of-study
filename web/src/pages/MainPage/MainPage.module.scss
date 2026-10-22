@@ -1,0 +1,245 @@
+@use "../../styles/breakpoints";
+
+.page {
+  min-width: 0;
+}
+
+.section {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--color-surface);
+
+  & + & {
+    margin-top: 24px;
+  }
+}
+
+.title {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.skeletonHeading {
+  display: block;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-gray-lighter);
+}
+.skeletonHeading { width: min(100%, 180px); height: 1.2em; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.search {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 15px;
+  background: var(--color-white);
+
+  &:focus-within {
+    border-color: var(--color-green-text);
+  }
+
+  > input {
+    flex: 1;
+    width: 0;
+    min-width: 0;
+    padding: 0 20px 0 48px; // 아이콘 왼쪽 20px + 18px + 간격 10px
+    border: 0;
+    background: transparent;
+    background-image: url("../../assets/ic_search.svg");
+    background-repeat: no-repeat;
+    background-position: 20px center;
+    background-size: 18px 18px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+
+    &::placeholder {
+      color: var(--color-gray);
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.recentViewport {
+  position: relative;
+  min-width: 0;
+  display: flow-root;
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    width: 2rem; // 32px
+    opacity: 0;
+    pointer-events: none;
+    content: "";
+  }
+
+  &::before {
+    left: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to right, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &::after {
+    right: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to left, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &.hasMoreLeft::before,
+  &.hasMoreRight::after {
+    opacity: 1;
+  }
+}
+
+.recentGrid {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: min(240px, 100%);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  // 키보드로 카드에 접근했을 때 포커스 테두리가 잘리지 않도록 공간을 둔다.
+  margin: -4px;
+  padding: 4px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 280px;
+  text-align: center;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.moreButton,
+.retry {
+  display: block;
+  width: min(100%, 280px);
+  min-height: 53px;
+  padding: 12px 20px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 15px;
+  background: var(--color-surface);
+  color: var(--color-green-text);
+  font: inherit;
+}
+
+.moreButton {
+  margin: 30px auto 0;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.error {
+  margin-top: 16px;
+  color: var(--color-error);
+}
+
+.skeleton {
+  min-height: 180px;
+  border-radius: 20px;
+  background: var(--color-gray-lighter);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: breakpoints.$tablet) {
+  .section {
+    padding: 24px;
+  }
+
+  .title {
+    margin-bottom: 24px;
+    font-size: 24px;
+  }
+
+  .search {
+    width: 335px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .recentGrid {
+    grid-template-columns: none;
+    grid-auto-columns: 358px;
+  }
+
+  .skeleton {
+    min-height: 243px;
+  }
+
+  .moreButton {
+    margin-top: 60px;
+  }
+}
+
+@media (min-width: breakpoints.$desktop) {
+  .recentViewport::before,
+  .recentViewport::after {
+    display: none;
+  }
+
+  .section {
+    padding: 40px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .recentGrid {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: visible;
+  }
+}

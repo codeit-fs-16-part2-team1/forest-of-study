@@ -12,6 +12,10 @@ const studySelect = {
   name: true,
   introduction: true,
   backgroundKey: true,
+  backgroundColor: true,
+  textColor: true,
+  patternKey: true,
+  patternColor: true,
   points: true,
   createdAt: true,
   updatedAt: true,
@@ -56,6 +60,10 @@ export const getStudies = async (query) => {
           "name",
           "introduction",
           "backgroundKey",
+          "backgroundColor",
+          "textColor",
+          "patternKey",
+          "patternColor",
           "points",
           "createdAt",
           "updatedAt"
@@ -140,6 +148,10 @@ export const createStudy = async (data) => {
     name,
     introduction,
     backgroundKey,
+    backgroundColor,
+    textColor,
+    patternKey,
+    patternColor,
     password,
   } = data;
 
@@ -153,7 +165,7 @@ export const createStudy = async (data) => {
   const passwordHash = await bcrypt.hash(password, 10);
   try {
     return await prisma.study.create({
-      data: { nickname, name, introduction, backgroundKey, passwordHash },
+      data: { nickname, name, introduction, backgroundKey, backgroundColor, textColor, patternKey, patternColor, passwordHash },
       select: studySelect,
     });
   } catch (error) {
@@ -168,10 +180,18 @@ export const updateStudy = async (studyId, data) => {
     return await prisma.$transaction(async (tx) => {
       // 같은 행의 부분 수정끼리 대기하게 해 최신의 미전달 필드와 조합한다.
       const [current] = await tx.$queryRaw`
-        SELECT "nickname", "name" FROM "Study"
+        SELECT "nickname", "name", "backgroundKey" FROM "Study"
         WHERE "id" = ${studyId}::uuid FOR UPDATE
       `;
       if (!current) throw createApiError("STUDY_NOT_FOUND");
+
+      // 글자색만 수정하는 PATCH도 잠근 행의 실제 배경 종류를 기준으로 검사한다.
+      if (data.textColor != null && (data.backgroundKey ?? current.backgroundKey) !== "custom") {
+        throw createApiError("VALIDATION_ERROR");
+      }
+      if (data.patternKey != null && (data.backgroundKey ?? current.backgroundKey) !== "custom") {
+        throw createApiError("INVALID_BACKGROUND");
+      }
 
       const combination = {
         nickname: data.nickname ?? current.nickname,

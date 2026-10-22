@@ -1,0 +1,504 @@
+@use "../../styles/breakpoints";
+
+.page {
+  min-width: 0;
+}
+
+.card {
+  width: 100%;
+  max-width: var(--layout-form-max-width);
+  margin: 0 auto;
+  padding: 16px 16px 20px;
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.title {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: -8px;
+
+  > label {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 12px 20px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 15px;
+  background: var(--color-surface);
+  font-size: 16px;
+  line-height: 1.5;
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green-text);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+  }
+}
+
+textarea.input {
+  height: 98px;
+  resize: none;
+  overflow-y: auto;
+}
+
+.backgroundField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  > legend {
+    margin-bottom: 16px;
+    padding: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.backgroundGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.backgroundOption {
+  position: relative;
+  display: block;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:focus-visible + .backgroundPreview {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .backgroundPreview {
+    cursor: default;
+    opacity: 0.65;
+  }
+}
+
+.backgroundPreview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border: 1px solid var(--color-gray-lighter);
+  border-radius: 16px;
+  background: var(--color-bg);
+
+  > img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.customBackground {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.customOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  cursor: pointer;
+
+  input {
+    accent-color: var(--color-green-text);
+  }
+}
+
+.paletteField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  > legend {
+    margin-bottom: 12px;
+    padding: 0;
+    font-weight: 600;
+  }
+}
+
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+}
+
+.paletteOption {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 13px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:checked + .paletteSwatch {
+    border-color: var(--color-green-text);
+    box-shadow: 0 0 0 1px var(--color-green-text);
+  }
+
+  > input:focus-visible + .paletteSwatch {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .paletteSwatch {
+    opacity: 0.65;
+    cursor: default;
+  }
+}
+
+.paletteSwatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 12px;
+}
+
+.paletteCheck {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-green-text);
+  color: var(--color-white);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.colorSettings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.colorControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+
+  output {
+    color: var(--color-text-muted);
+  }
+}
+
+.colorInput {
+  width: 64px;
+  height: 44px;
+  padding: 4px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 8px;
+  background: var(--color-surface);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-green-text);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-error);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.customPreview {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  min-height: 160px;
+  padding: 24px;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.previewTitle {
+  position: relative;
+  z-index: 1;
+  color: var(--custom-content-color);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.previewNickname {
+  color: var(--custom-accent-color);
+}
+
+.previewIntroduction {
+  position: relative;
+  z-index: 1;
+  color: var(--custom-content-color);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.patternField {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend {
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+}
+
+.patternGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patternOption {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+  cursor: pointer;
+
+  > input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  > input:checked + .patternPreview {
+    border-color: var(--color-green-text);
+    box-shadow: 0 0 0 1px var(--color-green-text);
+  }
+
+  > input:focus-visible + .patternPreview {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+
+  > input:disabled + .patternPreview {
+    cursor: default;
+    opacity: 0.65;
+  }
+}
+
+.patternPreview {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  min-width: 0;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-light);
+  border-radius: 12px;
+}
+
+.selectedMark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  color: var(--color-white);
+  transform: translate(-50%, -50%);
+}
+
+.passwordField {
+  position: relative;
+
+  > input {
+    padding-right: 52px;
+  }
+}
+
+.visibilityButton {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+}
+
+.error {
+  color: var(--color-error);
+  font-size: 14px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.submitButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 55px;
+  box-shadow: 0 3px 0 var(--color-green-text);
+  text-shadow: 0 -2px 0 var(--color-green-text);
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: var(--color-brand);
+  color: var(--color-white);
+  font-family: var(--font-family-display);
+  font-size: 18px;
+  margin-top: 6px;
+
+  &:active:enabled {
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+.skeletonTitle,
+.skeletonLabel,
+.skeletonInput,
+.skeletonIntroduction,
+.skeletonBackground,
+.skeletonSubmit {
+  display: block;
+  border-radius: 12px;
+  background: var(--color-gray-lighter);
+}
+
+.skeletonTitle { width: min(100%, 180px); height: 1.2em; }
+.skeletonLabel { width: min(100%, 160px); height: 1.3em; }
+.skeletonInput { height: 48px; }
+.skeletonIntroduction { height: 98px; }
+.skeletonBackground { aspect-ratio: 1; border-radius: 16px; }
+.skeletonSubmit { min-height: 55px; margin-top: 6px; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: breakpoints.$tablet) {
+  .card {
+    padding: 24px 24px 40px;
+  }
+
+  .title {
+    margin-bottom: 24px;
+    font-size: 24px;
+  }
+
+  .field > label {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .backgroundField > legend {
+    margin-bottom: 24px;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .backgroundGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .paletteGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .patternGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .submitButton,
+  .skeletonSubmit {
+    margin-top: 16px;
+  }
+}
+

@@ -9,17 +9,53 @@ const createTextSchema = (maxLength) => z.string().trim().refine((value) => {
 });
 
 const backgroundKeySchema = z.enum([
-  "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4",
+  "green", "yellow", "blue", "pink", "image1", "image2", "image3", "image4", "custom",
 ]);
+
+const hexColorSchema = z.string().length(7).regex(/^#[0-9a-fA-F]{6}$/)
+  .transform((value) => value.toLowerCase()).nullable();
+
+// 첫 3종은 저장 키를 유지하고 프론트에서 씨앗·잔물결·소프트 체크로 표시한다.
+const patternKeySchema = z.enum(["dots", "waves", "stripes", "leaves", "paper"]).nullable();
+
+const checkBackgroundCombination = (data, context) => {
+  if (data.backgroundKey === "custom" && data.backgroundColor == null) {
+    context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
+  } else if (data.backgroundKey === undefined && data.backgroundColor !== undefined) {
+    // PATCH의 색상 변경은 키와 함께 전달해 의도한 배경 종류를 명시한다.
+    context.addIssue({ code: "custom", path: ["backgroundKey"], message: "" });
+  } else if (data.backgroundKey !== "custom" && data.backgroundColor != null) {
+    context.addIssue({ code: "custom", path: ["backgroundColor"], message: "" });
+  }
+
+  if (data.backgroundKey !== undefined && data.backgroundKey !== "custom" && data.textColor != null) {
+    context.addIssue({ code: "custom", path: ["textColor"], message: "" });
+  }
+
+  // PATCH는 패턴과 무늬색을 함께 변경한다. 둘 다 null이면 패턴을 제거한다.
+  const hasPatternField = data.patternKey !== undefined || data.patternColor !== undefined;
+  if (hasPatternField && ((data.patternKey == null) !== (data.patternColor == null)
+    || data.patternKey === undefined || data.patternColor === undefined)) {
+    context.addIssue({ code: "custom", path: ["patternKey"], message: "" });
+  }
+  if (data.backgroundKey !== undefined && data.backgroundKey !== "custom"
+    && (data.patternKey != null || data.patternColor != null)) {
+    context.addIssue({ code: "custom", path: ["patternKey"], message: "" });
+  }
+};
 
 const createStudySchema = z.strictObject({
   nickname: createTextSchema(10),
   name: createTextSchema(15),
   introduction: createTextSchema(100),
   backgroundKey: backgroundKeySchema.default("green"),
+  backgroundColor: hexColorSchema.default(null),
+  textColor: hexColorSchema.default(null),
+  patternKey: patternKeySchema.default(null),
+  patternColor: hexColorSchema.default(null),
   password: studyPasswordSchema,
   passwordConfirm: studyPasswordSchema,
-}).refine((data) => data.password === data.passwordConfirm, {
+}).superRefine(checkBackgroundCombination).refine((data) => data.password === data.passwordConfirm, {
   path: ["passwordConfirm"],
   message: "",
 });
@@ -51,7 +87,15 @@ const updateStudySchema = z.strictObject({
   name: createTextSchema(15).optional(),
   introduction: createTextSchema(100).optional(),
   backgroundKey: backgroundKeySchema.optional(),
-}).refine((data) => Object.values(data).some((value) => value !== undefined));
+  backgroundColor: hexColorSchema.optional(),
+  textColor: hexColorSchema.optional(),
+  patternKey: patternKeySchema.optional(),
+  patternColor: hexColorSchema.optional(),
+}).superRefine(checkBackgroundCombination)
+  .refine((data) => Object.values(data).some((value) => value !== undefined))
+  .transform((data) => data.backgroundKey !== undefined && data.backgroundKey !== "custom"
+    ? { ...data, backgroundColor: null, textColor: null, patternKey: null, patternColor: null }
+    : data);
 
 export const validateCreateStudy = (body) => createStudySchema.safeParse(body);
 export const validateUpdateStudy = (body) => updateStudySchema.safeParse(body);

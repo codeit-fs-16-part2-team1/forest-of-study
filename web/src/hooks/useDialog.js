@@ -17,7 +17,9 @@ const getFocusable = (dialog) =>
       element.getClientRects().length > 0,
   );
 
-const useDialog = (isOpen) => {
+const useDialog = (isOpen, allowEscape = false) => {
+  const allowEscapeRef = useRef(allowEscape);
+  allowEscapeRef.current = allowEscape;
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -37,6 +39,8 @@ const useDialog = (isOpen) => {
     const handleKeyDown = (event) => {
       if (dialogs.at(-1) !== dialog) return;
       if (event.key === "Escape") {
+        // 드래그 중에는 센서가 Escape를 받아 이동만 취소할 수 있게 한다.
+        if (allowEscapeRef.current) return;
         event.preventDefault();
         event.stopPropagation();
         return;

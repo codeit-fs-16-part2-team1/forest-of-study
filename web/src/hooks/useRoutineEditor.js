@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-const MAX_ROUTINES = 18;
+const MAX_ROUTINES = 10;
 const segmenter = new Intl.Segmenter("ko", { granularity: "grapheme" });
 const nameErrorMessage = "습관 이름은 앞뒤 공백을 제외하고 1~20글자로 입력해주세요.";
-const limitErrorMessage = "습관 입력칸은 최대 18개까지 추가할 수 있어요.";
+const limitErrorMessage = "습관 입력칸은 최대 10개까지 추가할 수 있어요.";
 
 const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) => {
   const originalRoutinesRef = useRef(routines);
@@ -17,8 +17,9 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
           clientId: `routine-${routine.id}`,
           routineId: routine.id,
           name: routine.name,
+          stickerColor: routine.stickerColor ?? null,
         }))
-      : [{ clientId: "new-0", routineId: null, name: "" }],
+      : [{ clientId: "new-0", routineId: null, name: "", stickerColor: 1 }],
   );
   const [deletedRoutineIds, setDeletedRoutineIds] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,7 +43,7 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
   const createEmptyRoutine = () => {
     const clientId = `new-${nextDraftIdRef.current}`;
     nextDraftIdRef.current += 1;
-    return { clientId, routineId: null, name: "" };
+    return { clientId, routineId: null, name: "", stickerColor: 1 };
   };
 
   const canRemoveRoutine = (routine) =>
@@ -66,6 +67,25 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
     setDraftRoutines((previous) => previous.length >= MAX_ROUTINES
       ? previous
       : [...previous, routine]);
+  };
+
+  const handleMoveRoutine = (fromIndex, toIndex) => {
+    if (isSavingRef.current) return;
+    setDraftRoutines((previous) => {
+      if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 ||
+          fromIndex >= previous.length || toIndex >= previous.length) return previous;
+      const next = [...previous];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const handleChangeColor = (clientId, stickerColor) => {
+    if (isSavingRef.current) return;
+    setDraftRoutines((previous) => previous.map((routine) =>
+      routine.clientId === clientId ? { ...routine, stickerColor } : routine,
+    ));
   };
 
   const handleRemoveRoutine = (clientId) => {
@@ -97,21 +117,36 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
       return;
     }
 
-    const originalNames = new Map(originalRoutinesRef.current.map((routine) =>
-      [routine.id, routine.name],
+    const originals = new Map(originalRoutinesRef.current.map((routine) =>
+      [routine.id, routine],
     ));
     const creates = [];
     const updates = [];
+    const order = [];
     for (const routine of draftRoutines) {
-      const name = routine.name.trim();
+      const original = originals.get(routine.routineId);
+      const name = routine.name.trim() || original?.name;
       // 빈 기존 항목은 이름을 유지하고, 빈 신규 항목은 생성하지 않는다.
       if (!name) continue;
-      if (routine.routineId === null) creates.push({ name });
-      else if (name !== originalNames.get(routine.routineId)) {
-        updates.push({ routineId: routine.routineId, name });
+      if (routine.routineId === null) {
+        order.push({ createIndex: creates.length });
+        creates.push({ name, stickerColor: routine.stickerColor });
       }
+      else if (name !== original.name || routine.stickerColor !== (original.stickerColor ?? null)) {
+        updates.push({
+          routineId: routine.routineId,
+          name,
+          ...(routine.stickerColor !== (original.stickerColor ?? null) && {
+            stickerColor: routine.stickerColor,
+          }),
+        });
+      }
+      if (routine.routineId !== null) order.push({ routineId: routine.routineId });
     }
-    if (creates.length === 0 && updates.length === 0 && deletedRoutineIds.length === 0) {
+    const originalIds = originalRoutinesRef.current.map((routine) => routine.id);
+    const orderChanged = order.length !== originalIds.length ||
+      order.some((item, index) => item.routineId !== originalIds[index]);
+    if (!orderChanged && creates.length === 0 && updates.length === 0 && deletedRoutineIds.length === 0) {
       onClose?.();
       return;
     }
@@ -120,7 +155,7 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
     isSavingRef.current = true;
     setIsSaving(true);
     try {
-      const saved = await onSubmit({ creates, updates, endIds: deletedRoutineIds });
+      const saved = await onSubmit({ creates, updates, endIds: deletedRoutineIds, order });
       if (saved && isMountedRef.current) onClose?.();
     } finally {
       isSavingRef.current = false;
@@ -134,9 +169,11 @@ const useRoutineEditor = ({ routines, onSubmit, onClose, onValidationError }) =>
     errors,
     isSaving,
     canSubmit,
-    canAddRoutine: !isSaving,
+    canAddRoutine: !isSaving && draftRoutines.length < MAX_ROUTINES,
     canRemoveRoutine,
     handleChangeRoutine,
+    handleChangeColor,
+    handleMoveRoutine,
     handleAddRoutine,
     handleRemoveRoutine,
     handleClose,
