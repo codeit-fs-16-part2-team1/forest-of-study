@@ -83,7 +83,7 @@
 }
 
 .nickname {
-  color: var(--study-accent);
+  color: var(--nickname-color, var(--study-accent));
 }
 
 .points {
@@ -120,6 +120,10 @@
 }
 
 .introduction {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   margin-top: 20px;
   white-space: pre-wrap;
   font-size: 14px;

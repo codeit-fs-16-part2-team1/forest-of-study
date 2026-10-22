@@ -1,11 +1,13 @@
 import useServerTime from "../../hooks/useServerTime.js";
 
-const CurrentTime = ({ clock, className }) => {
+const CurrentTime = ({ clock, className, isLoading = false, skeletonClassName }) => {
   const currentTime = useServerTime(clock);
   return (
     <div className={className}>
       <p>현재 시간</p>
-      {currentTime && (
+      {isLoading ? (
+        <span className={skeletonClassName} role="status" aria-label="현재 시간 불러오는 중" />
+      ) : currentTime && (
         <time dateTime={currentTime.toISOString()}>
           {currentTime.toLocaleString("ko-KR", {
             timeZone: "Asia/Seoul",

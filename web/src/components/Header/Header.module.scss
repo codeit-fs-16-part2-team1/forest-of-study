@@ -37,7 +37,7 @@
   justify-content: center;
   align-items: center;
   width: 6.625rem; // 106px
-  height: 2.25rem; // 36px (box-shadow 미적용 시 38px)
+  min-height: 2.25rem; // 36px (그림자 포함 시 38px)
   border-radius: 0.5rem; // 8px
   background: var(--color-brand);
   box-shadow: 0 2px 0 var(--color-green-text);
@@ -61,7 +61,7 @@
   }
   .createStudyBtn {
     width: 10rem; // 160px
-    height: 3.438rem; // 55px (box-shadow 미적용 시 58px)
+    min-height: 3.438rem; // 55px (그림자 포함 시 58px)
     border-radius: 0.875rem; // 14px
     box-shadow: 0 3px 0 var(--color-green-text);
     font-size: 1.125rem; // 18px

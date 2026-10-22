@@ -31,7 +31,7 @@ const StudyCard = ({ study, onShowToast, onBookmarkRemoved }) => {
         "--custom-badge-background": customTheme?.badgeBackground,
         backgroundImage: hasImage
           ? `linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
-             url("${background.image}")`
+            url("${background.image}")`
           : undefined,
       }}
     >

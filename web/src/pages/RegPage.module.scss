@@ -414,7 +414,9 @@ textarea.input {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 58px;
+  min-height: 55px;
+  box-shadow: 0 3px 0 var(--color-green-text);
+  text-shadow: 0 -2px 0 var(--color-green-text);
   padding: 12px 20px;
   border-radius: 16px;
   background: var(--color-brand);
@@ -423,18 +425,34 @@ textarea.input {
   font-size: 18px;
   margin-top: 6px;
 
+  &:active:enabled {
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.65;
+    opacity: 0.5;
   }
 }
 
-.skeleton {
-  height: 240px;
-  margin-bottom: 24px;
-  border-radius: 16px;
+.skeletonTitle,
+.skeletonLabel,
+.skeletonInput,
+.skeletonIntroduction,
+.skeletonBackground,
+.skeletonSubmit {
+  display: block;
+  border-radius: 12px;
   background: var(--color-gray-lighter);
 }
+
+.skeletonTitle { width: min(100%, 180px); height: 1.2em; }
+.skeletonLabel { width: min(100%, 160px); height: 1.3em; }
+.skeletonInput { height: 48px; }
+.skeletonIntroduction { height: 98px; }
+.skeletonBackground { aspect-ratio: 1; border-radius: 16px; }
+.skeletonSubmit { min-height: 55px; margin-top: 6px; }
 
 .srOnly {
   position: absolute;
@@ -478,7 +496,8 @@ textarea.input {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .submitButton {
+  .submitButton,
+  .skeletonSubmit {
     margin-top: 16px;
   }
 }

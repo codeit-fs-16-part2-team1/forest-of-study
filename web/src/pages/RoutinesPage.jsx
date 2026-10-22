@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import CurrentTime from "../components/CurrentTime/CurrentTime.jsx";
@@ -81,9 +82,14 @@ const RoutinesPage = ({ studyState }) => {
     return saved;
   };
 
-  const isLoading = isLoadingStudy ||
-    (!studyError && (verifiedPassword === null
-      ? !verification.error : isLoadingRoutines));
+  const showStudySkeleton = useMinimumLoading(isLoadingStudy, studyId);
+  const showRoutineSkeleton = useMinimumLoading(
+    verifiedPassword !== null && isLoadingRoutines, studyId,
+  );
+  const isLoading = !studyError && (showStudySkeleton || showRoutineSkeleton ||
+    (verifiedPassword === null ? !verification.error : isLoadingRoutines));
+  const showPageSkeleton = !studyError &&
+    (isLoading || verification.isOpen || verification.isPending);
   const errorMessage = studyError?.message || verification.error?.message || routineError;
 
   if (entryErrorMessage) {
@@ -93,54 +99,81 @@ const RoutinesPage = ({ studyState }) => {
   return (
     <>
       <main className={styles.main}>
-        <div className={styles.container}>
-          <div className={styles.containerHeader}>
-            <h2 className={styles.studyTitle}>
-              {study ? (
-                <>
-                  <span className={styles.nickname}>{study.nickname}</span>
-                  의 {study.name}
-                </>
-              ) : "스터디"}
-            </h2>
-            <nav>
-              <Link to={`/challenge?id=${studyId}`} state={{ from: currentPath }}>오늘의 집중</Link>
-              <Link to={`/dashboard/${studyId}`} state={{ from: currentPath }}>스터디 상세</Link>
-            </nav>
-          </div>
-          <CurrentTime
-            clock={clock}
-            className={styles.currentTime}
-          />
-          <div className={styles.routineContainer}>
-            <div className={styles.inner}>
-              <div className={styles.routineHeader}>
-                <h3>오늘의 습관</h3>
-                <button
-                  type="button"
-                  onClick={() => setIsRoutineModalOpen(true)}
-                  disabled={
-                    isLoading || Boolean(errorMessage) || !routineData ||
-                    pendingRoutineIds.length > 0
-                  }
-                >
-                  목록 수정
-                </button>
+        <div className={styles.container} aria-busy={showPageSkeleton}>
+          {showPageSkeleton ? (
+            <>
+              <p className={styles.srOnly} role="status">습관 화면을 준비하고 있습니다.</p>
+              <div className={styles.containerHeader} aria-hidden="true">
+                <h2 className={styles.studyTitle}><span className={styles.skeletonTitle} /></h2>
+                <nav><span className={styles.skeletonLink} /><span className={styles.skeletonLink} /></nav>
               </div>
-              <RoutineList
-                routines={routineData?.routines}
-                isLoading={isLoading}
-                errorMessage={errorMessage}
-                errorTitle={studyError
-                  ? "스터디 정보를 불러오지 못했어요"
-                  : "습관을 불러오지 못했어요"}
-                pendingRoutineIds={pendingRoutineIds}
-                onRetry={studyError ? reloadStudy
-                  : verifiedPassword === null ? verification.open : reloadRoutines}
-                onToggle={handleToggleRoutine}
+              <div className={styles.currentTime} aria-hidden="true">
+                <div className={styles.skeletonLabel} />
+                <div className={styles.skeletonTime} />
+              </div>
+              <div className={styles.routineContainer}>
+                <div className={styles.inner}>
+                  <div className={styles.routineHeader} aria-hidden="true">
+                    <div className={styles.skeletonSectionTitle} />
+                    <div className={styles.skeletonEdit} />
+                  </div>
+                  <RoutineList isLoading />
+                </div>
+              </div>
+            </>
+          ) : (
+                <>
+              <div className={styles.containerHeader}>
+                <h2 className={styles.studyTitle}>
+                  {study ? (
+                    <>
+                      <span className={styles.nickname}>{study.nickname}</span>
+                      의 {study.name}
+                    </>
+                  ) : "스터디"}
+                </h2>
+                <nav>
+                  <Link to={`/challenge?id=${studyId}`} state={{ from: currentPath }}>오늘의 집중</Link>
+                  <Link to={`/dashboard/${studyId}`} state={{ from: currentPath }}>스터디 상세</Link>
+                </nav>
+              </div>
+              <CurrentTime
+                clock={clock}
+                isLoading={showRoutineSkeleton || !clock}
+                skeletonClassName={styles.skeletonTime}
+                className={styles.currentTime}
               />
-            </div>
-          </div>
+              <div className={styles.routineContainer}>
+                <div className={styles.inner}>
+                  <div className={styles.routineHeader}>
+                    <h3>오늘의 습관</h3>
+                    <button
+                      type="button"
+                      onClick={() => setIsRoutineModalOpen(true)}
+                      disabled={
+                        isLoading || Boolean(errorMessage) || !routineData ||
+                        pendingRoutineIds.length > 0
+                      }
+                    >
+                      목록 수정
+                    </button>
+                  </div>
+                  <RoutineList
+                    routines={routineData?.routines}
+                    isLoading={isLoading}
+                    errorMessage={errorMessage}
+                    errorTitle={studyError
+                      ? "스터디 정보를 불러오지 못했어요"
+                      : "습관을 불러오지 못했어요"}
+                    pendingRoutineIds={pendingRoutineIds}
+                    onRetry={studyError ? reloadStudy
+                      : verifiedPassword === null ? verification.open : reloadRoutines}
+                    onToggle={handleToggleRoutine}
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
       {Boolean(study) && !isLoadingStudy && !studyError && (

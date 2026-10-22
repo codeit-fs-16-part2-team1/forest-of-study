@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { Link, useLocation, useNavigate } from "react-router";
 import { useEffect, useRef, useState } from "react";
 import { recordRecentStudy, removeRecentStudy } from "../utils/recentStudies.js";
@@ -15,7 +16,31 @@ import Popup from "../components/Popup/Popup.jsx";
 import { addBookmarkStudy, removeBookmarkStudy } from "../utils/bookmarkStudies.js";
 import BookmarkButton from "../components/BookmarkButton/BookmarkButton.jsx";
 
+const DashboardSkeleton = () => (
+  <section className={styles.panel} aria-busy="true" aria-label="스터디 상세 불러오는 중">
+    <p className={styles.srOnly} role="status">스터디를 불러오는 중입니다.</p>
+    <div className={styles.toolbar} aria-hidden="true">
+      <div className={styles.management}><span className={styles.skeletonManagement} /></div>
+      <div className={styles.reactions}>
+        <div className={styles.skeletonReactions}>
+          {[0, 1, 2].map((index) => <span key={index} className={styles.skeletonReaction} />)}
+        </div>
+      </div>
+    </div>
+    <div className={styles.heading} aria-hidden="true">
+      <div className={styles.skeletonTitle} />
+      <div className={styles.links}><span className={styles.skeletonLink} /><span className={styles.skeletonLink} /></div>
+    </div>
+    <div className={styles.details} aria-hidden="true">
+      <div><div className={styles.skeletonLabel} /><div className={styles.skeletonIntroduction} /></div>
+      <div><div className={styles.skeletonLabel} /><div className={styles.skeletonPoints} /></div>
+    </div>
+    <div className={styles.skeletonHistory} aria-hidden="true" />
+  </section>
+);
+
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
+  const showSkeleton = useMinimumLoading(isLoading);
   const location = useLocation();
   const navigate = useNavigate();
   const [bookmarkPromptId, setBookmarkPromptId] = useState(null);
@@ -118,19 +143,8 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <main className={styles.page}>
-        <section className={styles.panel} aria-busy="true">
-          <p className={styles.srOnly} role="status">
-            스터디를 불러오는 중입니다.
-          </p>
-
-          <div className={styles.skeletonTitle} aria-hidden="true" />
-          <div className={styles.skeletonBody} aria-hidden="true" />
-        </section>
-      </main>
-    );
+  if (showSkeleton) {
+    return <main className={styles.page}><DashboardSkeleton /></main>;
   }
 
   if (error) {
@@ -156,7 +170,8 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
 
   return (
     <main className={styles.page}>
-      <section className={styles.panel} aria-labelledby="study-title">
+      {isDeleteOpen && <DashboardSkeleton />}
+      <section className={styles.panel} aria-labelledby="study-title" hidden={isDeleteOpen}>
         <div className={styles.toolbar}>
           <nav className={styles.management} aria-label="스터디 관리">
             <button type="button" onClick={handleShare}>
@@ -195,11 +210,11 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
 
           <nav className={styles.links} aria-label="스터디 활동">
             <Link to={`/routines?id=${study.id}`} state={{ from: currentPath }}>
-              오늘의 습관 <span aria-hidden="true">›</span>
+              오늘의 습관
             </Link>
 
             <Link to={`/challenge?id=${study.id}`}>
-              오늘의 집중 <span aria-hidden="true">›</span>
+              오늘의 집중
             </Link>
           </nav>
         </div>

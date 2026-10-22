@@ -28,13 +28,21 @@
 .nickname {
   color: var(--color-green-text);
 }
+.skeletonTitle {
+  display: block;
+  width: min(100%, 240px);
+  height: 1.8rem;
+  border-radius: 8px;
+  background: var(--color-gray-lighter);
+}
 .containerHeader nav {
   display: flex;
   gap: 0.5rem; // 8px
   margin-top: 1rem; // 16px
   flex-shrink: 0;
 }
-.containerHeader nav a {
+.containerHeader nav a,
+.containerHeader nav .skeletonLink {
   display: inline-flex;
   align-items: center;
   padding-left: 0.625rem; // 10px
@@ -50,6 +58,37 @@
   font-size: 1rem; // 16px
   font-weight: 500;
   white-space: nowrap;
+}
+
+.skeletonLabel,
+.skeletonSectionTitle,
+.skeletonEdit {
+  border-radius: 8px;
+  background: var(--color-gray-lighter);
+  height: 1.125rem;
+}
+.skeletonLabel { width: 100px; margin-bottom: 8px; }
+.skeletonSectionTitle { grid-column: 2; width: 120px; }
+.skeletonEdit { grid-column: 3; justify-self: end; width: 56px; }
+.containerHeader nav .skeletonLink {
+  width: 144px;
+  border: 0;
+  background: var(--color-gray-lighter);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skeletonTime {
+  display: block;
+  width: min(100%, 240px);
+  height: 2.5rem;
+  border-radius: 3.125rem;
+  background: var(--color-gray-lighter);
 }
 
 .currentTime {
@@ -120,11 +159,15 @@
     width: auto;
     font-size: 2rem; // 32px
   }
+  .skeletonTitle {
+    height: 38px;
+  }
   .containerHeader nav {
     gap: 1rem; // 16px
     margin-top: 0;
   }
-  .containerHeader nav a {
+  .containerHeader nav a,
+  .containerHeader nav .skeletonLink {
     height: 3rem; // 48px
     padding-left: 1.5rem; // 24px
     padding-right: 2.75rem; // 44px
