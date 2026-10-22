@@ -48,7 +48,7 @@ const RecentStudies = () => {
   return (
     <section className={styles.section} aria-labelledby="recent-title" aria-busy={showSkeleton}>
       <h2 id="recent-title" className={styles.title}>
-        {showSkeleton ? <span className={styles.skeletonHeading} aria-label="최근 조회한 스터디" /> : "최근 조회한 스터디"}
+        최근 조회한 스터디
       </h2>
       {showSkeleton ? (
         <>
