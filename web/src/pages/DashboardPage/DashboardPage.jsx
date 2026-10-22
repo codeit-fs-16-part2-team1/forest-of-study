@@ -38,29 +38,6 @@ const DashboardSkeleton = () => (
   </section>
 );
 
-const DashboardSkeleton = () => (
-  <section className={styles.panel} aria-busy="true" aria-label="스터디 상세 불러오는 중">
-    <p className={styles.srOnly} role="status">스터디를 불러오는 중입니다.</p>
-    <div className={styles.toolbar} aria-hidden="true">
-      <div className={styles.management}><span className={styles.skeletonManagement} /></div>
-      <div className={styles.reactions}>
-        <div className={styles.skeletonReactions}>
-          {[0, 1, 2].map((index) => <span key={index} className={styles.skeletonReaction} />)}
-        </div>
-      </div>
-    </div>
-    <div className={styles.heading} aria-hidden="true">
-      <div className={styles.skeletonTitle} />
-      <div className={styles.links}><span className={styles.skeletonLink} /><span className={styles.skeletonLink} /></div>
-    </div>
-    <div className={styles.details} aria-hidden="true">
-      <div><div className={styles.skeletonLabel} /><div className={styles.skeletonIntroduction} /></div>
-      <div><div className={styles.skeletonLabel} /><div className={styles.skeletonPoints} /></div>
-    </div>
-    <div className={styles.skeletonHistory} aria-hidden="true" />
-  </section>
-);
-
 const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
   const showSkeleton = useMinimumLoading(isLoading);
   const location = useLocation();
