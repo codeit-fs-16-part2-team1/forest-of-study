@@ -1,14 +1,36 @@
+@use "../../styles/watercolor-buttons" as buttons;
 @use "../../styles/breakpoints";
 
 .page {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
 .panel {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-height: calc(100vh - var(--layout-header-height) - var(--layout-page-top) - var(--layout-page-bottom));
+  min-height: calc(100dvh - var(--layout-header-height) - var(--layout-page-top) - var(--layout-page-bottom));
+  border: 1px solid var(--forest-panel-border, #d5ddbf);
+  box-shadow: var(--forest-panel-shadow, none);
   min-width: 0;
   padding: 16px;
   border-radius: 20px;
-  background: var(--color-surface);
+  background: var(--forest-panel-background, var(--color-surface));
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+.deleteModal {
+  --watercolor-button-background: transparent;
+  --watercolor-button-paint: var(--watercolor-danger-paint);
+  --watercolor-button-radius: 10px;
+  --watercolor-button-size: 100% 100%;
+  --watercolor-button-shadow: none;
 }
 
 .management {
@@ -36,9 +58,8 @@
     cursor: pointer;
   }
 
-  > .deleteButton,
-  > .deleteDivider {
-    color: var(--color-text-muted);
+  > .deleteButton {
+    color: #b7443c;
   }
 }
 
@@ -131,16 +152,12 @@
   padding-left: 0.625rem; // 10px
   padding-right: 2.125rem; // 34px
   height: 2.5rem; // 40px
-  border: 0.0625rem solid var(--color-gray-light); // 1px
-  border-radius: 0.9375rem; // 15px
-  background: var(--color-white);
-  background-image: url(../../assets/ic_arrow_right.svg);
-  background-repeat: no-repeat;
-  background-position: right 0.375rem center; // 6px
-  color: var(--color-gray);
   font-size: 1rem; // 16px
-  font-weight: 500;
   white-space: nowrap;
+  @include buttons.secondary;
+  background-image: url(../../assets/ic_arrow_right.svg);
+  background-position: right 0.375rem center; // 6px
+  background-size: 20px 20px;
 }
 
 .details {
@@ -204,7 +221,11 @@
 }
 
 .homeLink {
-  color: var(--color-green-text);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 20px;
+  @include buttons.secondary;
 }
 
 .skeletonManagement,
@@ -246,7 +267,8 @@
 }
 
 .skeletonHistory {
-  height: 240px;
+  flex: 1;
+  min-height: 240px;
   margin-top: 24px;
 }
 

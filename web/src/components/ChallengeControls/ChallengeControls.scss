@@ -1,9 +1,11 @@
+@use "../../styles/watercolor-buttons" as buttons;
 .challengeControls {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 16px;
+  width: min(100%, 520px);
   min-height: 64px;
 
   button {
@@ -21,19 +23,14 @@
     align-items: center;
     justify-content: center;
     gap: 16px;
-    width: 333px;
-    height: 60px;
-    color: var(--color-white);
-    background: var(--color-primary);
-    border-radius: 50px;
+    flex: 1 1 360px;
+    min-width: 0;
+    max-width: 360px;
+    height: 64px;
     font-size: 28px;
-    font-weight: 800;
     line-height: 1.2;
     white-space: nowrap;
-
-    &:disabled {
-      background: var(--color-gray);
-    }
+    @include buttons.primary;
   }
 
   &__circle {
@@ -59,6 +56,11 @@
       top: 16.2px;
       left: 17.96px;
     }
+      @include buttons.primary;
+
+    > img:not(.challengeControls__pauseIcon):not(.challengeControls__resetIcon) {
+      display: none;
+    }
   }
 
   &__desktop {
@@ -77,9 +79,10 @@
 
     &__primary {
       gap: 8px;
-      width: min(140px, calc(100cqi - 178px));
-      height: 45px;
-      font-size: 18px;
+      flex-basis: 200px;
+      max-width: 200px;
+      height: 48px;
+      font-size: 20px;
     }
 
     &__circle {

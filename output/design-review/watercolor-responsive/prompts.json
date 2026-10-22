@@ -1,0 +1,26 @@
+{
+  "tool": "image_gen.imagegen",
+  "mode": "built-in, reference-guided generation",
+  "reference": "web/src/assets/watercolor/forest-background.png",
+  "breakpoints": {
+    "mobile": "<768px",
+    "tablet": "768px–1023px",
+    "desktop": ">=1024px"
+  },
+  "assets": [
+    {
+      "name": "forest-background-mobile",
+      "prompt": "Use case: illustration-story. Asset type: production mobile website watercolor background. Input image 1 is the existing desktop forest wallpaper, used as STYLE and PALETTE reference. Generate a NEW coordinated mobile composition, tall portrait 1024 x 2160 pixels (approximately 9:19). Keep the same airy warm ivory textured watercolor paper, sage and olive green translucent foliage, pale forest trees, tiny cream daisies, muted yellow-green grasses. Composition for a narrow mobile study app: central 85% of width completely empty ivory paper from top to near bottom for readable UI; very slim delicate foliage hugging BOTH extreme left and right edges, softly washed-out tree silhouettes; one small leafy branch in the upper right corner; low meadow rim confined to the bottom 6% with tiny daisies in the two bottom corners. Small-scale natural leaves, DO NOT stretch the wide reference into portrait. Recompose natively for a tall phone, preserve natural proportions of leaves and trees, calm soft hand-painted organic watercolor texture. No UI, panels, text, logo, letters, border, characters, books, watermark, or large central objects. Opaque full-bleed ivory background.",
+      "target": "web/src/assets/watercolor/forest-background-mobile.png",
+      "width": 864,
+      "height": 1821
+    },
+    {
+      "name": "forest-background-tablet",
+      "prompt": "Use case: illustration-story. Asset type: production tablet website watercolor background. Input image 1 is the existing desktop forest wallpaper, used as STYLE and PALETTE reference. Generate a NEW coordinated tablet composition, portrait 1152 x 1536 pixels, exact 3:4 aspect ratio. Keep the same airy warm ivory textured watercolor paper, sage and olive green translucent foliage, pale forest trees, tiny cream daisies, muted yellow-green grasses. Composition for a tablet study app: central 84% of width is completely empty ivory paper from the top down for readable UI. Delicate forest foliage confined to the outermost 8% on left and right, pale trees in side margins, a modest leafy branch entering upper right corner; softly painted meadow along the bottom 7% and tiny daisies in bottom corners. Natural small leaf proportions, recompose natively to 3:4, do not squeeze or stretch the wide reference. Calm soft hand-painted organic watercolor texture, low contrast. No UI, panels, text, logo, letters, border, characters, books, watermark, or central objects. Opaque full-bleed ivory background.",
+      "target": "web/src/assets/watercolor/forest-background-tablet.png",
+      "width": 1086,
+      "height": 1448
+    }
+  ]
+}

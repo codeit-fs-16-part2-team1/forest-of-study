@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-22",
+  "tool": "image_gen.imagegen",
+  "mode": "reference edit",
+  "assets": [
+    {
+      "name": "forest-background",
+      "target": "web/src/assets/watercolor/forest-background.png",
+      "transparent_background": false,
+      "prompt": "Create ONLY the reusable website background artwork inspired by the attached study UI reference. Remove ALL UI, panels, text, logo, numbers, icons, characters, and books. Landscape 3:2 watercolor illustration on warm ivory paper (#f6f4ef). Delicate hand-painted sage and olive forest foliage and pale tree silhouettes ONLY along far left and right edges, leafy branch at upper right corner, soft meadow with tiny cream daisies and muted yellow-green grasses at bottom edge. At least central 75% of width and 80% height is almost blank warm ivory paper with subtle watercolor paper grain for readable web content. Light airy low contrast, soft organic edges. No character, no text, no interface, no border. Full bleed background wallpaper, composition matches the supplied forest feeling.",
+      "reference": "exec-7fdcdb53-c537-404f-aeb1-0d5b340579f8.png"
+    },
+    {
+      "name": "sprout",
+      "target": "web/src/assets/watercolor/sprout.png",
+      "transparent_background": true,
+      "prompt": "Extract and faithfully redraw ONLY the small round green sprout mascot from the attached website mockup as an isolated production-ready watercolor cutout with TRUE TRANSPARENT BACKGROUND. Maintain round pale green body, two olive green leaves on top, tiny dark oval eyes, peach blush, curved smile, dark green feet and hands, reading an open warm cream book. Entire character centered and fully visible, occupying 85% of image height, just a little breathing room. Preserve original soft watercolor texture inside character. No UI, logo, text, paper background, scenery, grass, daisies, notebook or ground. Transparent exterior with clean soft alpha edges. Single mascot only.",
+      "reference": "exec-bb0cd8bf-0796-40fa-9873-5be4619f73b5.png"
+    },
+    {
+      "name": "book-spirit",
+      "target": "web/src/assets/watercolor/book-spirit.png",
+      "transparent_background": true,
+      "prompt": "Edit the reference into a TRUE TRANSPARENT BACKGROUND isolated cutout for a website. Preserve exactly this sage green book mascot, ochre spine, red ribbon bookmark, cream pages, tiny dark oval eyes and smiling face, dark green mitten hands holding a pencil, tiny brown boots and small sprig ornament on the lower cover. Keep watercolor paper pigment texture INSIDE the character. Entire mascot centered fully visible occupying 85% of image height. Remove all ivory paper background and ground shadow. No text, extra props, border or scenery. Transparent exterior, clean soft alpha edge, single mascot.",
+      "reference": "exec-6136343a-5988-40a3-82ae-d2205529faee.png"
+    },
+    {
+      "name": "tree-stump",
+      "target": "web/src/assets/watercolor/tree-stump.png",
+      "transparent_background": true,
+      "prompt": "Edit the reference into a TRUE TRANSPARENT BACKGROUND isolated cutout for a website. Preserve exactly this honey brown tree stump mascot reading an open cream book, closed happy eyes, smile, growth rings on top, moss on upper right, fern on right, pencil in left branch pocket, root feet. Keep hand-painted watercolor pigment texture INSIDE the character. Entire mascot fully visible centered occupying 85% of image height. Remove all ivory paper background and ground shadow. No text, border, extra scenery or frame. Transparent exterior clean soft alpha edge, single mascot.",
+      "reference": "exec-b723f949-b9af-4ba5-9b13-c32dff5b7de0.png"
+    },
+    {
+      "name": "leaf-cloak",
+      "target": "web/src/assets/watercolor/leaf-cloak.png",
+      "transparent_background": true,
+      "prompt": "Edit the reference into a TRUE TRANSPARENT BACKGROUND isolated cutout for a website. Preserve exactly this leaf-cloak mascot: pointed sage green leaf hood with veins, cream round face with closed tiny eyes and subtle smile, olive leaf poncho, small cream hands holding a terracotta notebook with pencil, short blue-grey boots. Keep hand-painted watercolor pigment texture INSIDE character. Entire mascot fully visible centered occupying 85% of image height. Remove all ivory paper background and ground shadow. No text, frame, border, extra props or scenery. Transparent exterior, clean soft alpha edge, single mascot.",
+      "reference": "exec-9db3846e-565f-4676-8bf1-4811ca13e53b.png"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-22",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in reference-guided pose variation",
+  "prompt": "Use case: identity-preserve. Asset type: true transparent watercolor bottom-right corner illustration for a daily habit tracker website. Reference image 1 is the existing leaf spirit mascot whose identity must be preserved: pointed sage-green leaf hood with delicate leaf veins, cream round face, small closed dark eyes, warm tiny cheek blush and subtle smile, olive leaf poncho, short blue-grey boots, terracotta notebook and golden pencil. Reference image 2 is the established forest watercolor palette and soft paper pigment style. Change to a NEW pose suitable for habits: the spirit sits comfortably with boots pointing slightly forward, looking down at an OPEN small terracotta-covered habit notebook resting on its knees. One cream hand holds a pencil pointing to a simple small green leaf-shaped checkmark on an otherwise blank cream page, the other steadies the notebook. Calm encouraging smile, three-quarter view facing slightly left. Integrate the character into a low patch of sage/olive meadow, tiny cream daisies with yellow centers, a few rounded warm grey stones and short yellow-green grasses. Square composition weighted toward bottom right, whole seated character and foliage visible, spirit occupies about 65% of canvas height, upper left remains largely transparent. Preserve the same hand-painted watercolor grain inside leaves and character, natural soft edges. TRUE TRANSPARENT BACKGROUND outside character and garden, no ivory paper rectangle, no opaque backdrop, no UI, text, readable writing, numbers, lettering, logo, border, frame or watermark. Single leaf spirit only; no tree stump or other character.",
+  "references": [
+    "web/src/assets/watercolor/leaf-cloak.png",
+    "web/src/assets/watercolor/forest-background.png"
+  ],
+  "output": "web/src/assets/watercolor/routine-spirit-checklist.png",
+  "width": 1254,
+  "height": 1254,
+  "transparent_background": true
+}

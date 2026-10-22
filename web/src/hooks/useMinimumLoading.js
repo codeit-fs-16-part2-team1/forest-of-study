@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-// 요청은 즉시 실행하고, 로딩 표시만 요청 시작부터 최소 1초 유지한다.
+// 요청은 즉시 실행하고, 로딩 표시만 요청 시작부터 최소 0.5초 유지한다.
 const useMinimumLoading = (isLoading, requestKey = null) => {
   const [cycle, setCycle] = useState(() => ({
     isLoading,
@@ -24,7 +24,7 @@ const useMinimumLoading = (isLoading, requestKey = null) => {
       setCycle((previous) => previous === cycle
         ? { ...previous, holding: false }
         : previous);
-    }, Math.max(0, 1000 - (Date.now() - cycle.startedAt)));
+    }, Math.max(0, 500 - (Date.now() - cycle.startedAt)));
     return () => window.clearTimeout(timer);
   }, [isLoading, cycle]);
 

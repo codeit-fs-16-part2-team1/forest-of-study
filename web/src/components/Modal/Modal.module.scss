@@ -1,3 +1,4 @@
+@use "../../styles/watercolor-buttons" as buttons;
 @use "../../styles/breakpoints";
 
 // 모바일
@@ -57,43 +58,25 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  padding: 0.625rem; // 10px
+  padding: 10px;
   width: 100%;
   min-width: 0;
-  min-height: 3.4375rem; // 55px (그림자 3px 포함 시 58px)
-  border-radius: 1rem; // 16px
-  background: var(--color-brand);
-  box-shadow: 0 3px 0 var(--color-green-text);
-  color: var(--color-white);
-  font-family: var(--font-family-display);
-  font-size: 1.125rem; // 18px
-  font-weight: 400;
+  min-height: 55px;
+  font-size: 18px;
   line-height: 1.5;
   text-align: center;
-  text-shadow: 0 -2px 0 var(--color-green-text);
   overflow-wrap: anywhere;
-
-  &:active:enabled {
-    box-shadow: none;
-    transform: translateY(3px);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
+  @include buttons.primary;
 }
 
 .exitButton {
   display: block;
-  margin: 0.5rem auto 0; // 8px auto 0
-  padding: 0 0.5rem; // 0 8px
-  min-height: 1.8125rem; // 29px
-  border-radius: 0.25rem; // 4px
-  color: var(--color-green-text);
-  font-size: 1rem; // 16px
-  font-weight: 500;
-  line-height: 1.8125rem; // 29px
+  margin: 8px auto 0;
+  padding: 6px 12px;
+  min-height: 36px;
+  font-size: 16px;
+  line-height: 1.5;
+  @include buttons.secondary;
 }
 
 // 태블릿, 데스크톱
@@ -104,7 +87,7 @@
   }
 
   .title {
-    padding: 0 4rem; // 양쪽 64px: 나가기와 제목의 겹침 방지
+    padding: 0 5rem; // 양쪽 64px: 나가기와 제목의 겹침 방지
     font-size: 1.5rem; // 24px
     line-height: 1.8125rem; // 29px
   }

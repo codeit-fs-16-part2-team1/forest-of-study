@@ -1,3 +1,4 @@
+@use "../../styles/watercolor-buttons" as buttons;
 @use "../../styles/breakpoints";
 
 // 모바일
@@ -167,6 +168,7 @@
     outline: 0.125rem solid var(--color-green-text);
     outline-offset: -0.125rem;
   }
+  @include buttons.secondary;
 }
 .deleteButton {
   align-self: start;
@@ -175,7 +177,8 @@
   width: 3rem; // 48px
   height: 3rem; // 48px
   border-radius: 50%;
-  background: var(--color-pink);
+  border: 1px solid #dfb4aa;
+  background: #f5e1dc;
   background-image: url(../../assets/ic_trash.svg);
   background-repeat: no-repeat;
   background-position: center center;
@@ -185,13 +188,11 @@
   overflow: hidden;
   width: 100%;
   height: 3.375rem; // 54px
-  border: 0.125rem solid var(--color-black); // 2px
-  border-radius: 1.25rem; // 20px
-  background: var(--color-white);
-  background-image: url(../../assets/ic_plus.svg);
-  background-repeat: no-repeat;
-  background-position: center center;
   text-indent: -999rem;
+  @include buttons.secondary;
+  background-image: url(../../assets/ic_plus.svg);
+  background-position: center center;
+  background-size: 24px 24px;
 }
 .actions {
   display: flex;
@@ -203,24 +204,12 @@
 .actionButton {
   flex: 1;
   min-width: 0;
-  min-height: 3.4375rem; // 55px
-  border-radius: 1rem; // 16px
-  background: var(--color-gray-light);
-  box-shadow: 0 3px 0 var(--color-gray);
-  color: var(--color-white);
-  font-family: var(--font-family-display);
-  font-size: 1.125rem; // 18px
-  text-shadow: 0 -0.125rem 0 var(--color-gray); // -2px
+  min-height: 55px;
+  font-size: 18px;
+  @include buttons.secondary;
 
   &.submitButton {
-    background: var(--color-brand);
-    box-shadow: 0 3px 0 var(--color-green-text);
-    text-shadow: 0 -0.125rem 0 var(--color-green-text); // -2px
-  }
-
-  &:active:enabled {
-    box-shadow: none;
-    transform: translateY(3px);
+    @include buttons.primary;
   }
 }
 .colorButton:disabled,

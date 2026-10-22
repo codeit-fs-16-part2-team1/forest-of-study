@@ -1,3 +1,10 @@
+@use "./breakpoints";
+
+:root {
+  --watercolor-primary-paint: linear-gradient(rgb(39 65 25 / 30%), rgb(39 65 25 / 30%)), url("../assets/watercolor/focus-green-wash.png");
+  --watercolor-danger-paint: url("../assets/watercolor/button-red-wash.png");
+}
+
 html {
   font-family: var(--font-family-base);
   color: var(--color-text);
@@ -11,21 +18,36 @@ body {
 }
 
 .appLayout {
-  // 첫 main의 위쪽 margin이 레이아웃 바깥으로 합쳐지지 않게 한다.
+  --forest-gutter: 16px;
+  --layout-page-top: 16px;
+  --forest-panel-background: rgb(255 253 248 / 94%);
+  --forest-panel-border: #d5ddbf;
+  --forest-panel-shadow: 0 6px 24px rgb(74 87 48 / 5%);
+
+  // 장식이 본문 높이에 포함되지 않도록 배경은 레이아웃에 직접 그린다.
   display: flow-root;
   min-block-size: 100vh;
   min-block-size: 100dvh;
+  background-color: var(--color-bg);
+  background-image: url("../assets/watercolor/forest-header-clear-mobile.png");
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% max(100vh, 640px);
+  background-size: 100% max(100dvh, 640px);
+  background-attachment: fixed;
 }
 
-// Header를 사용하는 실제 페이지에만 공통 바깥 레이아웃을 적용한다.
+// 시안의 양옆 숲 여백을 확보하고 장식 때문에 본문 높이를 늘리지 않는다.
 .appLayout > main {
-  width: 100%;
-  max-width: var(--layout-container-max-width);
+  position: relative;
+  z-index: 1;
+  width: calc(100% - var(--forest-gutter) - var(--forest-gutter));
+  max-width: var(--layout-content-max-width);
   min-height: calc(100vh - var(--layout-header-height));
   min-height: calc(100dvh - var(--layout-header-height));
   margin-block: var(--layout-header-height) 0;
   margin-inline: auto;
-  padding: var(--layout-page-top) var(--layout-page-gutter) var(--layout-page-bottom);
+  padding: var(--layout-page-top) 0 var(--layout-page-bottom);
 }
 
 #root {
@@ -41,4 +63,18 @@ select:enabled {
 :focus-visible {
   outline: 2px solid var(--color-text);
   outline-offset: 3px;
+}
+
+@media (min-width: breakpoints.$tablet) {
+  .appLayout {
+    --forest-gutter: 48px;
+    background-image: url("../assets/watercolor/forest-header-clear-tablet.png");
+  }
+}
+
+@media (min-width: breakpoints.$desktop) {
+  .appLayout {
+    --forest-gutter: clamp(96px, 11.7vw, 180px);
+    background-image: url("../assets/watercolor/forest-header-clear-desktop.png");
+  }
 }

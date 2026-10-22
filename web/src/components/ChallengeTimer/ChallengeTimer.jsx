@@ -1,6 +1,8 @@
 import { useId } from "react";
 import ChallengeControls from "../ChallengeControls/ChallengeControls.jsx";
 import timer from "../../assets/challenge/timer.svg";
+import meadow from "../../assets/watercolor/focus-meadow-left.png";
+import treeWriting from "../../assets/watercolor/focus-tree-writing.png";
 import "./ChallengeTimer.scss";
 
 const formatTime = (seconds) => {
@@ -35,6 +37,10 @@ const ChallengeTimer = ({
       data-status={status ?? "IDLE"}
       aria-labelledby={titleId}
     >
+      <div className="challengeTimer__art" aria-hidden="true">
+        <img className="challengeTimer__meadow" src={meadow} alt="" decoding="async" draggable="false" />
+        <img className="challengeTimer__tree" src={treeWriting} alt="" decoding="async" draggable="false" />
+      </div>
       <div className="challengeTimer__heading">
         <h2 id={titleId} className="challengeTimer__title">
           {isLoading ? <span className="challengeTimer__titleSkeleton" aria-label="오늘의 집중 불러오는 중" /> : "오늘의 집중"}

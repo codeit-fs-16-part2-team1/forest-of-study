@@ -1,3 +1,4 @@
+@use "../../styles/watercolor-buttons" as buttons;
 @use "../../styles/breakpoints";
 
 .page {
@@ -5,10 +6,12 @@
 }
 
 .section {
+  border: 1px solid var(--forest-panel-border, #d5ddbf);
+  box-shadow: var(--forest-panel-shadow, none);
   min-width: 0;
   padding: 16px;
   border-radius: 20px;
-  background: var(--color-surface);
+  background: var(--forest-panel-background, var(--color-surface));
 
   & + & {
     margin-top: 24px;
@@ -153,11 +156,8 @@
   width: min(100%, 280px);
   min-height: 53px;
   padding: 12px 20px;
-  border: 1px solid var(--color-gray-light);
-  border-radius: 15px;
-  background: var(--color-surface);
-  color: var(--color-green-text);
-  font: inherit;
+  font-size: 16px;
+  @include buttons.primary;
 }
 
 .moreButton {

@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-22",
+  "tool": "image_gen.imagegen",
+  "mode": "built-in generation, reference-guided pose variant and illustrations",
+  "assets": [
+    {
+      "name": "focus-tree-writing",
+      "transparent": true,
+      "prompt": "Use case: identity-preserve. Asset type: transparent watercolor corner illustration for a study focus timer website. Image 1 is the EXISTING TREE STUMP MASCOT and MUST preserve its identity: honey-brown small cylindrical tree stump body, concentric growth rings on flat top, moss on upper right, a little fern on its right side, branch arms and root feet, tiny friendly dark eyes and smiling mouth. Image 2 is STYLE/PALETTE reference for the watercolor forest. Create a clearly DIFFERENT POSE: the stump sits quietly on its roots facing slightly left, head/eyes lowered in calm concentration, one branch hand holds a short pencil and WRITES in an open small cream notebook resting on a low smooth root desk in its lap; the other hand steadies the notebook. Do not hold an upright reading book. Natural compact cozy pose suitable for a focus timer. Integrate the character into a small low patch of sage/olive meadow, delicate cream daisies with yellow centers, a few tiny rounded stones and short grasses, all gathered along the bottom and lower right. Square canvas, whole character and scenery fully visible, character occupies about 70% of image height, composition weighted toward bottom right with transparent space toward upper left. Detailed soft hand-painted watercolor with warm ivory highlights, muted yellow-green foliage, original honey brown bark, organic pigment texture. TRUE TRANSPARENT BACKGROUND outside the tree and meadow, no ivory rectangle, no flat background, no UI, text, numbers, logo, buttons, clock, frame or watermark.",
+      "target": "web/src/assets/watercolor/focus-tree-writing.png",
+      "width": 1254,
+      "height": 1254,
+      "references": [
+        "web/src/assets/watercolor/tree-stump.png",
+        "web/src/assets/watercolor/forest-background.png"
+      ]
+    },
+    {
+      "name": "focus-meadow-left",
+      "transparent": true,
+      "prompt": "Use case: illustration-story. Asset type: transparent bottom-left corner meadow illustration for a watercolor forest focus timer UI. Use attached forest wallpaper ONLY as style and palette reference. Square canvas. Create an airy watercolor meadow corner: leaves and slender stems rise along the far LEFT edge, two small cream daisies with yellow centers, sage and olive green grasses, tiny warm-grey rounded stones and muted yellow-green ground foliage. The ground forms a gently descending triangular sweep from lower left toward lower right, thinning to nothing before the lower right corner. A couple of delicate small drifting sage leaves in the upper left area. Keep upper and right half largely EMPTY and truly transparent for timer text. Composition naturally rooted at bottom left, not a floating centered bouquet, full plants visible. Soft hand-painted watercolor pigment and feathered edges, warm natural palette. TRUE TRANSPARENT exterior with no paper rectangle. No character, book, UI, text, numbers, logo, frame, watermark or opaque backdrop.",
+      "target": "web/src/assets/watercolor/focus-meadow-left.png",
+      "width": 1254,
+      "height": 1254,
+      "references": [
+        "web/src/assets/watercolor/forest-background.png"
+      ]
+    },
+    {
+      "name": "focus-green-wash",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Asset type: seamless-looking watercolor pigment texture used as the fill of a rounded green website button. Create a wide 3:1 landscape crop showing ONLY overlapping medium sage and moss green translucent watercolor washes on green-tinted paper, organic mottled pigment blooms and subtle dry brush texture. Full-bleed painted surface edge to edge, medium value green roughly #7e995e with gently varying #6d8751 to #a1b77c, calm low-contrast texture so white bold button text remains readable. This is a RECTANGULAR TEXTURE TILE, NOT a rendered button. No border, bevel, shadow, round corners, object, plant, leaf, UI, icon, logo, text, letter, number or watermark.",
+      "target": "web/src/assets/watercolor/focus-green-wash.png",
+      "width": 2172,
+      "height": 724,
+      "references": []
+    }
+  ]
+}
