@@ -4,8 +4,8 @@ import { createApiError } from "../utils/apiError.js";
 import { sendSuccess } from "../utils/apiResponse.js";
 import { verifyStudyPassword } from "../middlewares/verifyStudyPassword.js";
 import { rejectQuery } from "../middlewares/rejectQuery.js";
-import { validateCreateRoutine, validateRoutineId, validateRoutineCheck, validateRoutineBatch } from "../schemas/routine.js";
-import { createRoutine, getTodayRoutines, setRoutineCheck } from "../services/routineService.js";
+import { validateRoutineId, validateRoutineCheck, validateRoutineBatch } from "../schemas/routine.js";
+import { getTodayRoutines, setRoutineCheck } from "../services/routineService.js";
 import { saveRoutineBatch } from "../services/routineBatchService.js";
 
 const routineRouter = express.Router({ mergeParams: true });
@@ -19,13 +19,6 @@ routineRouter.use((req, res, next) => {
 });
 routineRouter.use(rejectQuery);
 routineRouter.use(verifyStudyPassword);
-
-routineRouter.post("/", async (req, res) => {
-  const result = validateCreateRoutine(req.body);
-  if (!result.success) throw createApiError("VALIDATION_ERROR");
-  const routine = await createRoutine({ studyId: req.params.studyId, ...result.data });
-  return sendSuccess(res, routine, 201);
-});
 
 routineRouter.get("/", async (req, res) => {
   const result = await getTodayRoutines({ studyId: req.params.studyId });

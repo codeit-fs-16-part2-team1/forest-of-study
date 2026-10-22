@@ -43,7 +43,6 @@ const routineBatchSchema = z.strictObject({
   return ids.length <= 18 && new Set(ids).size === ids.length;
 });
 
-export const validateCreateRoutine = (body) => createRoutineSchema.safeParse(body);
 export const validateRoutineId = (routineId) => routineIdSchema.safeParse({ routineId });
 export const validateRoutineCheck = (body) => routineCheckSchema.safeParse(body);
 export const validateRoutineBatch = (body) => routineBatchSchema.safeParse(body);
