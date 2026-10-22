@@ -74,6 +74,16 @@
     color: var(--color-text-muted);
   }
 
+  &__titleSkeleton,
+  &__controlSkeleton {
+    display: block;
+    background: var(--color-gray-lighter);
+    border-radius: 12px;
+  }
+
+  &__titleSkeleton { width: 130px; height: 29px; }
+  &__controlSkeleton { width: 333px; max-width: 100%; height: 60px; border-radius: 50px; }
+
   &__skeleton {
     width: min(100%, 400px);
     height: 150px;
@@ -110,6 +120,11 @@
 
     &__time {
       font-size: clamp(48px, 23cqi, 80px);
+    }
+
+    &__controlSkeleton {
+      width: 140px;
+      height: 45px;
     }
 
     &__skeleton {

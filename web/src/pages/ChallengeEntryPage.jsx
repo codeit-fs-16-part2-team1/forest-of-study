@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { Link, useNavigate } from "react-router";
 import StudyPasswordVerification from "../components/PasswordModal/StudyPasswordVerification.jsx";
 import useStudyPassword from "../hooks/useStudyPassword.js";
@@ -12,6 +13,7 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
   const navigate = useNavigate();
   const currentStudy = studyId ? study : null;
   const verification = useStudyPassword(currentStudy?.id ?? null);
+  const showSkeleton = useMinimumLoading(isStudyLoading || verification.isPending, studyId);
   const canEnter = Boolean(currentStudy?.id) && !isStudyLoading && !studyError;
 
   const leaveVerification = () => {
@@ -23,14 +25,14 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
 
   return (
     <>
-      {canEnter && verification.isVerified ? (
+      {!showSkeleton && canEnter && verification.isVerified ? (
         <ChallengeSessionPage
           study={currentStudy}
           verifiedPassword={verification.verifiedPassword}
           isVerificationCurrent={verification.isVerificationCurrent}
           onVerificationRequired={verification.requireVerification}
         />
-      ) : isStudyLoading || verification.isPending ? (
+      ) : showSkeleton || (canEnter && (verification.isOpen || verification.isPending)) ? (
         <ChallengePage isLoading />
       ) : (
         <main>

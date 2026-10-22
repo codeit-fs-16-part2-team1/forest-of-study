@@ -22,6 +22,14 @@
   line-height: 1.2;
 }
 
+.skeletonHeading {
+  display: block;
+  border: 0;
+  border-radius: 12px;
+  background: var(--color-gray-lighter);
+}
+.skeletonHeading { width: min(100%, 180px); height: 1.2em; }
+
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -37,6 +45,7 @@
   overflow: hidden;
   border: 1px solid var(--color-gray-light);
   border-radius: 15px;
+  background: var(--color-white);
 
   &:focus-within {
     border-color: var(--color-green-text);
@@ -46,24 +55,27 @@
     flex: 1;
     width: 0;
     min-width: 0;
-    padding: 9px 12px;
+    padding: 0 20px 0 48px; // 아이콘 왼쪽 20px + 18px + 간격 10px
     border: 0;
     background: transparent;
-    font: inherit;
+    background-image: url("../assets/ic_search.svg");
+    background-repeat: no-repeat;
+    background-position: 20px center;
+    background-size: 18px 18px;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 400;
+
+    &::placeholder {
+      color: var(--color-gray);
+      opacity: 1;
+    }
 
     &:focus-visible {
       outline: none;
     }
   }
 
-  > button {
-    flex-shrink: 0;
-    padding: 0 12px;
-    border: 0;
-    background: transparent;
-    color: var(--color-green-text);
-    font: inherit;
-  }
 }
 
 .grid {
@@ -73,12 +85,51 @@
   margin-top: 24px;
 }
 
+.recentViewport {
+  position: relative;
+  min-width: 0;
+  display: flow-root;
+
+  &::before,
+  &::after {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    bottom: 0;
+    width: 2rem; // 32px
+    opacity: 0;
+    pointer-events: none;
+    content: "";
+  }
+
+  &::before {
+    left: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to right, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &::after {
+    right: -4px; // recentGrid의 포커스 여백까지 덮는다.
+    background: linear-gradient(to left, rgb(255 255 255 / 95%), rgb(255 255 255 / 8%));
+  }
+
+  &.hasMoreLeft::before,
+  &.hasMoreRight::after {
+    opacity: 1;
+  }
+}
+
 .recentGrid {
   grid-template-columns: none;
   grid-auto-flow: column;
   grid-auto-columns: min(240px, 100%);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
   // 키보드로 카드에 접근했을 때 포커스 테두리가 잘리지 않도록 공간을 둔다.
   margin: -4px;
   padding: 4px;
@@ -173,6 +224,11 @@
 }
 
 @media (min-width: breakpoints.$desktop) {
+  .recentViewport::before,
+  .recentViewport::after {
+    display: none;
+  }
+
   .section {
     padding: 40px;
   }

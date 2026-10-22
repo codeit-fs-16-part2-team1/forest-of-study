@@ -1,3 +1,4 @@
+import useMinimumLoading from "../hooks/useMinimumLoading.js";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import Toast from "../components/Toast/Toast.jsx";
@@ -44,6 +45,7 @@ const MainPage = () => {
     isLoading: true,
     error: "",
   });
+  const showSkeleton = useMinimumLoading(result.isLoading);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState("");
 
@@ -237,14 +239,14 @@ const MainPage = () => {
               placeholder="검색"
             />
 
-            <button type="submit">검색</button>
+            <button type="submit" hidden>검색</button>
           </form>
 
           <StudySort value={query.sort} onChange={handleSortChange} />
         </div>
 
-        <div aria-busy={result.isLoading || isLoadingMore}>
-          {result.isLoading ? (
+        <div aria-busy={showSkeleton || isLoadingMore}>
+          {showSkeleton ? (
             <>
               <p className={styles.srOnly} role="status">
                 스터디를 불러오는 중입니다.
@@ -287,7 +289,7 @@ const MainPage = () => {
             </p>
           )}
 
-          {!result.isLoading && result.hasMore && (
+          {!showSkeleton && result.hasMore && (
             <button
               type="button"
               className={styles.moreButton}

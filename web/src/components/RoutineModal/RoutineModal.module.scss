@@ -180,10 +180,10 @@
 .actionButton {
   flex: 1;
   min-width: 0;
-  height: 3.5rem; // 56px
+  min-height: 3.4375rem; // 55px
   border-radius: 1rem; // 16px
   background: var(--color-gray-light);
-  box-shadow: 0 0.125rem 0 var(--color-gray); // 2px
+  box-shadow: 0 3px 0 var(--color-gray);
   color: var(--color-white);
   font-family: var(--font-family-display);
   font-size: 1.125rem; // 18px
@@ -191,19 +191,22 @@
 
   &.submitButton {
     background: var(--color-brand);
-    box-shadow: 0 0.125rem 0 var(--color-green-text); // 2px
+    box-shadow: 0 3px 0 var(--color-green-text);
     text-shadow: 0 -0.125rem 0 var(--color-green-text); // -2px
   }
 
   &:active:enabled {
     box-shadow: none;
-    transform: translateY(0.125rem); // 2px
+    transform: translateY(3px);
   }
 }
 .deleteButton:disabled,
-.addRoutineButton:disabled,
-.actionButton:disabled {
+.addRoutineButton:disabled {
   cursor: default;
+  opacity: 0.5;
+}
+.actionButton:disabled {
+  cursor: not-allowed;
   opacity: 0.5;
 }
 

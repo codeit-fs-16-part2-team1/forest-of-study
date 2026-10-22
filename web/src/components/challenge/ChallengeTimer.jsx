@@ -36,7 +36,9 @@ const ChallengeTimer = ({
       aria-labelledby={titleId}
     >
       <div className="challengeTimer__heading">
-        <h2 id={titleId} className="challengeTimer__title">오늘의 집중</h2>
+        <h2 id={titleId} className="challengeTimer__title">
+          {isLoading ? <span className="challengeTimer__titleSkeleton" aria-label="오늘의 집중 불러오는 중" /> : "오늘의 집중"}
+        </h2>
         {(isActive || isCompleted) && !isLoading && (
           <p className="challengeTimer__goal" aria-label={`목표 ${goalMinutes}분`}>
             <img src={timer} alt="" />
@@ -65,14 +67,20 @@ const ChallengeTimer = ({
         )}
       </div>
 
-      <ChallengeControls
-        status={status}
-        isPending={isLoading || isPending || !hasTime}
-        onStart={onStart}
-        onPause={onPause}
-        onReset={onReset}
-        onDismissCompletion={onDismissCompletion}
-      />
+      {isLoading ? (
+        <div className="challengeControls" aria-hidden="true">
+          <span className="challengeTimer__controlSkeleton" />
+        </div>
+      ) : (
+        <ChallengeControls
+          status={status}
+          isPending={isLoading || isPending || !hasTime}
+          onStart={onStart}
+          onPause={onPause}
+          onReset={onReset}
+          onDismissCompletion={onDismissCompletion}
+        />
+      )}
     </section>
   );
 };

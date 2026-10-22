@@ -5,7 +5,11 @@ import { readRecentStudyIds, pruneRecentStudies, RECENT_STUDIES_KEY } from "../u
 
 const useRecentStudies = () => {
   const [revision, setRevision] = useState(0);
-  const [result, setResult] = useState({ studies: [], isLoading: true, error: "" });
+  const [result, setResult] = useState(() => ({
+    studies: [],
+    isLoading: readRecentStudyIds().length > 0,
+    error: "",
+  }));
 
   useEffect(() => {
     const handleStorage = (event) => {
