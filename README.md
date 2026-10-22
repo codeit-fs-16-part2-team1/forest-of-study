@@ -26,7 +26,8 @@
 | Build | Vite |
 | Styling | Sass |
 | HTTP Client | Axios |
-| UI | emoji-picker-react |
+| UI | emoji-picker-react, react-icons |
+| Drag and Drop | @dnd-kit/react 0.5.1 |
 | Mock Server | json-server 0.17.4 |
 | Backend | Express 5, cors |
 | Validation | Zod |
@@ -35,6 +36,8 @@
 | Password Hashing | bcrypt |
 | Local Database | Docker Compose |
 | Deployment | Netlify, Render, Neon |
+
+react-icons는 북마크 등 UI 아이콘에, @dnd-kit/react는 습관 편집 모달의 드래그 순서 변경에 사용합니다. 정확한 의존성 범위와 잠금 버전은 web/package.json·package-lock.json을 따릅니다.
 
 TypeScript는 사용하지 않습니다. 의존성은 `api/`와 `web/`에서 각각 관리합니다.
 

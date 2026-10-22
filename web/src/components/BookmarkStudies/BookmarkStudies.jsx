@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import useBookmarkStudyList from "../../hooks/useBookmarkStudyList.js";
+import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
 import styles from "../../pages/MainPage.module.scss";
 
@@ -7,6 +8,8 @@ const BookmarkStudies = ({ onShowToast }) => {
   const sectionRef = useRef(null);
   const titleRef = useRef(null);
   const { studies, isLoading, error, retry } = useBookmarkStudyList();
+  // 표시할 카드가 없는 조회만 최소 1초 유지하고, 해제 후 남은 카드는 보존한다.
+  const showSkeleton = useMinimumLoading(isLoading && studies.length === 0);
 
   const handleBookmarkRemoved = (studyId, button) => {
     if (document.activeElement !== button) return;
@@ -19,9 +22,9 @@ const BookmarkStudies = ({ onShowToast }) => {
   };
 
   return (
-    <section ref={sectionRef} className={styles.section} aria-labelledby="bookmark-title" aria-busy={isLoading}>
+    <section ref={sectionRef} className={styles.section} aria-labelledby="bookmark-title" aria-busy={isLoading || showSkeleton}>
       <h2 ref={titleRef} tabIndex={-1} id="bookmark-title" className={styles.title}>북마크한 스터디</h2>
-      {isLoading && studies.length === 0 ? (
+      {showSkeleton ? (
         <>
           <p className={styles.srOnly} role="status">스터디를 불러오는 중입니다.</p>
           <div className={`${styles.grid} ${styles.recentGrid}`} aria-hidden="true">
