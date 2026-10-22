@@ -22,18 +22,13 @@
   line-height: 1.2;
 }
 
-.controls[hidden] { display: none; }
-
-.skeletonHeading,
-.skeletonSort,
-.search.skeletonControl {
+.skeletonHeading {
   display: block;
   border: 0;
   border-radius: 12px;
   background: var(--color-gray-lighter);
 }
 .skeletonHeading { width: min(100%, 180px); height: 1.2em; }
-.skeletonSort { width: 180px; height: 42px; }
 
 .controls {
   display: flex;

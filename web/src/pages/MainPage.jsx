@@ -202,16 +202,10 @@ const MainPage = () => {
         aria-labelledby="browse-title"
       >
         <h2 id="browse-title" className={styles.title}>
-          {showSkeleton ? <span className={styles.skeletonHeading} aria-label="스터디 둘러보기" /> : "스터디 둘러보기"}
+          스터디 둘러보기
         </h2>
 
-        {showSkeleton && (
-          <div className={styles.controls} aria-hidden="true">
-            <div className={`${styles.search} ${styles.skeletonControl}`} />
-            <div className={styles.skeletonSort} />
-          </div>
-        )}
-        <div className={styles.controls} hidden={showSkeleton}>
+        <div className={styles.controls}>
           <form
             className={styles.search}
             onSubmit={handleSearch}
