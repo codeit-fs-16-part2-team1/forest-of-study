@@ -21,6 +21,9 @@ export const routineStickers = Array.from(
   }
 );
 
-// 색상 미지정 습관도 기본 발자국으로 표시한다.
-export const getRoutineSticker = (stickerColor) =>
-  routineStickers[(stickerColor ?? 1) - 1];
+// 기존 null 색상만 표시 행 순서로 순환한다. 신규 습관은 편집 상태에 1을 저장한다.
+export const getRoutineStickerColor = (stickerColor, rowIndex = 0) =>
+  stickerColor ?? (rowIndex % routineStickers.length) + 1;
+
+export const getRoutineSticker = (stickerColor, rowIndex = 0) =>
+  routineStickers[getRoutineStickerColor(stickerColor, rowIndex) - 1];

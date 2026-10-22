@@ -6,7 +6,10 @@ import { createPortal } from "react-dom";
 import useDialog from "../../hooks/useDialog.js";
 import useRoutineEditor from "../../hooks/useRoutineEditor.js";
 import RoutineColorModal from "./RoutineColorModal.jsx";
-import { getRoutineSticker } from "../../constants/routineStickers.js";
+import {
+  getRoutineSticker,
+  getRoutineStickerColor,
+} from "../../constants/routineStickers.js";
 import styles from "./RoutineModal.module.scss";
 
 const RoutineModal = ({
@@ -107,7 +110,8 @@ const RoutineModal = ({
     };
   }, [isOpen]);
 
-  const colorRoutine = draftRoutines.find((routine) => routine.clientId === colorRoutineId);
+  const colorRoutineIndex = draftRoutines.findIndex((routine) => routine.clientId === colorRoutineId);
+  const colorRoutine = draftRoutines[colorRoutineIndex];
 
   if (!isOpen) return null;
 
@@ -173,11 +177,11 @@ const RoutineModal = ({
                                   colorTriggerRef.current = event.currentTarget;
                                   setColorRoutineId(routine.clientId);
                                 }}
-                                aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${routine.stickerColor ?? 1}번`}
+                                aria-label={`${routine.name || `${index + 1}번째 습관`} 색상 선택, 현재 ${getRoutineStickerColor(routine.stickerColor, index)}번`}
                                 aria-haspopup="dialog"
                                 disabled={isSaving || isDragging}
                               >
-                                <img src={getRoutineSticker(routine.stickerColor)} width="32" height="32" alt="" />
+                                <img src={getRoutineSticker(routine.stickerColor, index)} width="32" height="32" alt="" />
                               </button>
                               <div className={styles.routineField}>
                                 <div className={styles.routineInputWrapper}>
@@ -259,7 +263,7 @@ const RoutineModal = ({
       </div>
       {colorRoutine && (
         <RoutineColorModal
-          stickerColor={colorRoutine.stickerColor}
+          stickerColor={getRoutineStickerColor(colorRoutine.stickerColor, colorRoutineIndex)}
           isSaving={isSaving}
           onSelect={(stickerColor) => {
             if (isSaving) return;

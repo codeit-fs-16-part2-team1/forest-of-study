@@ -1050,7 +1050,8 @@ Accept: application/json
 # 일반 모달은 배경 클릭 닫기·내부 클릭 유지·Escape 무시. 비밀번호 취소는 이전 화면 또는 홈.
 # 상세 소개는 전체 표시, 카드만 한 줄 말줄임. json-server는 실제 Express API 검증을 대체하지 않는다.
 # 생성일은1일째. 새 습관 입력칸은1번 발자국 자동 선택·별도 선택 없이 저장 가능. 발자국 버튼으로18종 중 변경·중복 허용. 과거 기록에도 최신 색상·현재 순서 반영.
-# 기존 stickerColor=null 습관만 기록표19행은1번째 색·20행은2번째 색. 시간 변경은 모달.
+# 기존 stickerColor=null만 전체 표시 행 index 기준18색 순환: null·7·null → 1·7·3번,19행 null → 1번.
+# 신규 기본값1은 저장값1인 신규 항목에만 적용한다. 기존 null을1로 저장하거나 API 응답에서 보정하지 않는다. 시간 변경은 모달.
 # 로딩은 스켈레톤. 빈/실패는 기존 캡처, 완료는 제공 시간 초과 시안. 반응형/편집 캡처는 추후 수신.
 
 
@@ -1206,4 +1207,14 @@ Content-Type: application/json
 # 기대200 입력 순서의 카드와 상위3종 reactions·배경색/호환 글자색/패턴 필드. 서버에는 북마크 자체를 저장하지 않는다.
 # 화면 별도 확인: 북마크 최대3개·등록 순서·4번째 추가 거절·재방문 순서 유지·해제·새로고침·삭제ID 정리.
 GET {{baseUrl}}/studies/batch?ids={{studyId}},{{otherStudyId}}
+Accept: application/json
+
+### API-ST-06 — 기존 null 발자국 호환 확인
+# 선행: 기존 stickerColor=null인 습관과 저장 색상이 있는 습관이 조회 주에 포함된 테스트 스터디를 사용한다.
+# 기존 DB 색상을 일괄 수정하거나 새 활성 습관을10개 초과 생성해 준비하지 않는다.
+# 기대200, 기존 null은 응답에도 null이고 기존 completed·저장 색상은 유지된다.
+# 화면 확인: 완료 칸의 null 색상만 전체 응답 행 index 기준 (index % 18) + 1번으로 표시한다.
+# 편집 모달: null 항목의 이미지·번호 안내·선택창 표시 일치. 열기/취소 또는 이름·순서만 저장한 뒤 null 유지.
+# 신규 생성은 기본1번 저장을 유지하며 저장 색상1~18인 행은 순서와 무관하게 지정 색상을 표시한다.
+GET {{baseUrl}}/studies/{{studyId}}/routine-histories?weekStart={{weekStart}}
 Accept: application/json
