@@ -107,7 +107,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       if (deleteRequestRef.current !== request) return;
 
       setIsDeleteOpen(false);
-      navigate("/", { replace: true, state: { studyDeleted: true } });
+      navigate("/studies", { replace: true, state: { studyDeleted: true } });
     } catch (error) {
       if (deleteRequestRef.current === request && deleteFormVersionRef.current === formVersion) {
         // 비밀번호가 포함될 수 있는 Axios 오류 전체 대신 표시 문구만 보관한다.

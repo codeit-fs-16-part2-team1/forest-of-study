@@ -3,6 +3,7 @@ import { useStudyTitleData } from "./hooks/useStudyTitleData.js";
 import StudyPasswordProvider from "./contexts/StudyPasswordProvider.jsx";
 import { getSharedStudyId } from "./utils/studyNavigation.js";
 import RootLayout from "./layouts/RootLayout.jsx";
+import LandingPage from "./pages/LandingPage/LandingPage.jsx";
 import MainPage from "./pages/MainPage/MainPage.jsx";
 import RegPage from "./pages/RegPage/RegPage.jsx";
 import EditStudyPage from "./pages/EditStudyPage/EditStudyPage.jsx";
@@ -42,7 +43,9 @@ const App = () => {
 
   let pageTitle = "공부의 숲";
 
-  if (dashboardMatch) {
+  if (/^\/studies\/?$/.test(pathname)) {
+    pageTitle = "스터디 목록 | 공부의 숲";
+  } else if (dashboardMatch) {
     pageTitle = studyName ? `${studyName} | 공부의 숲` : "스터디 상세 | 공부의 숲";
   } else if (routinesMatch) {
     pageTitle = `오늘의 루틴 | ${studyName || "공부의 숲"}`;
@@ -57,8 +60,9 @@ const App = () => {
       <title>{pageTitle}</title>
       <StudyPasswordProvider key={sharedStudyId ?? "outside"} studyId={sharedStudyId}>
         <Routes>
-          <Route path="/" element={<RootLayout />}>
-            <Route index element={<MainPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route element={<RootLayout />}>
+            <Route path="studies" element={<MainPage />} />
             <Route path="reg" element={searchParams.has("id") ? (
             <EditStudyPage key={`edit:${studyId}`} studyId={studyId} studyState={studyState} />
           ) : <RegPage key="create" />} />

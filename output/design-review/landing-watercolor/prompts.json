@@ -1,0 +1,305 @@
+{
+  "date": "2026-10-22",
+  "tool": "image_gen.imagegen (built-in)",
+  "scope": "수채화 랜딩 추가, 두 카드, 기존 목록을 /studies로 이동. 새 API 없음.",
+  "assets": [
+    {
+      "key": "hero",
+      "prompt": "Use case: illustration-story. Asset type: production website landing hero illustration on TRUE TRANSPARENT background. Input image is the exact existing sprout mascot identity reference; preserve its round light yellow-green body, two large olive sprout leaves on its head, tiny dark oval eyes, peach cheeks, small smiling mouth and moss green feet. Create a wide low watercolor meadow scene, approximately 3:1 landscape. Center the mascot seated reading an open cream book, in a calm studying pose, with a small cream spiral notebook bearing a tiny sprout drawing lying on the grass to the right. Character including head leaves fills about 80 percent of image height, centered, approximately 28 percent of canvas width. Small white daisies with yellow hearts, pale yellow flowers, organic sage meadow leaves and grasses extend to either side across the bottom third in an airy low mound. Leave genuine transparent empty space above and around the illustration; feather watercolor meadow edges into alpha, no rectangular paper background. Medium: delicate hand painted watercolor on visible fine paper grain within the painted forms, soft pigment blooms, muted olive and sage greens, pale butter yellow and warm ivory, gentle picture book mood. Match a Korean study forest landing page mockup: friendly round sprout reading on a sunlit meadow, no extra characters. No text, no lettering, no logo, no UI, no border, no drop shadow, no opaque background. Keep all artwork fully inside canvas with safe clear margins.",
+      "references": [
+        "C:/Users/PC/develop/forest-of-study/web/src/assets/watercolor/sprout.png"
+      ],
+      "transparentBackground": true,
+      "output": "web/src/assets/watercolor/landing-sprout-reading.png",
+      "path": "web/src/assets/watercolor/landing-sprout-reading.png",
+      "width": 2172,
+      "height": 724,
+      "colorType": 6,
+      "bytes": 1730062
+    },
+    {
+      "key": "background",
+      "prompt": "Use case: illustration-story. Asset type: full viewport decorative background for a Korean watercolor forest study landing page, landscape 1536 by 1024 composition. Use the provided image only as a watercolor palette and paper texture reference. Create a MUCH AIRIER open warm ivory watercolor paper scene. Entire top 35 percent and center 70 percent of width remain almost empty ivory #faf8f2 with very subtle paper texture, for a large logo and text. At left and right outside edges only, faint pale sage misty forest shrubs and distant rounded tree silhouettes gently rise from a very low horizon around 60 percent down the canvas, softly dissolve inward leaving center empty for a separate character illustration. A few small windblown olive leaves at outer edges. At extreme bottom left and bottom right corners only, soft slightly blurred foreground watercolor foliage frames the page; leave the broad bottom central 75 percent quiet and light for two action cards. No enclosing tree frame, no overhead canopy, no tree trunks at top, no character, no person, no books, no central meadow mound, no text, no logo, no buttons, no UI. Match a fresh gentle storybook watercolor landing screenshot with restrained sage, pale lime, muted olive and creamy ivory palette. Very generous negative space, no heavy dark green masses. Opaque full bleed background.",
+      "references": [
+        "C:/Users/PC/develop/forest-of-study/web/src/assets/watercolor/forest-header-clear-desktop.png"
+      ],
+      "transparentBackground": false,
+      "output": "web/src/assets/watercolor/landing-forest-background.png",
+      "path": "web/src/assets/watercolor/landing-forest-background.png",
+      "width": 1536,
+      "height": 1024,
+      "colorType": 2,
+      "bytes": 1902556
+    },
+    {
+      "key": "mobileBackground",
+      "prompt": "Use case: illustration-story. Asset type: portrait mobile/tablet background for the same watercolor study forest landing page as the provided background reference. Create a portrait 864 by 1824 style composition. Preserve warm ivory fine paper texture and delicate soft transparent watercolor pigments, pale sage, butter yellow and muted olive palette. Recompose for a narrow phone screen: top 30 percent fully empty ivory, center 75 percent of width stays very light and open through the entire page. Very faint distant forest and meadow silhouettes touch the extreme left and right edges around the middle third. Sparse small floating leaves only by outer edge. Delicate foreground flowers and leafy sprigs confined to the extreme lower two corners, fading into ivory inward. Restrained small foliage so two stacked navigation cards remain readable. No full border or enclosing frame, no overhead leaves, no large trees, no characters, no central hill, no books, no words, no logo, no UI. A quiet airy spring watercolor storybook background, matching the reference image's style, with broad empty central content zone. Full bleed opaque ivory paper.",
+      "references": [
+        "C:\\Users\\PC\\.codex\\generated_images\\01a15811-40da-74b1-8f36-f6d754c2711b\\exec-d128ced7-06c8-4f16-b09b-79dbab27993a.png"
+      ],
+      "transparentBackground": false,
+      "output": "web/src/assets/watercolor/landing-forest-background-mobile.png",
+      "path": "web/src/assets/watercolor/landing-forest-background-mobile.png",
+      "width": 863,
+      "height": 1822,
+      "colorType": 2,
+      "bytes": 2016146
+    }
+  ],
+  "routes": {
+    "/": "LandingPage (고정 헤더 없는 랜딩)",
+    "/studies": "기존 MainPage (북마크·검색·정렬·더보기 유지)",
+    "/reg": "기존 생성/수정 화면 유지"
+  },
+  "navigation": {
+    "logoAndHome": "/",
+    "afterStudyDeletion": "/studies, studyDeleted state 유지"
+  },
+  "changedFiles": [
+    "web/src/pages/LandingPage/LandingPage.jsx",
+    "web/src/pages/LandingPage/LandingPage.module.scss",
+    "web/src/App.jsx",
+    "web/src/components/Header/Header.jsx",
+    "web/src/components/ForestScene/ForestScene.jsx",
+    "web/src/pages/DashboardPage/DashboardPage.jsx",
+    "web/src/assets/watercolor/landing-sprout-reading.png",
+    "web/src/assets/watercolor/landing-forest-background.png",
+    "web/src/assets/watercolor/landing-forest-background-mobile.png",
+    "output/design-review/landing-watercolor/prompts.json"
+  ],
+  "verification": {
+    "assetVisualInspection": true,
+    "sourceChecks": {
+      "pass": true,
+      "count": 53,
+      "relativeReferences": 38,
+      "checks": [
+        {
+          "name": "저장 내용 일치: web/src/pages/LandingPage/LandingPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "저장 내용 일치: web/src/pages/LandingPage/LandingPage.module.scss",
+          "pass": true
+        },
+        {
+          "name": "저장 내용 일치: web/src/App.jsx",
+          "pass": true
+        },
+        {
+          "name": "저장 내용 일치: web/src/components/Header/Header.jsx",
+          "pass": true
+        },
+        {
+          "name": "저장 내용 일치: web/src/components/ForestScene/ForestScene.jsx",
+          "pass": true
+        },
+        {
+          "name": "저장 내용 일치: web/src/pages/DashboardPage/DashboardPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "랜딩 두 카드만 표시",
+          "pass": true
+        },
+        {
+          "name": "카드 목적지",
+          "pass": true
+        },
+        {
+          "name": "랜딩은 고정 헤더 레이아웃 외부",
+          "pass": true
+        },
+        {
+          "name": "기존 목록 경로 연결",
+          "pass": true
+        },
+        {
+          "name": "기존 삭제 완료 안내 보존",
+          "pass": true
+        },
+        {
+          "name": "모바일 세로 카드와 짧은 화면 대응",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.jsx → ../../assets/watercolor/landing-sprout-reading.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.jsx → ./LandingPage.module.scss",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.module.scss → ../../styles/breakpoints",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.module.scss → ../../assets/watercolor/landing-forest-background.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.module.scss → ../../assets/watercolor/focus-green-wash.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/LandingPage/LandingPage.module.scss → ../../assets/watercolor/landing-forest-background-mobile.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./hooks/useStudyTitleData.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./contexts/StudyPasswordProvider.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./utils/studyNavigation.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./layouts/RootLayout.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/LandingPage/LandingPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/MainPage/MainPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/RegPage/RegPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/EditStudyPage/EditStudyPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/DashboardPage/DashboardPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/RoutinesPage/RoutinesPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/ChallengePage/ChallengeEntryPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./pages/NotFoundPage/NotFoundPage.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./dev/ModalPreview/ModalPreview.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/App.jsx → ./dev/RoutePreview/RoutePreview.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/components/Header/Header.jsx → ./Header.module.scss",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/components/ForestScene/ForestScene.jsx → ../../assets/watercolor/sprout.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/components/ForestScene/ForestScene.jsx → ../../assets/watercolor/book-spirit.png",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/components/ForestScene/ForestScene.jsx → ./ForestScene.module.scss",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../hooks/useMinimumLoading.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../api/api.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../api/apiError.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../utils/studyPassword.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/PasswordModal/PasswordModal.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ./DashboardPage.module.scss",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/RoutineHistoryTable/RoutineHistoryTable.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/StudyReactions/StudyReactions.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/Toast/Toast.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../hooks/useToast.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../assets/studyPoint.svg",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/Popup/Popup.jsx",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../utils/bookmarkStudies.js",
+          "pass": true
+        },
+        {
+          "name": "참조 경로: web/src/pages/DashboardPage/DashboardPage.jsx → ../../components/BookmarkButton/BookmarkButton.jsx",
+          "pass": true
+        },
+        {
+          "name": "랜딩 CSS 클래스 정의",
+          "pass": true
+        },
+        {
+          "name": "SCSS 중괄호 균형",
+          "pass": true
+        },
+        {
+          "name": "새싹 장면 실제 RGBA 투명 배경",
+          "pass": true
+        }
+      ]
+    },
+    "lint": "not run",
+    "build": "not run",
+    "browser": "not run",
+    "businessApiRequests": "not sent"
+  },
+  "manualChecks": [
+    "web에서 의존성 설치된 상태로 npm run lint, npm run build를 순서대로 실행",
+    "개발 서버가 없다면 web에서 npm run dev 실행 후 / 접속",
+    "320·390·820·1280·1536px 폭에서 로고·새싹 독서 장면·카드 겹침과 가로 스크롤 확인",
+    "랜딩 두 카드가 각각 /studies, /reg로 이동하는지 확인",
+    "목록 검색·정렬·더보기·북마크와 목록 전용 생성 버튼 확인",
+    "로고·홈 링크가 랜딩으로 이동하는지 확인, /studies 직접 접속과 새로고침 확인",
+    "스터디 삭제 후 /studies 이동과 기존 삭제 안내는 삭제 기능 검증용 데이터로만 확인"
+  ]
+}

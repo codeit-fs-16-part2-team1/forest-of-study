@@ -3,7 +3,7 @@ import styles from "./Header.module.scss";
 
 const Header = () => {
   const { pathname } = useLocation();
-  const isMainPage = pathname === "/";
+  const isMainPage = pathname === "/studies" || pathname === "/studies/";
 
   return (
     <header className={styles.header}>

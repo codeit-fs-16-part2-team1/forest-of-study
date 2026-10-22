@@ -9,7 +9,7 @@ const ForestScene = () => {
     pathname === "/challenge" || pathname === "/challenge/" ||
     pathname === "/routines" || pathname === "/routines/"
   ) return null;
-  const character = pathname === "/" ? sprout : bookSpirit;
+  const character = pathname === "/studies" || pathname === "/studies/" ? sprout : bookSpirit;
 
   return (
     <div className={styles.scene} aria-hidden="true">
