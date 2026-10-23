@@ -1,0 +1,218 @@
+@use "../../styles/breakpoints";
+@use "../../styles/watercolor-buttons" as buttons;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-width: var(--layout-min-width);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 20px clamp(24px, 6vw, 96px) 24px;
+  background-color: #faf8f2;
+  background-image: url("../../assets/watercolor/not-found-forest-desktop.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  width: 100%;
+  max-width: 1320px;
+  min-height: 64px;
+  margin-inline: auto;
+}
+
+.logo {
+  position: relative;
+  display: inline-block;
+  padding-top: 8px;
+  color: #506a3f;
+  font-family: var(--font-family-display);
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.wordmark {
+  background: linear-gradient(125deg, #536f43 10%, #6b8052 46%, #405b37 78%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logoSprout {
+  position: absolute;
+  top: -5px;
+  right: 0;
+  width: 32px;
+  height: 28px;
+  transform: rotate(8deg);
+}
+
+.content {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  padding-block: 20px 16px;
+  text-align: center;
+}
+
+.errorCode {
+  padding-inline: 0.06em;
+  background-color: #5d7548;
+  background-image: linear-gradient(rgb(52 77 35 / 30%), rgb(52 77 35 / 30%)), url("../../assets/watercolor/focus-green-wash.png");
+  background-position: center;
+  background-size: cover;
+  background-clip: text;
+  color: #5d7548;
+  -webkit-text-fill-color: transparent;
+  font-size: clamp(104px, 12vw, 168px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.scene {
+  flex-shrink: 0;
+  width: min(100%, 700px);
+  height: clamp(160px, 25vh, 250px);
+  margin: 4px 0 16px;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.title {
+  color: #373e33;
+  font-size: clamp(28px, 3.1vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.4;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  max-width: 640px;
+  margin-top: 12px;
+  color: #6d7267;
+  font-size: 18px;
+  line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 28px;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 12px 28px;
+  font-size: 18px;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+
+  &:focus-visible {
+    outline: 3px solid #587343;
+    outline-offset: 4px;
+  }
+}
+
+.primary {
+  min-width: 248px;
+  @include buttons.primary;
+
+  svg {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.secondary {
+  min-width: 176px;
+  @include buttons.secondary;
+}
+
+.footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-top: 16px;
+  color: #7c8970;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.footerSprout {
+  width: 24px;
+  height: 22px;
+}
+
+@media (max-width: #{breakpoints.$desktop - 1px}) {
+  .page {
+    background-image: url("../../assets/watercolor/not-found-forest-mobile.png");
+  }
+}
+
+@media (min-width: breakpoints.$tablet) and (max-height: 800px) {
+  .page { padding-block: 16px; }
+  .content { padding-block: 12px; }
+  .errorCode { font-size: 112px; }
+  .scene { height: 160px; margin-bottom: 8px; }
+  .title { font-size: 32px; }
+  .actions { margin-top: 20px; }
+  .footer { margin-top: 8px; }
+}
+
+@media (max-width: #{breakpoints.$tablet - 1px}) {
+  .page { padding: 12px 20px 20px; }
+  .header { min-height: 60px; }
+  .logo { font-size: 30px; }
+  .logoSprout { top: -3px; width: 25px; height: 23px; }
+  .content { padding-block: 16px; }
+  .errorCode { font-size: 100px; }
+  .scene { height: 156px; margin-bottom: 12px; }
+  .title { font-size: 26px; }
+  .description { font-size: 16px; }
+  .actions {
+    flex-direction: column;
+    gap: 12px;
+    max-width: 320px;
+    margin-top: 24px;
+  }
+  .primary,
+  .secondary { width: 100%; min-width: 0; min-height: 50px; font-size: 16px; }
+}
+
+@media (forced-colors: active) {
+  .wordmark,
+  .errorCode {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+}

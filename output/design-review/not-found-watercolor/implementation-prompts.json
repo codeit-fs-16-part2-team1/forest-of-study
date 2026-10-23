@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-23",
+  "tool": "image_gen.imagegen (built-in)",
+  "issue": "ISS-025",
+  "scope": "승인된 수채화 404 페이지 적용. 기존 wildcard 라우팅 재사용.",
+  "assets": [
+    {
+      "key": "scene",
+      "prompt": "Use case: illustration-story. Asset type: transparent foreground illustration for an implemented website 404 page. Reference image is the approved complete 404 mockup, for exact composition, character identity, palette and texture. Extract/re-create ONLY the CENTER illustration: friendly round pale yellow-green sprout mascot with two olive leaves, peach cheeks, tiny dark eyes and small smile, moss green feet, seated beside an open cream book. A simple rustic wooden signpost to its right points right with a tiny sprout motif and NO words. A gentle warm sandy path curves to the right and recedes toward faint little sage forest silhouettes. Low watercolor meadow grass with ivory daisies, butter-yellow flowers and small pebbles. Wide landscape approximately 3:1 composition, character occupies left middle, sign at center-right, complete scene about 90% of canvas width with modest transparent safe margins; delicate watercolor edges fade naturally to alpha. Fine paper grain within painted forms. TRUE transparent background around the entire scene, no white rectangle. No 404 numerals, no text, no logo, no buttons, no UI, no outer trees from page frame, no extra characters. Preserve the cheerful gentle calm mood of the approved reference.",
+      "references": [
+        "C:/Users/PC/develop/forest-of-study/output/design-review/not-found-watercolor/404-proposal.png"
+      ],
+      "transparentBackground": true,
+      "output": "web/src/assets/watercolor/not-found-sprout-path.png",
+      "path": "web/src/assets/watercolor/not-found-sprout-path.png",
+      "width": 2172,
+      "height": 724,
+      "colorType": 6,
+      "bytes": 1820022
+    },
+    {
+      "key": "desktop",
+      "prompt": "Use case: illustration-story. Asset type: full viewport desktop watercolor background for a website 404 page. Reference image is approved 404 mockup. Re-create ONLY the full-page forest BACKGROUND from the reference, landscape 1536x1024. Warm ivory fine watercolor paper, elegant delicate pale sage trees and muted olive trunks along the extreme left/right edges, pale yellow leafy accents, low white daisies, fine grass, foliage and soft stones in bottom corners. Broad TOP LEFT zone must remain open light ivory for a logo, especially upper 110px and left inset 100px; avoid any tree canopy in that logo area. The CENTRAL 70 percent of canvas must be EMPTY warm ivory from top to near bottom for actual HTML content; make all forest elements fade softly inward and keep foliage within extreme 14 percent of left/right edges. Bottom central 65 percent also remains quiet and open for page footer, no solid meadow barrier. Match the reference's soft airy woodland watercolor palette and paper grain. No 404, no text, no logo, no mascot, no character, no sign, no book, no central path or central foreground illustration, no UI, no buttons. Full bleed opaque image.",
+      "references": [
+        "C:/Users/PC/develop/forest-of-study/output/design-review/not-found-watercolor/404-proposal.png"
+      ],
+      "transparentBackground": false,
+      "output": "web/src/assets/watercolor/not-found-forest-desktop.png",
+      "path": "web/src/assets/watercolor/not-found-forest-desktop.png",
+      "width": 1536,
+      "height": 1024,
+      "colorType": 2,
+      "bytes": 2360166
+    },
+    {
+      "key": "mobile",
+      "prompt": "Use case: illustration-story. Asset type: portrait phone/tablet watercolor background for the approved 404 website design, approximately 864x1824 portrait. Reference is approved 404 desktop mockup, for watercolor forest style and colors. Recompose only its background for narrow screens: very broad open warm ivory paper CENTER at least 80 percent of width, clear TOP 20 percent for header and 404 title, extremely delicate pale sage trees and faint muted olive branches tucked against outer edges beginning below top 20 percent, small low white daisies and grasses along bottom corners. Keep trees slender and soft so they never intrude over a full-width mobile heading or two stacked buttons. Gentle airy ivory paper dominates the entire image, soft faded edges inward, restrained pale yellow-green accents, fine paper grain. No top canopy over header, no 404 numeral, no text, no logo, no mascot, no person, no book, no signpost, no central path or illustration, no UI or buttons. Full bleed opaque light ivory forest background.",
+      "references": [
+        "C:/Users/PC/develop/forest-of-study/output/design-review/not-found-watercolor/404-proposal.png"
+      ],
+      "transparentBackground": false,
+      "output": "web/src/assets/watercolor/not-found-forest-mobile.png",
+      "path": "web/src/assets/watercolor/not-found-forest-mobile.png",
+      "width": 863,
+      "height": 1823,
+      "colorType": 2,
+      "bytes": 2243817
+    }
+  ],
+  "changedFiles": [
+    "web/src/pages/NotFoundPage/NotFoundPage.jsx",
+    "web/src/pages/NotFoundPage/NotFoundPage.module.scss",
+    "web/src/assets/watercolor/not-found-sprout-path.png",
+    "web/src/assets/watercolor/not-found-forest-desktop.png",
+    "web/src/assets/watercolor/not-found-forest-mobile.png",
+    "output/design-review/not-found-watercolor/implementation-prompts.json"
+  ],
+  "testLink": "http://localhost:5173/404-preview",
+  "testLinkCondition": "Vite 개발 서버가 기본 포트 5173에서 실행 중일 때. 포트가 다르면 현재 앱 주소 뒤에 /404-preview 추가.",
+  "verification": {
+    "imageVisualInspection": true,
+    "sourceChecks": [
+      {
+        "name": "저장 내용 일치: web/src/pages/NotFoundPage/NotFoundPage.jsx",
+        "pass": true
+      },
+      {
+        "name": "저장 내용 일치: web/src/pages/NotFoundPage/NotFoundPage.module.scss",
+        "pass": true
+      },
+      {
+        "name": "기존 라우팅·스터디 상태 처리 보존",
+        "pass": true
+      },
+      {
+        "name": "없는 경로에 새 404 적용",
+        "pass": true
+      },
+      {
+        "name": "로고·기본 버튼은 스터디 목록으로 이동",
+        "pass": true
+      },
+      {
+        "name": "이전 방문이 없으면 스터디 목록으로 이동",
+        "pass": true
+      },
+      {
+        "name": "문구와 404는 실제 HTML 텍스트",
+        "pass": true
+      },
+      {
+        "name": "모바일 세로 버튼과 배경 전환",
+        "pass": true
+      },
+      {
+        "name": "짧은 화면 대응",
+        "pass": true
+      },
+      {
+        "name": "페이지 자체에 배경 직접 적용",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../assets/watercolor/not-found-sprout-path.png",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ./NotFoundPage.module.scss",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../styles/breakpoints",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../styles/watercolor-buttons",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../assets/watercolor/not-found-forest-desktop.png",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../assets/watercolor/focus-green-wash.png",
+        "pass": true
+      },
+      {
+        "name": "로컬 참조: ../../assets/watercolor/not-found-forest-mobile.png",
+        "pass": true
+      },
+      {
+        "name": "페이지 CSS 클래스 존재",
+        "pass": true
+      },
+      {
+        "name": "SCSS 중괄호 균형",
+        "pass": true
+      },
+      {
+        "name": "장면은 투명 PNG",
+        "pass": true
+      }
+    ],
+    "localReferences": 7,
+    "browser": "not run: 연결된 브라우저 없음",
+    "lint": "not run",
+    "build": "not run",
+    "businessApiRequests": "not sent"
+  },
+  "manualChecks": [
+    "의존성이 설치된 web 디렉터리에서 npm run lint → npm run build 순서로 실행",
+    "개발 서버가 실행 중이 아니라면 web에서 npm run dev 실행, 터미널에 표시된 주소 사용",
+    "기본 포트 사용 시 http://localhost:5173/404-preview 접속: 새 404 페이지 표시",
+    "스터디 목록으로 버튼과 로고 클릭: /studies 이동",
+    "기존 앱 화면에서 주소를 바꿔 404에 진입한 뒤 이전 페이지: 앱 내 이전 화면으로 이동",
+    "새 탭에서 404 주소 직접 접속 후 이전 페이지: /studies 이동",
+    "390·820·1280px에서 배경·숫자·장면·문구·버튼 겹침과 가로 넘침 확인"
+  ]
+}

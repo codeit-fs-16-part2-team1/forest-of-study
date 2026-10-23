@@ -7,6 +7,7 @@ import {
   getRoutineSticker,
 } from "../../constants/routineStickers.js";
 import { getKoreanDate } from "../../utils/studyDate.js";
+import StudyEmptyState from "../StudyEmptyState/StudyEmptyState.jsx";
 import styles from "./RoutineHistoryTable.module.scss";
 
 const weekdays = ["월", "화", "수", "목", "금", "토", "일"];
@@ -118,9 +119,9 @@ const RoutineHistoryTable = ({ studyId }) => {
           </button>
         </div>
       ) : data.routines.length === 0 ? (
-        <p className={styles.status} role="status">
+        <StudyEmptyState character="book">
           이번 주에 표시할 습관이 없어요
-        </p>
+        </StudyEmptyState>
       ) : (
         <div
           className={styles.scroll}
