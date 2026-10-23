@@ -1,0 +1,33 @@
+@use "../../styles/breakpoints";
+
+.scene {
+  // 모바일에서는 헤더의 빈 공간에 작게 표시해 본문을 가리지 않는다.
+  display: block;
+  position: fixed;
+  z-index: var(--z-header);
+  top: 28px;
+  left: calc(50% - 10px);
+  width: 44px;
+  aspect-ratio: 1;
+  pointer-events: none;
+  user-select: none;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+  }
+}
+
+@media (min-width: breakpoints.$tablet) {
+  .scene {
+    z-index: 2;
+    top: auto;
+    left: auto;
+    right: 8px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    width: min(200px, calc(var(--forest-gutter) + 16px));
+  }
+}

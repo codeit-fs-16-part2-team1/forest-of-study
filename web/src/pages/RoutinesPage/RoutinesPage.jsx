@@ -11,6 +11,7 @@ import useRoutines from "../../hooks/useRoutines.js";
 import useStudyPassword from "../../hooks/useStudyPassword.js";
 import useToast from "../../hooks/useToast.js";
 import { getStudyReturnPath, goBackOrHome, isValidStudyId } from "../../utils/studyNavigation.js";
+import routineSpirit from "../../assets/watercolor/routine-spirit-checklist.png";
 import styles from "./RoutinesPage.module.scss";
 
 const RoutinesPage = ({ studyState }) => {
@@ -112,6 +113,16 @@ const RoutinesPage = ({ studyState }) => {
                 <div className={styles.skeletonTime} />
               </div>
               <div className={styles.routineContainer}>
+                <img
+                  className={styles.spirit}
+                  src={routineSpirit}
+                  alt=""
+                  aria-hidden="true"
+                  width="1254"
+                  height="1254"
+                  decoding="async"
+                  draggable="false"
+                />
                 <div className={styles.inner}>
                   <div className={styles.routineHeader} aria-hidden="true">
                     <div className={styles.skeletonSectionTitle} />
@@ -144,6 +155,16 @@ const RoutinesPage = ({ studyState }) => {
                 className={styles.currentTime}
               />
               <div className={styles.routineContainer}>
+                <img
+                  className={styles.spirit}
+                  src={routineSpirit}
+                  alt=""
+                  aria-hidden="true"
+                  width="1254"
+                  height="1254"
+                  decoding="async"
+                  draggable="false"
+                />
                 <div className={styles.inner}>
                   <div className={styles.routineHeader}>
                     <h3>오늘의 습관</h3>

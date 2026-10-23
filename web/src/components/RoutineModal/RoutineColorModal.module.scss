@@ -1,3 +1,4 @@
+@use "../../styles/watercolor-buttons" as buttons;
 .backdrop {
   position: fixed;
   inset: 0;
@@ -53,12 +54,10 @@
 }
 .cancel {
   display: block;
-  margin-top: 1rem;
+  margin-top: 16px;
   width: 100%;
-  min-height: 2.75rem;
-  border-radius: 0.75rem;
-  background: var(--color-gray-lighter);
-  font-weight: 700;
+  min-height: 44px;
+  @include buttons.secondary;
 }
 .option:focus-visible,
 .cancel:focus-visible {

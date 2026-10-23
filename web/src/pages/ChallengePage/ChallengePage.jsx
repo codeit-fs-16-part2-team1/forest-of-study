@@ -74,7 +74,7 @@ const ChallengePage = ({
   }, [challenge?.id, countdownSeconds, isActive, isPending, loading, onComplete]);
 
   return (
-    <main>
+    <main className="challengePageLayout">
       <section className="challengePage" aria-labelledby={headingId}>
         <div className="challengePage__body" aria-busy={displayLoading || isPending}>
           <div className="challengePage__summary">
@@ -113,18 +113,12 @@ const ChallengePage = ({
                         오늘의 습관
                       </span>
                     )}
-                    {study?.id ? (
-                      <Link
-                        className="challengePage__link"
-                        to={`/dashboard/${encodeURIComponent(study.id)}`}
-                      >
-                        스터디 상세
-                      </Link>
-                    ) : (
-                      <span className="challengePage__link" aria-disabled="true">
-                        스터디 상세
-                      </span>
-                    )}
+                    <Link
+                      className="challengePage__link"
+                      to={study?.id ? `/dashboard/${encodeURIComponent(study.id)}` : "/studies"}
+                    >
+                      {study?.id ? "스터디 상세" : "스터디 목록"}
+                    </Link>
                   </>
                 )}
               </nav>

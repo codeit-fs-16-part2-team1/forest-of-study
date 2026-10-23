@@ -1,10 +1,13 @@
+@use "../../styles/watercolor-buttons" as buttons;
 @use "../../styles/breakpoints";
 
 .list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem; // 12px
-  margin-top: 1.5rem; // 24px
+  margin: 1.5rem 0 0; // 24px
+  padding: 0;
+  list-style: none;
 }
 
 .routine,
@@ -12,13 +15,13 @@
   width: 100%;
   height: 3.375rem; // 54px
   border-radius: 1.25rem; // 20px
-  background: var(--color-gray-lighter);
+  background: #edf0e7;
 }
 
 .routine {
   overflow: hidden;
   padding: 0 1.25rem; // 20px
-  color: var(--color-gray);
+  color: #626c57;
   font-size: 1rem; // 16px
   font-weight: 700;
   text-overflow: ellipsis;
@@ -26,7 +29,9 @@
 
   &.checked {
     color: var(--color-white);
-    background: var(--color-brand);
+    background: #6b8554;
+    background-image: var(--watercolor-primary-paint);
+    background-size: cover;
   }
 
   &:disabled { cursor: default; }
@@ -42,7 +47,9 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: 27.9375rem; // 447px: 바깥 여백·제목을 포함한 모바일 빈 영역 551px
+  flex: 1;
+  min-height: 128px;
+  padding-block: 16px;
   margin-top: 1.5rem; // 24px
   text-align: center;
 }
@@ -51,8 +58,7 @@
   color: var(--color-gray);
   font-size: 1rem; // 16px
   font-weight: 500;
-  line-height: 1.1875rem; // 19px
-  transform: translateY(-1.6875rem); // -27px: 모바일 시안의 컨테이너 중앙에 정렬
+  line-height: 1.5;
 }
 
 .errorState { gap: 1.25rem; } // 20px
@@ -81,25 +87,15 @@
   overflow-wrap: anywhere;
 }
 .retryButton {
-  min-width: 9rem; // 144px
-  min-height: 3rem; // 48px
-  padding: 0.75rem 1.25rem; // 12px 20px
-  border-radius: 1rem; // 16px
-  background: var(--color-brand);
-  color: var(--color-white);
-  font-size: 1rem; // 16px
-  font-weight: 700;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
+  min-width: 144px;
+  min-height: 48px;
+  padding: 12px 20px;
+  font-size: 16px;
+  @include buttons.primary;
 }
 
 @media (min-width: breakpoints.$tablet) {
   .list { gap: 1.25rem; } // 20px
-  .emptyState,
-  .errorState { min-height: 30.9375rem; } // 495px: 바깥 여백·제목을 포함한 빈 영역 631px
   .emptyMessage {
     font-size: 1.25rem; // 20px
     line-height: 1.5rem; // 24px

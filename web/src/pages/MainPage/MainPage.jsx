@@ -8,6 +8,7 @@ import { getApiError } from "../../api/apiError.js";
 import StudyCard from "../../components/StudyCard/StudyCard.jsx";
 import BookmarkStudies from "../../components/BookmarkStudies/BookmarkStudies.jsx";
 import StudySort from "../../components/StudySort/StudySort.jsx";
+import StudyEmptyState from "../../components/StudyEmptyState/StudyEmptyState.jsx";
 import styles from "./MainPage.module.scss";
 
 const PAGE_SIZE = 6;
@@ -270,11 +271,11 @@ const MainPage = () => {
               </button>
             </div>
           ) : result.studies.length === 0 ? (
-            <p className={styles.empty} role="status">
+            <StudyEmptyState>
               {query.keyword
                 ? "검색 결과가 없어요"
                 : "아직 둘러 볼 스터디가 없어요"}
-            </p>
+            </StudyEmptyState>
           ) : (
             <div className={styles.grid}>
               {result.studies.map((study) => (

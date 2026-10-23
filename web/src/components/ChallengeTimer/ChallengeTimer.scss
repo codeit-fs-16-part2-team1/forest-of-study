@@ -1,26 +1,63 @@
 .challengeTimer {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 0;
-  height: 546px;
-  padding: 40px 24px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-gray-light);
+  flex: 1 0 auto;
+  min-height: 464px;
+  padding: 40px 24px 52px;
+  overflow: hidden;
+  background: rgb(255 253 248 / 68%);
+  border: 1px solid #dce3ce;
   border-radius: 20px;
+
+  &__art {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+
+    img {
+      position: absolute;
+      bottom: 0;
+      display: block;
+      height: auto;
+      object-fit: contain;
+    }
+  }
+
+  &__meadow {
+    left: 0;
+    width: min(34%, 400px);
+  }
+
+  &__tree {
+    right: 0;
+    width: min(29%, 340px);
+  }
+
+  &__heading,
+  &__display,
+  > .challengeControls {
+    position: relative;
+    z-index: 1;
+  }
 
   &__heading {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 12px;
   }
 
   &__title {
     margin: 0;
     font-size: 24px;
     font-weight: 800;
-    line-height: 29px;
+    line-height: 1.25;
   }
 
   &__goal {
@@ -28,10 +65,12 @@
     align-items: center;
     gap: 4px;
     margin: 0;
-    padding: 5px 8px;
-    border: 1px solid rgb(0 0 0 / 10%);
+    padding: 5px 10px;
+    border: 1px solid #d5ddbf;
     border-radius: 50px;
-    font-size: 16px;
+    background: #f2f5e9;
+    color: #536b42;
+    font-size: 14px;
     font-weight: 500;
     line-height: 19px;
 
@@ -51,19 +90,24 @@
 
   &__time {
     padding: 0;
-    color: var(--color-text);
-    font-size: 150px;
+    color: #536b42;
+    font-size: 160px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
-    line-height: 1.18;
+    letter-spacing: -0.055em;
+    line-height: 1.1;
     white-space: nowrap;
   }
 
   &__timeButton {
     background: transparent;
     border: 0;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
+
+    &:hover {
+      color: #435b34;
+    }
   }
 
   &[data-status="PAUSED"] &__time {
@@ -81,12 +125,12 @@
     border-radius: 12px;
   }
 
-  &__titleSkeleton { width: 130px; height: 29px; }
-  &__controlSkeleton { width: 333px; max-width: 100%; height: 60px; border-radius: 50px; }
+  &__titleSkeleton { width: 130px; height: 30px; }
+  &__controlSkeleton { width: 360px; max-width: 100%; height: 64px; border-radius: 50px; }
 
   &__skeleton {
     width: min(100%, 400px);
-    height: 150px;
+    height: 160px;
     background: var(--color-gray-lighter);
     border-radius: 12px;
   }
@@ -94,37 +138,52 @@
 
 @container (max-width: 900px) {
   .challengeTimer {
-    height: 510px;
+    min-height: 432px;
+    padding: 32px 20px 48px;
 
     &__time {
       font-size: 120px;
+    }
+
+    &__meadow {
+      width: 30%;
+    }
+
+    &__tree {
+      width: 26%;
     }
   }
 }
 
 @container (max-width: 640px) {
   .challengeTimer {
-    height: 358px;
-    padding: 24px 16px 48px;
+    min-height: 392px;
+    padding: 24px 12px 128px;
+    border-radius: 16px;
 
-    &[data-status="RUNNING"],
-    &[data-status="PAUSED"],
-    &[data-status="COMPLETED"] {
-      height: 342px;
-      padding-bottom: 24px;
+    &__title {
+      font-size: 20px;
     }
 
     &__heading {
-      gap: 16px;
+      gap: 10px;
     }
 
     &__time {
       font-size: clamp(48px, 23cqi, 80px);
     }
 
+    &__meadow {
+      width: min(50%, 160px);
+    }
+
+    &__tree {
+      width: min(42%, 124px);
+    }
+
     &__controlSkeleton {
-      width: 140px;
-      height: 45px;
+      width: 200px;
+      height: 48px;
     }
 
     &__skeleton {

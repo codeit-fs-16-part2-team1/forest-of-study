@@ -1,3 +1,4 @@
+@use "../../styles/watercolor-buttons" as buttons;
 .reactions {
   display: grid;
   justify-items: start;
@@ -44,6 +45,7 @@
     cursor: default;
     opacity: 0.5;
   }
+  @include buttons.secondary;
 }
 
 .list,
@@ -103,6 +105,7 @@
     cursor: default;
     opacity: 0.5;
   }
+  @include buttons.secondary;
 }
 
 .popover {

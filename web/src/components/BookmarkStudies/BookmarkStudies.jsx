@@ -2,6 +2,7 @@ import { useRef } from "react";
 import useBookmarkStudyList from "../../hooks/useBookmarkStudyList.js";
 import useMinimumLoading from "../../hooks/useMinimumLoading.js";
 import StudyCard from "../StudyCard/StudyCard.jsx";
+import StudyEmptyState from "../StudyEmptyState/StudyEmptyState.jsx";
 import styles from "../../pages/MainPage/MainPage.module.scss";
 
 const BookmarkStudies = ({ onShowToast }) => {
@@ -37,7 +38,7 @@ const BookmarkStudies = ({ onShowToast }) => {
           <button type="button" className={styles.retry} onClick={retry}>다시 시도</button>
         </div>
       ) : studies.length === 0 ? (
-        <p className={styles.empty} role="status">북마크한 스터디가 없어요</p>
+        <StudyEmptyState>북마크한 스터디가 없어요</StudyEmptyState>
       ) : (
         <div className={`${styles.grid} ${styles.recentGrid}`}>
           {studies.map((study) => <StudyCard key={study.id} study={study} onShowToast={onShowToast} onBookmarkRemoved={handleBookmarkRemoved} />)}

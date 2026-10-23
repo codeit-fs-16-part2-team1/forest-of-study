@@ -107,7 +107,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       if (deleteRequestRef.current !== request) return;
 
       setIsDeleteOpen(false);
-      navigate("/", { replace: true, state: { studyDeleted: true } });
+      navigate("/studies", { replace: true, state: { studyDeleted: true } });
     } catch (error) {
       if (deleteRequestRef.current === request && deleteFormVersionRef.current === formVersion) {
         // 비밀번호가 포함될 수 있는 Axios 오류 전체 대신 표시 문구만 보관한다.
@@ -172,7 +172,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
             </button>
             <span className={styles.managementDivider} aria-hidden="true">|</span>
             <Link to={`/reg?id=${study.id}`}>수정하기</Link>
-            <span className={styles.deleteDivider} aria-hidden="true">|</span>
+            <span className={styles.managementDivider} aria-hidden="true">|</span>
             <button type="button" className={styles.deleteButton} onClick={openDelete}>
               스터디 삭제하기
             </button>
@@ -238,6 +238,7 @@ const DashboardPage = ({ study, isLoading, error, onReactionsChange }) => {
       {isDeleteOpen && (
         <PasswordModal
           title="스터디 삭제"
+          className={styles.deleteModal}
           closeLabel="취소"
           submitLabel={isDeleting ? "삭제 중..." : "삭제하기"}
           isPending={isDeleting}
