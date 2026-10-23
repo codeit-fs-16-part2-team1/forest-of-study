@@ -9,7 +9,7 @@ const Header = () => {
     <header className={styles.header}>
       <div className={styles.inner}>
         <h1 className={styles.logo}>
-          <Link to="/">
+          <Link to="/studies">
             <span className={styles.wordmark}>공부의 숲</span>
             <svg className={styles.sprout} viewBox="0 0 48 40" fill="none" aria-hidden="true" focusable="false">
               <path d="M24 36C24 25 24 19 16 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />

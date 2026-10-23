@@ -60,7 +60,12 @@ const ChallengeEntryPage = ({ studyId, study, isStudyLoading, studyError }) => {
                     {verification.error ? "다시 시도" : "비밀번호 확인"}
                   </button>
                 )}
-                <Link className="challengePage__link" to="/">홈</Link>
+                <Link
+                  className="challengePage__link"
+                  to={currentStudy?.id ? `/dashboard/${encodeURIComponent(currentStudy.id)}` : "/studies"}
+                >
+                  {currentStudy?.id ? "스터디 상세" : "스터디 목록"}
+                </Link>
               </nav>
             </div>
           </section>

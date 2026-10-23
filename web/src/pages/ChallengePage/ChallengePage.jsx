@@ -113,8 +113,11 @@ const ChallengePage = ({
                         오늘의 습관
                       </span>
                     )}
-                    <Link className="challengePage__link" to="/">
-                      홈
+                    <Link
+                      className="challengePage__link"
+                      to={study?.id ? `/dashboard/${encodeURIComponent(study.id)}` : "/studies"}
+                    >
+                      {study?.id ? "스터디 상세" : "스터디 목록"}
                     </Link>
                   </>
                 )}
