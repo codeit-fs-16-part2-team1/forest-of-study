@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+
 // 개발용 시드 구성. DB 연결이나 기존 데이터 조회는 하지 않는다.
 // S01~S13은 용도 식별자이며 DB 컬럼을 추가하지 않는다.
 const DAY = 86_400_000;
@@ -48,72 +50,6 @@ export const shiftDate = (date, days) => dateString(new Date(
 ));
 export const koreanInstant = (date, time = "00:00:00.000") => new Date(`${date}T${time}+09:00`);
 const calendarDate = (date) => new Date(`${date}T00:00:00.000Z`);
-
-// 로컬 Compose 주소만 허용하고 URL·비밀번호를 오류에 포함하지 않는다.
-// 접속 대상을 바꾸는 query도 거절하며 localhost는 IPv4 loopback으로 고정한다.
-export const assertLocalSeedDatabase = (databaseUrl) => {
-  const message = "시드는 로컬 DB 전용입니다. localhost/127.0.0.1:5435, DB 이름 forest-of-study를 사용해주세요.";
-  let url;
-  try { url = new URL(databaseUrl); } catch { throw new Error(message); }
-  const params = [...url.searchParams];
-  if (!["postgres:", "postgresql:"].includes(url.protocol)
-      || !["localhost", "127.0.0.1"].includes(url.hostname)
-      || url.port !== "5435" || url.pathname !== "/forest-of-study" || url.hash
-      || params.some(([key, value]) => key !== "schema" || value !== "public")
-      || params.length > 1) {
-    throw new Error(message);
-  }
-  // 호출하는 스크립트는 이 반환값으로만 Prisma adapter를 생성한다.
-  url.hostname = "127.0.0.1";
-  url.search = ""; // public은 기본 스키마이므로 드라이버에 query를 전달하지 않는다.
-  return url.toString();
-};
-
-// Neon 전용 명령만 외부 DB를 허용한다. 로컬 검사를 완화하거나 DATABASE_URL로 대체하지 않는다.
-export const assertNeonSeedDatabase = (databaseUrl) => {
-  const message = "Neon 시드는 NEON_DATABASE_URL의 Neon 주소와 sslmode=require 또는 검증용 SSL 설정이 필요합니다.";
-  let url;
-  try { url = new URL(databaseUrl); } catch { throw new Error(message); }
-  const params = [...url.searchParams];
-  const allowed = {
-    schema: (value) => value === "public",
-    sslmode: (value) => ["require", "verify-ca", "verify-full"].includes(value),
-    channel_binding: (value) => ["require", "prefer"].includes(value),
-    connect_timeout: (value) => /^[1-9]\d*$/.test(value),
-  };
-  if (!["postgres:", "postgresql:"].includes(url.protocol)
-      || !url.hostname.endsWith(".neon.tech")
-      || (url.port !== "" && url.port !== "5432")
-      || !/^\/[^/]+$/.test(url.pathname) || url.hash
-      || !allowed.sslmode(url.searchParams.get("sslmode"))
-      || new Set(params.map(([key]) => key)).size !== params.length
-      || params.some(([key, value]) => !Object.hasOwn(allowed, key) || !allowed[key](value))) {
-    throw new Error(message);
-  }
-  // SSL·channel binding을 유지하고 Prisma의 public 지정만 드라이버에서 제외한다.
-  url.searchParams.delete("schema");
-  return url.toString();
-};
-
-export const getSeedTarget = (args, environment, { allowPreflight = false } = {}) => {
-  const targetArgs = args.filter((arg) => arg.startsWith("--target="));
-  const name = targetArgs.length === 0 ? "local" : targetArgs[0].slice("--target=".length);
-  if (targetArgs.length > 1 || !["local", "neon"].includes(name)
-      || args.filter((arg) => arg === "--preflight").length > 1
-      || args.some((arg) => arg !== `--target=${name}` && !(allowPreflight && arg === "--preflight"))) {
-    throw new Error("시드 인자는 --target=local 또는 --target=neon과 확인용 --preflight만 허용합니다.");
-  }
-  const envName = name === "local" ? "LOCAL_DATABASE_URL" : "NEON_DATABASE_URL";
-  if (typeof environment[envName] !== "string" || environment[envName].length === 0) {
-    throw new Error(`${envName} 설정이 필요합니다.`);
-  }
-  return {
-    name, label: name === "local" ? "로컬" : "Neon", envName,
-    connectionString: name === "local" ? assertLocalSeedDatabase(environment[envName])
-      : assertNeonSeedDatabase(environment[envName]),
-    preflight: args.includes("--preflight"),
-  };
-};
 
 export const buildSeedData = (anchorTime = new Date()) => {
   const now = new Date(anchorTime);
@@ -311,4 +247,106 @@ export const validateSeedRows = (data, referenceTime) => {
       : row.awardedPoints === 0, "집중 완료 지급 규칙이 맞지 않습니다.");
   }
   for (const row of data.reactions) fail(SEED_EMOJIS.includes(row.emoji), "시드 응원 이모지가 유효하지 않습니다.");
+};
+
+// 실행 전 한국 날짜 경계와 테스트용 구성을 함께 검사한다.
+export const checkTestSeedData = () => {
+  const boundaries = [
+    ["한국 자정 직전", "2026-10-12T14:59:59.999Z", "2026-10-12"],
+    ["한국 자정", "2026-10-12T15:00:00.000Z", "2026-10-13"],
+    ["UTC 자정 직전", "2026-10-12T23:59:59.999Z", "2026-10-13"],
+    ["UTC 자정", "2026-10-13T00:00:00.000Z", "2026-10-13"],
+    ["일요일 마지막", "2026-10-11T14:59:59.999Z", "2026-10-11"],
+    ["월요일 시작", "2026-10-11T15:00:00.000Z", "2026-10-12"],
+    ["월말 마지막", "2026-10-31T14:59:59.999Z", "2026-10-31"],
+    ["다음 달 시작", "2026-10-31T15:00:00.000Z", "2026-11-01"],
+    ["연말 마지막", "2026-12-31T14:59:59.999Z", "2026-12-31"],
+    ["다음 해 시작", "2026-12-31T15:00:00.000Z", "2027-01-01"],
+    ["윤년 2월 29일", "2028-02-28T15:00:00.000Z", "2028-02-29"],
+    ["윤년 3월 시작", "2028-02-29T15:00:00.000Z", "2028-03-01"],
+    ["평년 3월 시작", "2026-02-28T15:00:00.000Z", "2026-03-01"],
+  ];
+  for (const [, utc, expected] of boundaries) assert.equal(getKoreanDate(new Date(utc)), expected);
+  assert.equal(shiftDate("2026-01-01", -1), "2025-12-31");
+  assert.equal(shiftDate("2028-02-28", 1), "2028-02-29");
+  assert.equal(shiftDate("2028-02-29", 1), "2028-03-01");
+  for (const [, utc] of boundaries) {
+    const data = buildSeedData(new Date(utc));
+    validateSeedRows(data, data.anchorTime);
+  }
+};
+
+// 기존 별도 검사기의 구성·날짜·응원 SQL 검사를 삽입 트랜잭션 안에서 수행한다.
+export const validateStoredTestData = async (tx, { studies, routines, histories, challenges }) => {
+  const reactions = await tx.reaction.findMany();
+  const backgroundCounts = SEED_BACKGROUND_KEYS.map((backgroundKey) => ({
+    backgroundKey, count: studies.filter((row) => row.backgroundKey === backgroundKey).length,
+  }));
+  for (const { count } of backgroundCounts) assert(count >= 1 && count <= 2);
+  for (let s = 1; s <= 13; s += 1) {
+    const [, , routineCount, historyCount, challengeCount, reactionCount, points] = STUDY_CASES[s - 1];
+    const ownedRoutines = routines.filter((r) => r.studyId === studyId(s));
+    const ids = new Set(ownedRoutines.map((r) => r.id));
+    assert.equal(ownedRoutines.length, routineCount);
+    assert.equal(histories.filter((h) => ids.has(h.routineId)).length, historyCount);
+    assert.equal(challenges.filter((c) => c.studyId === studyId(s)).length, challengeCount);
+    assert.equal(reactions.filter((r) => r.studyId === studyId(s)).length, reactionCount);
+    assert.equal(studies.find((r) => r.id === studyId(s))?.points, points);
+  }
+  assert.equal(routines.filter((r) => r.endsOn === null).length, 43);
+  assert.equal(routines.filter((r) => r.studyId === studyId(3) && r.endsOn === null).length, 18);
+  assert.equal(routines.filter((r) => r.studyId === studyId(4) && r.endsOn === null).length, 17);
+  for (const [status, count] of [["COMPLETED", 9], ["RUNNING", 2], ["PAUSED", 2], ["RESET", 3]]) {
+    assert.equal(challenges.filter((c) => c.status === status).length, count);
+  }
+
+  // S01 생성 시각이 이번 시드의 기준 시각이다. 확인일이 달라져도 새 날짜로 재해석하지 않는다.
+  const today = getKoreanDate(studies.find((r) => r.id === studyId(1)).createdAt);
+  const yesterday = shiftDate(today, -1);
+  const twoDaysAgo = shiftDate(today, -2);
+  const historyAt = (r, date) => histories.find((h) => h.routineId === routineId(2, r) && dateString(h.recordDate) === date);
+  for (const [r, date, time] of [[1, twoDaysAgo, "23:59:59.999"], [1, yesterday, "00:00:00.000"],
+    [2, yesterday, "08:59:59.999"], [4, yesterday, "09:00:00.000"]]) {
+    assert.equal(historyAt(r, date)?.createdAt.getTime(), koreanInstant(date, time).getTime());
+  }
+  assert.equal(historyAt(2, today)?.completed, false); // 명시적 체크 해제 행
+  assert(!historyAt(3, today)); // 유효 날짜지만 미기록, 조회 시 false
+  const previousCheck = histories.find((h) => h.routineId === routineId(3, 6)
+    && dateString(h.recordDate) === yesterday);
+  assert.equal(previousCheck?.completed, true);
+  assert(!histories.some((h) => h.routineId === routineId(3, 6) && dateString(h.recordDate) === today));
+  const sameDay = routines.find((r) => r.id === routineId(2, 6));
+  assert.equal(dateString(sameDay.startsOn), today);
+  assert.equal(dateString(sameDay.endsOn), today);
+  assert.equal(historyAt(6, today)?.completed, true);
+  const weekStart = shiftDate(today, -6);
+  const visible = routines.filter((r) => r.studyId === studyId(2)
+    && dateString(r.startsOn) <= today && (r.endsOn === null || dateString(r.endsOn) >= weekStart));
+  assert.equal(visible.length, 7);
+  assert(!visible.some((r) => r.id === routineId(2, 7)));
+  assert(visible.some((r) => r.id === routineId(2, 8)));
+
+  const crossing = challenges.find((c) => c.id === challengeId(6, 2));
+  const midnight = koreanInstant(today).getTime();
+  const elapsedAt = (at) => Math.min(crossing.goalMinutes * 60_000,
+    crossing.elapsedMilliseconds + Math.max(0, at - crossing.lastStartedAt.getTime()));
+  assert.equal(getKoreanDate(crossing.lastStartedAt), yesterday);
+  assert.equal(elapsedAt(midnight - 1), 180 * 60_000 - 1);
+  assert.equal(elapsedAt(midnight), 180 * 60_000);
+  assert.equal(elapsedAt(midnight + 86_400_000), 180 * 60_000);
+  assert.equal(crossing.status, "RUNNING");
+  assert.equal(crossing.awardedPoints, 0);
+  assert.equal(challenges.find((c) => c.id === challengeId(7, 2)).elapsedMilliseconds, 7 * 60_000);
+
+  // DB의 COUNT·MIN·C collation을 실제로 확인한다. 이모지 값은 모두 다르다.
+  const top = await tx.$queryRaw`
+    SELECT "studyId"::text AS "studyId", "emoji", COUNT(*)::int AS "count"
+    FROM "Reaction" WHERE "studyId" IN (${studyId(11)}::uuid, ${studyId(12)}::uuid)
+    GROUP BY "studyId", "emoji"
+    ORDER BY "studyId", COUNT(*) DESC, MIN("createdAt") ASC, "emoji" COLLATE "C" ASC
+  `;
+  assert.deepEqual(top.filter((r) => r.studyId === studyId(11)).slice(0, 3).map((r) => [r.emoji, r.count]),
+    [["🔥", 5], ["👏", 4], ["💪", 3]]);
+  assert.deepEqual(top.filter((r) => r.studyId === studyId(12)).slice(0, 3).map((r) => [r.emoji, r.count]),
+    [["🌱", 2], ["👏", 2], ["💪", 2]]);
 };

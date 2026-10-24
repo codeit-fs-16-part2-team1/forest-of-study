@@ -11,8 +11,10 @@
     "db:migrate": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:check": "node scripts/checkDb.js",
-    "seed": "node --env-file=.env seed.js --target=local",
-    "seed:neon": "node --env-file=.env seed.js --target=neon",
+    "seed": "node --env-file=.env seeds/seed.js",
+    "seed:neon": "node --env-file=.env seeds/seed.js --target=neon",
+    "seed:demo": "node --env-file=.env seeds/seed.js --data=demo",
+    "seed:demo:neon": "node --env-file=.env seeds/seed.js --data=demo --target=neon",
     "test": "node scripts/checkApiValidation.js && node scripts/checkChallengeFunctions.js && node scripts/checkChallengeCompletionRules.js && node scripts/checkReactionFunctions.js"
   },
   "keywords": [],

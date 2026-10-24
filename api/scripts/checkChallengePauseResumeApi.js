@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
-import { assertLocalSeedDatabase } from "../seedData.js";
+import { assertLocalSeedDatabase } from "../seeds/database.js";
 
 // 로컬 DB와 실제 라우터를 임시 서버에서 검사한다. app.js 연결은 api.http로 확인한다.
 // --preflight: DB 연결 없이 주소 검사. --wait-goal: 실제 10분 목표 경계도 검사.

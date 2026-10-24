@@ -4,7 +4,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import express from "express";
 import bcrypt from "bcrypt";
 import { calculateChallengePoints } from "../src/utils/challengePoints.js";
-import { assertLocalSeedDatabase } from "../seedData.js";
+import { assertLocalSeedDatabase } from "../seeds/database.js";
 
 // 로컬 DB·실제 라우터·인증을 검증한다. app.js 서버와 스터디 상세 API 검증은 별도다.
 // 기본 10분을 실제로 기다린다. 인자로 20·25·180분을 선택할 수 있다.

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { validateCreateStudy, validateUpdateStudy, validateStudyListQuery, validateStudyIdParams } from "../src/schemas/study.js";
 import { validateRoutineCheck, validateRoutineBatch } from "../src/schemas/routine.js";
 import { validateStudyPassword, validatePasswordVerificationBody } from "../src/schemas/studyPassword.js";
-import { assertLocalSeedDatabase } from "../seedData.js";
+import { assertLocalSeedDatabase } from "../seeds/database.js";
 
 // 스키마와 주소 판정만 검사한다. 환경변수·DB·서버를 사용하지 않는다.
 let step = "비밀번호 원문·공백 거절";

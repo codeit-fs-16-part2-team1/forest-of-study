@@ -66,8 +66,11 @@ TypeScript는 사용하지 않습니다. 의존성은 `api/`와 `web/`에서 각
 │   │   ├── utils/
 │   │   └── app.js
 │   ├── prisma.config.js
-│   ├── seed.js
-│   ├── seedData.js
+│   ├── seeds/               # 테스트·시연 데이터와 공통 실행
+│   │   ├── seed.js
+│   │   ├── database.js
+│   │   ├── testData.js
+│   │   └── demoData.js
 │   └── package.json
 ├── web/
 │   ├── mocks/               # 임시 데이터
