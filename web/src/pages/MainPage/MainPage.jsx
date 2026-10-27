@@ -32,7 +32,6 @@ const MainPage = () => {
     });
   }, [location, navigate, showToast]);
   const [searchInput, setSearchInput] = useState("");
-  const [isComposing, setIsComposing] = useState(false);
   const composingRef = useRef(false);
   const searchTimerRef = useRef(null);
   const [query, setQuery] = useState({
@@ -114,7 +113,8 @@ const MainPage = () => {
 
   useEffect(() => {
     const keyword = searchInput.trim().normalize("NFC");
-    if (isComposing || keyword === query.keyword) return;
+    // 한글 조합 중에도 입력이 멈추면 현재 표시된 검색어를 반영한다.
+    if (keyword === query.keyword) return;
 
     searchTimerRef.current = window.setTimeout(() => {
       searchTimerRef.current = null;
@@ -123,7 +123,7 @@ const MainPage = () => {
     }, SEARCH_DELAY_MS);
 
     return () => window.clearTimeout(searchTimerRef.current);
-  }, [searchInput, isComposing, query.keyword, changeQuery]);
+  }, [searchInput, query.keyword, changeQuery]);
 
   const handleSearch = (event) => {
     event.preventDefault();
@@ -222,13 +222,10 @@ const MainPage = () => {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               onCompositionStart={() => {
-                window.clearTimeout(searchTimerRef.current);
                 composingRef.current = true;
-                setIsComposing(true);
               }}
               onCompositionEnd={(event) => {
                 composingRef.current = false;
-                setIsComposing(false);
                 setSearchInput(event.currentTarget.value);
               }}
               onKeyDown={(event) => {
